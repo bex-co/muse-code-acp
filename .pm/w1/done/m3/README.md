@@ -1,6 +1,6 @@
 # w1 · m3 — Sessions, auth, skills, MCP, packaging + release
 
-**Worker:** worker1 **Goal:** the adapter is a complete, installable product: past sessions list and load with full history, login works from the editor, Muse skills appear as slash commands, client MCP servers reach Muse where possible, and the package ships on npm with docs an editor user can follow. **Status:** todo (t001–t006 done)
+**Worker:** worker1 **Goal:** the adapter is a complete, installable product: past sessions list and load with full history, login works from the editor, Muse skills appear as slash commands, client MCP servers reach Muse where possible, and the package ships on npm with docs an editor user can follow. **Status:** done
 
 ## Tasks (in order)
 
@@ -12,9 +12,9 @@
 | t004 | Skills surfaced as ACP slash commands — **DONE**                    | 45m | —                      |
 | t005 | MCP passthrough via settings overlay (or documented gap) — **DONE** | 60m | —                      |
 | t006 | README, capability matrix, Zed config, npm release — **DONE**       | 45m | t002, t003, t004, t005 |
-| t007 | Simplify pass over milestone changes                                | 30m | t006                   |
-| t008 | Test coverage for shipped behavior                                  | 45m | t007                   |
-| t009 | Closeout                                                            | 15m | t008                   |
+| t007 | Simplify pass over milestone changes — **DONE**                     | 30m | t006                   |
+| t008 | Test coverage for shipped behavior — **DONE**                       | 45m | t007                   |
+| t009 | Closeout — **DONE**                                                 | 15m | t008                   |
 
 ## Definition of done
 
@@ -27,3 +27,8 @@ From a real ACP client configured per the README: the sessions list shows this w
 - **Expected outcome:** installable npm package + README that gets a Zed/VS Code-ACP user from zero to a resumed Muse session; a public issue list tracking the Meta-gated gaps (interactive approvals, hooks).
 - **Why now:** all tasks consume m2's translator (history replay reuses it verbatim); packaging last avoids shipping before the honest-degradation story is complete.
 - **Render parity omitted:** bex-specific standing task; no REST/GraphQL/MCP/dashboard surface in this project (see m1 README).
+
+> Closeout note (2026-08-25): DoD verified with two explicit adjustments.
+> (1) List/load/auth/skills verified via the in-process ACP client harness and a raw ndjson stdio smoke against the built binary — not a graphical editor (none available in this environment); the Zed config in the README is taken from Zed's documented `agent_servers` shape.
+> (2) `npm install -g` verified from the locally packed tarball (`npm pack` → global install → initialize round trip). The public npm publish and GitHub hosting are deliberately left to the maintainer — outward-facing actions — with the release-please pipeline fully wired (merge a conventional PR, merge the release PR, publish runs).
+> MCP: shipped as documented loud-ignore rather than hard rejection (docs/mcp-passthrough.md) — bricking sessions over globally-configured client MCP servers was judged hostile; capability honestly absent from initialize.
