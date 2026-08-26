@@ -14,12 +14,15 @@ import {
   PROTOCOL_VERSION,
   RequestError,
   SessionNotification,
+  SetSessionModeRequest,
+  SetSessionModeResponse,
   Stream,
 } from "@agentclientprotocol/sdk";
 import { randomUUID } from "node:crypto";
 import { isAbsolute } from "node:path";
 import packageJson from "../package.json" with { type: "json" };
 import { Logger } from "./logger.js";
+import { guardContext, isModeAvailable, MODES, modeState, MuseModeId } from "./modes.js";
 import { MuseExecHandle, spawnMuseExec } from "./muse-exec.js";
 import { TurnTranslator } from "./translate.js";
 import { nodeToWebReadable, nodeToWebWritable, unreachable } from "./utils.js";
@@ -58,6 +61,8 @@ export interface SessionState {
   activeTurn: MuseExecHandle | null;
   /** Set by `session/cancel`; forces the turn to settle with `cancelled`. */
   cancelRequested: boolean;
+  /** Active ACP session mode; decides the safety flags of the next spawn. */
+  modeId: MuseModeId;
 }
 
 /**
@@ -110,8 +115,21 @@ export class MuseAcpAgent {
       museSessionId: sessionId,
       activeTurn: null,
       cancelRequested: false,
+      modeId: "default",
     });
-    return { sessionId };
+    return { sessionId, modes: modeState("default", guardContext()) };
+  }
+
+  async setSessionMode(params: SetSessionModeRequest): Promise<SetSessionModeResponse> {
+    const session = this.requireSession(params.sessionId);
+    if (!isModeAvailable(params.modeId, guardContext())) {
+      throw RequestError.invalidParams(
+        undefined,
+        `unknown or unavailable session mode: ${params.modeId}`,
+      );
+    }
+    session.modeId = params.modeId;
+    return {};
   }
 
   async prompt(params: PromptRequest): Promise<PromptResponse> {
@@ -136,6 +154,7 @@ export class MuseAcpAgent {
       museBinary: this.options.museBinary,
       provider: this.options.provider,
       env: this.options.env,
+      extraArgs: MODES[session.modeId].flags,
       logger: this.logger,
     });
     session.activeTurn = handle;
@@ -259,6 +278,7 @@ export function createAgentConnection(
   const connection = acpAgent({ name: "muse-code-acp" })
     .onRequest(methods.agent.initialize, (ctx) => agent.initialize(ctx.params))
     .onRequest(methods.agent.session.new, (ctx) => agent.newSession(ctx.params))
+    .onRequest(methods.agent.session.setMode, (ctx) => agent.setSessionMode(ctx.params))
     .onRequest(methods.agent.session.prompt, (ctx) => agent.prompt(ctx.params))
     .onNotification(methods.agent.session.cancel, (ctx) => agent.cancel(ctx.params))
     .connect(target as Stream);
