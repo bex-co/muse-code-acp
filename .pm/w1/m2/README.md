@@ -1,20 +1,20 @@
 # w1 · m2 — Real turn translation: tool calls, modes, cancellation, continuity
 
-**Worker:** worker1 **Goal:** a real Muse Spark turn renders faithfully in an ACP client — tool calls with results and diffs, honest permission-mode mapping, robust error/stop-reason handling, and multi-turn session continuity via `--session-id`. **Status:** todo
+**Worker:** worker1 **Goal:** a real Muse Spark turn renders faithfully in an ACP client — tool calls with results and diffs, honest permission-mode mapping, robust error/stop-reason handling, and multi-turn session continuity via `--session-id`. **Status:** todo (t001–t002 done)
 
 ## Tasks (in order)
 
-| id   | title                                                   | est | depends_on             |
-| ---- | ------------------------------------------------------- | --- | ---------------------- |
-| t001 | Tool-call translation: intents, results, tool kinds     | 60m | —                      |
-| t002 | Edit/diff surfacing in tool_call updates                | 45m | t001                   |
-| t003 | Turn lifecycle + error taxonomy: failures, stop reasons | 45m | t001                   |
-| t004 | Permission-mode mapping (report-only default, bypass)   | 45m | —                      |
-| t005 | Model + reasoning-effort as ACP session config options  | 45m | —                      |
-| t006 | Multi-turn continuity + resume-safety via --session-id  | 30m | t003                   |
-| t007 | Simplify pass over milestone changes                    | 30m | t002, t004, t005, t006 |
-| t008 | Test coverage for shipped behavior                      | 60m | t007                   |
-| t009 | Closeout                                                | 15m | t008                   |
+| id   | title                                                          | est | depends_on             |
+| ---- | -------------------------------------------------------------- | --- | ---------------------- |
+| t001 | Tool-call translation: intents, results, tool kinds — **DONE** | 60m | —                      |
+| t002 | Edit/diff surfacing in tool_call updates — **DONE**            | 45m | t001                   |
+| t003 | Turn lifecycle + error taxonomy: failures, stop reasons        | 45m | t001                   |
+| t004 | Permission-mode mapping (report-only default, bypass)          | 45m | —                      |
+| t005 | Model + reasoning-effort as ACP session config options         | 45m | —                      |
+| t006 | Multi-turn continuity + resume-safety via --session-id         | 30m | t003                   |
+| t007 | Simplify pass over milestone changes                           | 30m | t002, t004, t005, t006 |
+| t008 | Test coverage for shipped behavior                             | 60m | t007                   |
+| t009 | Closeout                                                       | 15m | t008                   |
 
 ## Definition of done
 

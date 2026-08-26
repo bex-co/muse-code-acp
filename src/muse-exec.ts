@@ -36,6 +36,8 @@ export interface MuseExecHandle {
   /** Settles when the child exits; never rejects. */
   done: Promise<MuseExitOutcome>;
   pid: number | undefined;
+  /** The exact command line spawned — for usage-error diagnostics. */
+  argv: string[];
 }
 
 /**
@@ -115,6 +117,7 @@ export function spawnMuseExec(options: MuseExecOptions): MuseExecHandle {
     },
     done,
     pid: child.pid,
+    argv: [binary, ...args],
   };
 }
 

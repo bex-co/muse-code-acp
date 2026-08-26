@@ -1,6 +1,11 @@
 import { SessionNotification } from "@agentclientprotocol/sdk";
 import { Logger } from "./logger.js";
-import { MuseEnvelope, runOutputDeltaPayloadSchema } from "./muse-events.js";
+import {
+  MuseEnvelope,
+  RunTerminalPayload,
+  runOutputDeltaPayloadSchema,
+  runTerminalPayloadSchema,
+} from "./muse-events.js";
 import { ToolCallTracker } from "./tool-calls.js";
 
 /**
@@ -13,6 +18,9 @@ import { ToolCallTracker } from "./tool-calls.js";
  */
 export class TurnTranslator {
   private readonly tools: ToolCallTracker;
+  /** The last `run.terminal.*` payload seen — the run's own account of how it
+   *  ended, used to enrich stop reasons and error messages. */
+  lastTerminal: RunTerminalPayload | null = null;
 
   constructor(
     private readonly sessionId: string,
@@ -22,6 +30,13 @@ export class TurnTranslator {
   }
 
   toUpdates(envelope: MuseEnvelope): SessionNotification[] {
+    if (envelope.payload_type.startsWith("run.terminal.")) {
+      const parsed = runTerminalPayloadSchema.safeParse(envelope.payload);
+      if (parsed.success) {
+        this.lastTerminal = parsed.data;
+      }
+      return [];
+    }
     switch (envelope.payload_type) {
       case "run.output.delta": {
         const parsed = runOutputDeltaPayloadSchema.safeParse(envelope.payload);

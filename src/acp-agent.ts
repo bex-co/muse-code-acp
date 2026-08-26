@@ -159,16 +159,48 @@ export class MuseAcpAgent {
         case "usage-error":
           throw RequestError.internalError(
             undefined,
-            `muse exec rejected the invocation (exit ${outcome.code}) — adapter/CLI flag mismatch`,
+            `muse exec rejected the invocation (exit ${outcome.code}) — ` +
+              `adapter/CLI flag mismatch. argv: ${handle.argv.join(" ")}`,
           );
-        case "failed":
-          throw RequestError.internalError(undefined, `muse exec failed (exit ${outcome.code})`);
+        case "failed": {
+          const terminal = translator.lastTerminal;
+          // Muse exits 1 when --max-model-steps caps the run; that is a turn
+          // limit, not an error (best-effort match on the terminal reason).
+          if (/max[ _-]?(model[ _-]?)?steps/i.test(terminal?.reason ?? "")) {
+            return { stopReason: "max_turn_requests" };
+          }
+          throw this.turnFailure(outcome.code, terminal);
+        }
         default:
           return (unreachable(outcome, this.logger), { stopReason: "end_turn" });
       }
     } finally {
       session.activeTurn = null;
     }
+  }
+
+  /**
+   * Classifies an exit-1 turn using the run's own terminal record. Note: exit
+   * codes describe run completion, not code correctness — an exit-0 turn where
+   * the agent reports failing tests is still `end_turn`; only run-level
+   * failures land here.
+   */
+  private turnFailure(
+    code: number,
+    terminal: { terminal: string; text?: string | null; reason?: string | null } | null,
+  ): RequestError {
+    const detail = [terminal?.reason, terminal?.text].filter(Boolean).join(" — ");
+    if (/auth|credential|api.?key|unauthorized|log.?in|401/i.test(detail)) {
+      return RequestError.authRequired(
+        undefined,
+        `muse provider authentication failed: ${detail}. ` +
+          `Run \`muse login\` or set META_API_KEY.`,
+      );
+    }
+    return RequestError.internalError(
+      undefined,
+      detail ? `muse exec failed (exit ${code}): ${detail}` : `muse exec failed (exit ${code})`,
+    );
   }
 
   async cancel(params: CancelNotification): Promise<void> {

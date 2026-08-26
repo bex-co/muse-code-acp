@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { spawnMuseExec } from "../muse-exec.js";
 import { connectTestClient, fakeMuseBinary, initialized, silentLogger } from "./helpers.js";
 
-function fakeMuseClient(mode: "block" | "exit1" | "exit2") {
+function fakeMuseClient(mode: "block" | "exit1" | "exit2" | "failterm" | "autherr" | "maxsteps") {
   return connectTestClient({
     museBinary: fakeMuseBinary(),
     env: { ...process.env, FAKE_MUSE_MODE: mode },
@@ -35,7 +35,7 @@ describe("prompt failure modes", () => {
     expect(testClient.agent.sessions.get(sessionId)?.activeTurn).toBeNull();
   });
 
-  it("exit 2 (usage error) rejects and names the flag-mismatch cause", async () => {
+  it("exit 2 (usage error) rejects, naming the cause and the spawned argv", async () => {
     const testClient = fakeMuseClient("exit2");
     const { ctx, sessionId } = await newSession(testClient);
 
@@ -44,7 +44,49 @@ describe("prompt failure modes", () => {
         sessionId,
         prompt: [{ type: "text", text: "anything" }],
       }),
-    ).rejects.toMatchObject({ code: -32603, message: expect.stringMatching(/rejected/) });
+    ).rejects.toMatchObject({
+      code: -32603,
+      message: expect.stringMatching(/rejected[\s\S]*argv:.*exec --json --session-id/),
+    });
+  });
+
+  it("exit 1 with a terminal reason carries the reason in the error", async () => {
+    const testClient = fakeMuseClient("failterm");
+    const { ctx, sessionId } = await newSession(testClient);
+
+    await expect(
+      ctx.request(methods.agent.session.prompt, {
+        sessionId,
+        prompt: [{ type: "text", text: "x" }],
+      }),
+    ).rejects.toMatchObject({
+      code: -32603,
+      message: expect.stringMatching(/model stream failed after 10 attempts/),
+    });
+  });
+
+  it("classifies auth failures as auth_required", async () => {
+    const testClient = fakeMuseClient("autherr");
+    const { ctx, sessionId } = await newSession(testClient);
+
+    await expect(
+      ctx.request(methods.agent.session.prompt, {
+        sessionId,
+        prompt: [{ type: "text", text: "x" }],
+      }),
+    ).rejects.toMatchObject({ message: expect.stringMatching(/muse login|META_API_KEY/) });
+  });
+
+  it("maps a max-model-steps cap to the max_turn_requests stop reason", async () => {
+    const testClient = fakeMuseClient("maxsteps");
+    const { ctx, sessionId } = await newSession(testClient);
+
+    await expect(
+      ctx.request(methods.agent.session.prompt, {
+        sessionId,
+        prompt: [{ type: "text", text: "x" }],
+      }),
+    ).resolves.toEqual({ stopReason: "max_turn_requests" });
   });
 
   it("cancel for an unknown session is a harmless no-op", async () => {
