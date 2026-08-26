@@ -1,10 +1,9 @@
 import { SessionNotification } from "@agentclientprotocol/sdk";
-import { spawn } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Logger } from "./logger.js";
-import { museCliPath } from "./muse-cli.js";
+import { runMuseCapture } from "./muse-run.js";
 
 /**
  * Runs `muse export --session <id>` and parses the self-contained document
@@ -16,35 +15,15 @@ export async function runMuseExport(
   sessionId: string,
   env: Record<string, string | undefined> = process.env,
   museBinary?: string,
-  logger: Logger = console,
 ): Promise<MuseExportDocument> {
   const outDir = mkdtempSync(join(tmpdir(), "muse-export-"));
   const outFile = join(outDir, "export.json");
-  const binary = museBinary ?? museCliPath();
-
-  await new Promise<void>((resolve, reject) => {
-    const child = spawn(binary, ["export", "--session", sessionId, "--out", outFile], {
-      env: env as Record<string, string>,
-      stdio: ["ignore", "ignore", "pipe"],
-    });
-    let stderr = "";
-    child.stderr.setEncoding("utf8");
-    child.stderr.on("data", (chunk: string) => (stderr += chunk));
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`muse export exited ${code}: ${stderr.trim()}`));
-      }
-    });
-  });
 
   try {
+    await runMuseCapture(["export", "--session", sessionId, "--out", outFile], env, museBinary);
     return JSON.parse(readFileSync(outFile, "utf8")) as MuseExportDocument;
   } finally {
     rmSync(outDir, { recursive: true, force: true });
-    void logger;
   }
 }
 

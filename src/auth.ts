@@ -1,10 +1,9 @@
 import { AuthMethod } from "@agentclientprotocol/sdk";
-import { spawn } from "node:child_process";
 import { statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { Logger } from "./logger.js";
-import { museCliPath } from "./muse-cli.js";
+import { runMuseCapture } from "./muse-run.js";
 
 export const MUSE_LOGIN_METHOD_ID = "muse-login";
 export const META_API_KEY_METHOD_ID = "meta-api-key";
@@ -71,24 +70,7 @@ export async function runMuseLogout(
   museBinary?: string,
   logger: Logger = console,
 ): Promise<void> {
-  const binary = museBinary ?? museCliPath();
-  await new Promise<void>((resolve, reject) => {
-    const child = spawn(binary, ["logout"], {
-      env: env as Record<string, string>,
-      stdio: ["ignore", "ignore", "pipe"],
-    });
-    let stderr = "";
-    child.stderr.setEncoding("utf8");
-    child.stderr.on("data", (chunk: string) => (stderr += chunk));
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`muse logout exited ${code}: ${stderr.trim()}`));
-      }
-    });
-  });
+  await runMuseCapture(["logout"], env, museBinary);
   if (env.META_API_KEY) {
     logger.log("logout note: META_API_KEY is still exported in the environment");
   }

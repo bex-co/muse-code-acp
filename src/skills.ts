@@ -1,7 +1,6 @@
 import { AvailableCommand } from "@agentclientprotocol/sdk";
-import { spawn } from "node:child_process";
 import { Logger } from "./logger.js";
-import { museCliPath } from "./muse-cli.js";
+import { runMuseCapture } from "./muse-run.js";
 
 /**
  * Muse skills surfaced as ACP slash commands. Invocation is pure prompt
@@ -22,24 +21,11 @@ export async function listMuseSkills(
   museBinary?: string,
   logger: Logger = console,
 ): Promise<MuseSkill[]> {
-  const binary = museBinary ?? museCliPath();
-  const stdout = await new Promise<string>((resolve, reject) => {
-    const child = spawn(binary, ["skills", "list", "--json", "--workspace", cwd], {
-      env: env as Record<string, string>,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let out = "";
-    child.stdout.setEncoding("utf8");
-    child.stdout.on("data", (chunk: string) => (out += chunk));
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve(out);
-      } else {
-        reject(new Error(`muse skills list exited ${code}`));
-      }
-    });
-  });
+  const stdout = await runMuseCapture(
+    ["skills", "list", "--json", "--workspace", cwd],
+    env,
+    museBinary,
+  );
 
   let parsed: unknown;
   try {

@@ -261,12 +261,7 @@ export class MuseAcpAgent {
       config,
     });
 
-    const doc = await runMuseExport(
-      params.sessionId,
-      env,
-      this.options.museBinary,
-      this.logger,
-    ).catch((err) => {
+    const doc = await runMuseExport(params.sessionId, env, this.options.museBinary).catch((err) => {
       this.logger.error(`session load: export failed: ${err}`);
       throw RequestError.internalError(undefined, `could not export session history: ${err}`);
     });
