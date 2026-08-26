@@ -165,6 +165,7 @@ export class MuseAcpAgent {
         `cwd must be an absolute path, got "${params.cwd}"`,
       );
     }
+    this.warnIgnoredMcpServers(params.mcpServers);
     // The ACP session id doubles as the muse `--session-id`. Muse creates its
     // on-disk session log lazily on the first exec, so nothing is spawned here.
     const sessionId = randomUUID();
@@ -206,6 +207,21 @@ export class MuseAcpAgent {
       .catch((err) => this.logger.log(`skills advertisement failed: ${err}`));
   }
 
+  /**
+   * Muse 0.2.1 has no per-session MCP injection surface (see
+   * docs/mcp-passthrough.md); session-provided servers are ignored loudly
+   * rather than failing the session. Muse's own settings-configured MCP
+   * servers work unchanged.
+   */
+  private warnIgnoredMcpServers(mcpServers: NewSessionRequest["mcpServers"]): void {
+    if (mcpServers.length > 0) {
+      this.logger.error(
+        `ignoring ${mcpServers.length} client-provided MCP server(s): muse 0.2.1 only loads ` +
+          `MCP servers from ~/.config/muse/settings.json (docs/mcp-passthrough.md)`,
+      );
+    }
+  }
+
   async listSessions(params: ListSessionsRequest): Promise<ListSessionsResponse> {
     const sessions = listStoredSessions(
       params.cwd ?? null,
@@ -223,6 +239,7 @@ export class MuseAcpAgent {
   }
 
   async loadSession(params: LoadSessionRequest): Promise<LoadSessionResponse> {
+    this.warnIgnoredMcpServers(params.mcpServers);
     const env = this.options.env ?? process.env;
     const stored = listStoredSessions(null, env, this.logger).find(
       (session) => session.sessionId === params.sessionId,
