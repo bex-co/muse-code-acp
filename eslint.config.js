@@ -6,7 +6,15 @@ import globals from "globals";
 
 export default [
   {
-    ignores: ["node_modules/", "dist/", "coverage/", "*.min.js", "*.config.js", ".github/"],
+    ignores: [
+      "node_modules/",
+      "dist/",
+      "coverage/",
+      "*.min.js",
+      "*.config.js",
+      ".github/",
+      "src/tests/fixtures/",
+    ],
   },
   js.configs.recommended,
   {
