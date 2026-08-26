@@ -14,6 +14,8 @@ import {
   PROTOCOL_VERSION,
   RequestError,
   SessionNotification,
+  SetSessionConfigOptionRequest,
+  SetSessionConfigOptionResponse,
   SetSessionModeRequest,
   SetSessionModeResponse,
   Stream,
@@ -21,9 +23,16 @@ import {
 import { randomUUID } from "node:crypto";
 import { isAbsolute } from "node:path";
 import packageJson from "../package.json" with { type: "json" };
+import {
+  applyConfigSelection,
+  buildConfigOptions,
+  defaultSessionConfig,
+  SessionConfig,
+} from "./config-options.js";
 import { Logger } from "./logger.js";
 import { guardContext, isModeAvailable, MODES, modeState, MuseModeId } from "./modes.js";
 import { MuseExecHandle, spawnMuseExec } from "./muse-exec.js";
+import { readMuseSettings } from "./muse-settings.js";
 import { TurnTranslator } from "./translate.js";
 import { nodeToWebReadable, nodeToWebWritable, unreachable } from "./utils.js";
 
@@ -63,6 +72,8 @@ export interface SessionState {
   cancelRequested: boolean;
   /** Active ACP session mode; decides the safety flags of the next spawn. */
   modeId: MuseModeId;
+  /** Model + reasoning effort applied to every spawn for this session. */
+  config: SessionConfig;
 }
 
 /**
@@ -110,14 +121,30 @@ export class MuseAcpAgent {
     // The ACP session id doubles as the muse `--session-id`. Muse creates its
     // on-disk session log lazily on the first exec, so nothing is spawned here.
     const sessionId = randomUUID();
+    const config = defaultSessionConfig(
+      readMuseSettings(this.options.env ?? process.env, this.logger),
+    );
     this.sessions.set(sessionId, {
       cwd: params.cwd,
       museSessionId: sessionId,
       activeTurn: null,
       cancelRequested: false,
       modeId: "default",
+      config,
     });
-    return { sessionId, modes: modeState("default", guardContext()) };
+    return {
+      sessionId,
+      modes: modeState("default", guardContext()),
+      configOptions: buildConfigOptions(config),
+    };
+  }
+
+  async setSessionConfigOption(
+    params: SetSessionConfigOptionRequest,
+  ): Promise<SetSessionConfigOptionResponse> {
+    const session = this.requireSession(params.sessionId);
+    session.config = applyConfigSelection(session.config, params.configId, params.value);
+    return { configOptions: buildConfigOptions(session.config) };
   }
 
   async setSessionMode(params: SetSessionModeRequest): Promise<SetSessionModeResponse> {
@@ -153,6 +180,11 @@ export class MuseAcpAgent {
       cwd: session.cwd,
       museBinary: this.options.museBinary,
       provider: this.options.provider,
+      // Model/effort flags only apply to the real provider; muse rejects or
+      // ignores them for echo, so tests with the echo provider skip them.
+      ...(this.options.provider === "echo"
+        ? {}
+        : { model: session.config.model, reasoningEffort: session.config.reasoningEffort }),
       env: this.options.env,
       extraArgs: MODES[session.modeId].flags,
       logger: this.logger,
@@ -279,6 +311,9 @@ export function createAgentConnection(
     .onRequest(methods.agent.initialize, (ctx) => agent.initialize(ctx.params))
     .onRequest(methods.agent.session.new, (ctx) => agent.newSession(ctx.params))
     .onRequest(methods.agent.session.setMode, (ctx) => agent.setSessionMode(ctx.params))
+    .onRequest(methods.agent.session.setConfigOption, (ctx) =>
+      agent.setSessionConfigOption(ctx.params),
+    )
     .onRequest(methods.agent.session.prompt, (ctx) => agent.prompt(ctx.params))
     .onNotification(methods.agent.session.cancel, (ctx) => agent.cancel(ctx.params))
     .connect(target as Stream);

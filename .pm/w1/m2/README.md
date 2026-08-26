@@ -1,6 +1,6 @@
 # w1 · m2 — Real turn translation: tool calls, modes, cancellation, continuity
 
-**Worker:** worker1 **Goal:** a real Muse Spark turn renders faithfully in an ACP client — tool calls with results and diffs, honest permission-mode mapping, robust error/stop-reason handling, and multi-turn session continuity via `--session-id`. **Status:** todo (t001–t003 done)
+**Worker:** worker1 **Goal:** a real Muse Spark turn renders faithfully in an ACP client — tool calls with results and diffs, honest permission-mode mapping, robust error/stop-reason handling, and multi-turn session continuity via `--session-id`. **Status:** todo (t001–t004 done)
 
 ## Tasks (in order)
 
