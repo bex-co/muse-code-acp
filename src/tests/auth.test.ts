@@ -81,9 +81,9 @@ describe("auth over ACP", () => {
     });
     const ctx = await testClient.connect();
     await ctx.request(methods.agent.initialize, { protocolVersion: 1 });
-    await expect(ctx.request(methods.agent.logout, {})).rejects.toMatchObject({
-      message: expect.stringMatching(/muse logout exited 2/),
-    });
+    const err = await ctx.request(methods.agent.logout, {}).catch((e) => e);
+    expect(err.code).toBe(-32603);
+    expect(`${err.message} ${JSON.stringify(err.data ?? "")}`).toContain("muse logout exited 2");
   });
 });
 
