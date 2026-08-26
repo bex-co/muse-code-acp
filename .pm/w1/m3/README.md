@@ -1,20 +1,20 @@
 # w1 · m3 — Sessions, auth, skills, MCP, packaging + release
 
-**Worker:** worker1 **Goal:** the adapter is a complete, installable product: past sessions list and load with full history, login works from the editor, Muse skills appear as slash commands, client MCP servers reach Muse where possible, and the package ships on npm with docs an editor user can follow. **Status:** todo
+**Worker:** worker1 **Goal:** the adapter is a complete, installable product: past sessions list and load with full history, login works from the editor, Muse skills appear as slash commands, client MCP servers reach Muse where possible, and the package ships on npm with docs an editor user can follow. **Status:** todo (t001–t006 done)
 
 ## Tasks (in order)
 
-| id   | title                                                    | est | depends_on             |
-| ---- | -------------------------------------------------------- | --- | ---------------------- |
-| t001 | session/list from the Muse session store                 | 45m | —                      |
-| t002 | session/load: history replay via muse export             | 60m | t001                   |
-| t003 | Auth: login passthrough, META_API_KEY, logout            | 45m | —                      |
-| t004 | Skills surfaced as ACP slash commands                    | 45m | —                      |
-| t005 | MCP passthrough via settings overlay (or documented gap) | 60m | —                      |
-| t006 | README, capability matrix, Zed config, npm release       | 45m | t002, t003, t004, t005 |
-| t007 | Simplify pass over milestone changes                     | 30m | t006                   |
-| t008 | Test coverage for shipped behavior                       | 45m | t007                   |
-| t009 | Closeout                                                 | 15m | t008                   |
+| id   | title                                                               | est | depends_on             |
+| ---- | ------------------------------------------------------------------- | --- | ---------------------- |
+| t001 | session/list from the Muse session store — **DONE**                 | 45m | —                      |
+| t002 | session/load: history replay via muse export — **DONE**             | 60m | t001                   |
+| t003 | Auth: login passthrough, META_API_KEY, logout — **DONE**            | 45m | —                      |
+| t004 | Skills surfaced as ACP slash commands — **DONE**                    | 45m | —                      |
+| t005 | MCP passthrough via settings overlay (or documented gap) — **DONE** | 60m | —                      |
+| t006 | README, capability matrix, Zed config, npm release — **DONE**       | 45m | t002, t003, t004, t005 |
+| t007 | Simplify pass over milestone changes                                | 30m | t006                   |
+| t008 | Test coverage for shipped behavior                                  | 45m | t007                   |
+| t009 | Closeout                                                            | 15m | t008                   |
 
 ## Definition of done
 
