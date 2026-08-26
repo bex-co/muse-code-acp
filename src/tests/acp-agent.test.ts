@@ -17,8 +17,9 @@ describe("initialize", () => {
       name: "muse-code-acp",
       version: packageJson.version,
     });
-    // Nothing unimplemented may be advertised.
-    expect(response.agentCapabilities?.loadSession ?? false).toBe(false);
+    // Advertised capabilities must match what is implemented.
+    expect(response.agentCapabilities?.loadSession).toBe(true);
+    expect(response.agentCapabilities?.sessionCapabilities).toEqual({ list: {} });
     expect(response.authMethods ?? []).toEqual([]);
   });
 

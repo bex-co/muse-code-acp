@@ -5,6 +5,10 @@ import {
   ClientApp,
   InitializeRequest,
   InitializeResponse,
+  ListSessionsRequest,
+  ListSessionsResponse,
+  LoadSessionRequest,
+  LoadSessionResponse,
   methods,
   ndJsonStream,
   NewSessionRequest,
@@ -33,6 +37,8 @@ import { Logger } from "./logger.js";
 import { guardContext, isModeAvailable, MODES, modeState, MuseModeId } from "./modes.js";
 import { MuseExecHandle, spawnMuseExec } from "./muse-exec.js";
 import { readMuseSettings } from "./muse-settings.js";
+import { exportToUpdates, runMuseExport } from "./session-export.js";
+import { listStoredSessions } from "./session-store.js";
 import { TurnTranslator } from "./translate.js";
 import { nodeToWebReadable, nodeToWebWritable, unreachable } from "./utils.js";
 
@@ -103,6 +109,8 @@ export class MuseAcpAgent {
       // the milestones that ship them.
       agentCapabilities: {
         promptCapabilities: {},
+        loadSession: true,
+        sessionCapabilities: { list: {} },
       },
       agentInfo: {
         name: packageJson.name,
@@ -134,6 +142,63 @@ export class MuseAcpAgent {
     });
     return {
       sessionId,
+      modes: modeState("default", guardContext()),
+      configOptions: buildConfigOptions(config),
+    };
+  }
+
+  async listSessions(params: ListSessionsRequest): Promise<ListSessionsResponse> {
+    const sessions = listStoredSessions(
+      params.cwd ?? null,
+      this.options.env ?? process.env,
+      this.logger,
+    );
+    return {
+      sessions: sessions.map((session) => ({
+        sessionId: session.sessionId,
+        cwd: session.cwd,
+        title: session.title,
+        updatedAt: session.updatedAt,
+      })),
+    };
+  }
+
+  async loadSession(params: LoadSessionRequest): Promise<LoadSessionResponse> {
+    const env = this.options.env ?? process.env;
+    const stored = listStoredSessions(null, env, this.logger).find(
+      (session) => session.sessionId === params.sessionId,
+    );
+    if (!stored) {
+      throw RequestError.invalidParams(
+        undefined,
+        `session ${params.sessionId} not found in the muse session store`,
+      );
+    }
+
+    const config = defaultSessionConfig(readMuseSettings(env, this.logger));
+    this.sessions.set(params.sessionId, {
+      cwd: params.cwd,
+      museSessionId: params.sessionId,
+      activeTurn: null,
+      cancelRequested: false,
+      modeId: "default",
+      config,
+    });
+
+    const doc = await runMuseExport(
+      params.sessionId,
+      env,
+      this.options.museBinary,
+      this.logger,
+    ).catch((err) => {
+      this.logger.error(`session load: export failed: ${err}`);
+      throw RequestError.internalError(undefined, `could not export session history: ${err}`);
+    });
+    for (const notification of exportToUpdates(params.sessionId, doc, this.logger)) {
+      await this.client.sessionUpdate(notification);
+    }
+
+    return {
       modes: modeState("default", guardContext()),
       configOptions: buildConfigOptions(config),
     };
@@ -310,6 +375,8 @@ export function createAgentConnection(
   const connection = acpAgent({ name: "muse-code-acp" })
     .onRequest(methods.agent.initialize, (ctx) => agent.initialize(ctx.params))
     .onRequest(methods.agent.session.new, (ctx) => agent.newSession(ctx.params))
+    .onRequest(methods.agent.session.list, (ctx) => agent.listSessions(ctx.params))
+    .onRequest(methods.agent.session.load, (ctx) => agent.loadSession(ctx.params))
     .onRequest(methods.agent.session.setMode, (ctx) => agent.setSessionMode(ctx.params))
     .onRequest(methods.agent.session.setConfigOption, (ctx) =>
       agent.setSessionConfigOption(ctx.params),
