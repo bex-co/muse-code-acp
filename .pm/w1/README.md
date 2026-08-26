@@ -4,6 +4,6 @@
 
 ## Milestones
 
-- [ ] **m1** — Walking skeleton: scaffold + ACP shell + echo-provider turn (8 tasks) ← from claude-agent-acp porting research (2026-08-25)
+- [x] **m1** — Walking skeleton: scaffold + ACP shell + echo-provider turn (8 tasks) ← from claude-agent-acp porting research (2026-08-25)
 - [ ] **m2** — Real turn translation: tool calls, modes, cancellation, continuity (9 tasks) ← from claude-agent-acp porting research (2026-08-25)
 - [ ] **m3** — Sessions, auth, skills, MCP, packaging + release (9 tasks) ← from claude-agent-acp porting research (2026-08-25)

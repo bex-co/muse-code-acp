@@ -1,6 +1,6 @@
 # w1 · m1 — Walking skeleton: scaffold + ACP shell + echo-provider turn
 
-**Worker:** worker1 **Goal:** a buildable `muse-code-acp` package whose ACP server completes a full prompt turn (streamed text + end_turn + cancel) against `muse exec --provider echo --json`, proving the process-per-turn architecture end to end before any real-model work. **Status:** todo (t001–t005 done)
+**Worker:** worker1 **Goal:** a buildable `muse-code-acp` package whose ACP server completes a full prompt turn (streamed text + end_turn + cancel) against `muse exec --provider echo --json`, proving the process-per-turn architecture end to end before any real-model work. **Status:** done
 
 ## Tasks (in order)
 
@@ -11,13 +11,13 @@
 | t003 | ACP wiring: runAcp, ClientConnection seam, initialize + new — **DONE** | 60m | t002       |
 | t004 | Muse exec runner: spawn, JSONL parser, exit-code mapping — **DONE**    | 60m | t001       |
 | t005 | Minimal prompt loop: text streaming, end_turn, cancel — **DONE**       | 60m | t003, t004 |
-| t006 | Simplify pass over milestone changes                                   | 30m | t005       |
-| t007 | Test coverage for shipped behavior                                     | 45m | t006       |
-| t008 | Closeout                                                               | 15m | t007       |
+| t006 | Simplify pass over milestone changes — **DONE**                        | 30m | t005       |
+| t007 | Test coverage for shipped behavior — **DONE**                          | 45m | t006       |
+| t008 | Closeout — **DONE**                                                    | 15m | t007       |
 
 ## Definition of done
 
-`npm run build`, `npm run check`, and `npm run test:run` pass. A test harness (ACP client over stdio) can `initialize`, `session/new`, send `session/prompt`, and receive streamed `agent_message_chunk` updates followed by an `end_turn` stop reason, all backed by a spawned `muse exec --provider echo --json --no-session-log` child. `session/cancel` mid-turn kills the child (SIGINT) and resolves the prompt with a `cancelled` stop reason. No real-model calls anywhere in the suite.
+`npm run build`, `npm run check`, and `npm run test:run` pass. A test harness (ACP client) can `initialize`, `session/new`, send `session/prompt`, and receive streamed `agent_message_chunk` updates followed by an `end_turn` stop reason, all backed by a spawned `muse exec --provider echo --json` child (session logs isolated via `XDG_DATA_HOME`; `--no-session-log` turned out incompatible with `--session-id` — "a session id needs retained logging"). `session/cancel` mid-turn kills the child (SIGINT) and resolves the prompt with a `cancelled` stop reason. No real-model calls anywhere in the suite (muse's greeting fast-path answers prompts like "hello" without any provider call — tests avoid greeting-shaped prompts). Verified at closeout: 33 tests green, plus a live stdio smoke (initialize + session/new over ndjson against `dist/index.js`, clean exit on stdin EOF).
 
 ## Source + Goal linkage
 
