@@ -169,6 +169,48 @@ describe("tool-call translation (synthetic edges)", () => {
     expect(update.content?.[0]?.type).toBe("content");
   });
 
+  it("correlates interleaved parallel tool calls by call id", () => {
+    const translator = new TurnTranslator("acp-session", silentLogger());
+    const intent = (task: string, call: string, tool: string) =>
+      envelope("task.lifecycle.side_effect_intent", {
+        kind: "task_lifecycle",
+        task_id: task,
+        event: {
+          kind: "side_effect_intent",
+          task_id: task,
+          operation: `tool:${tool}`,
+          idempotency_key: `tool:${call}`,
+          policy_decision: "allow:policy",
+        },
+      });
+    const result = (call: string, tool: string, outcome: string) =>
+      envelope("tool.result", {
+        kind: "tool_result",
+        call_id: call,
+        text: JSON.stringify({ command: `${tool}-cmd`, description: "", output: "out" }),
+        correlation_facts: { tool_name: tool, outcome },
+      });
+
+    // Both calls open before either settles; results arrive out of order.
+    const opened = [
+      ...translator.toUpdates(intent("tA", "call_A", "bash")),
+      ...translator.toUpdates(intent("tB", "call_B", "bash")),
+    ];
+    const settled = [
+      ...translator.toUpdates(result("call_B", "bash", "failure")),
+      ...translator.toUpdates(result("call_A", "bash", "success")),
+    ];
+
+    expect(opened.map((n) => n.update)).toMatchObject([
+      { sessionUpdate: "tool_call", toolCallId: "call_A", status: "pending" },
+      { sessionUpdate: "tool_call", toolCallId: "call_B", status: "pending" },
+    ]);
+    expect(settled.map((n) => n.update)).toMatchObject([
+      { sessionUpdate: "tool_call_update", toolCallId: "call_B", status: "failed" },
+      { sessionUpdate: "tool_call_update", toolCallId: "call_A", status: "completed" },
+    ]);
+  });
+
   it("ignores non-tool side-effect intents", () => {
     const translator = new TurnTranslator("acp-session", silentLogger());
     const updates = translator.toUpdates(
