@@ -51,8 +51,46 @@ export const turnInputUserPayloadSchema = z.looseObject({
   prompt: z.string(),
 });
 
+/**
+ * `payload_type: "task.lifecycle.side_effect_intent"` — the durable record
+ * muse writes before any side effect runs. Tool calls surface here first:
+ * `operation: "tool:<name>"`, `idempotency_key: "tool:<call_id>"`, and the
+ * policy verdict that let it run (e.g. "allow:policy").
+ */
+export const sideEffectIntentPayloadSchema = z.looseObject({
+  kind: z.literal("task_lifecycle"),
+  task_id: z.string(),
+  event: z.looseObject({
+    kind: z.literal("side_effect_intent"),
+    task_id: z.string(),
+    operation: z.string(),
+    idempotency_key: z.string(),
+    policy_decision: z.string().nullish(),
+  }),
+});
+
+/**
+ * `payload_type: "tool.result"` — a tool call settled. `correlation_facts`
+ * carries the tool name and outcome on real tool executions; argument
+ * validation failures come through with `text: "tool failed: …"` and no
+ * correlation facts.
+ */
+export const toolResultPayloadSchema = z.looseObject({
+  kind: z.literal("tool_result"),
+  call_id: z.string(),
+  text: z.string().nullish(),
+  correlation_facts: z
+    .looseObject({
+      tool_name: z.string().nullish(),
+      outcome: z.string().nullish(),
+    })
+    .nullish(),
+});
+
 export type RunOutputDeltaPayload = z.infer<typeof runOutputDeltaPayloadSchema>;
 export type RunTerminalPayload = z.infer<typeof runTerminalPayloadSchema>;
+export type SideEffectIntentPayload = z.infer<typeof sideEffectIntentPayloadSchema>;
+export type ToolResultPayload = z.infer<typeof toolResultPayloadSchema>;
 
 /**
  * Incremental line splitter + envelope parser for a muse `--json` stdout

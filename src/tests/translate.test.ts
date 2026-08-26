@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { MuseEnvelope } from "../muse-events.js";
-import { envelopeToUpdates } from "../translate.js";
+import { TurnTranslator } from "../translate.js";
+import { silentLogger } from "./helpers.js";
 
-function envelope(payloadType: string, payload: Record<string, unknown>): MuseEnvelope {
+export function envelope(payloadType: string, payload: Record<string, unknown>): MuseEnvelope {
   return {
     schema_version: 1,
     id: "test-id",
@@ -18,10 +19,13 @@ function envelope(payloadType: string, payload: Record<string, unknown>): MuseEn
   };
 }
 
-describe("envelopeToUpdates", () => {
+function translator(): TurnTranslator {
+  return new TurnTranslator("acp-session", silentLogger());
+}
+
+describe("TurnTranslator text deltas", () => {
   it("maps run.output.delta to an agent_message_chunk", () => {
-    const updates = envelopeToUpdates(
-      "acp-session",
+    const updates = translator().toUpdates(
       envelope("run.output.delta", { kind: "run_output_delta", text: "hi there" }),
     );
 
@@ -37,16 +41,14 @@ describe("envelopeToUpdates", () => {
   });
 
   it("drops empty text deltas", () => {
-    const updates = envelopeToUpdates(
-      "acp-session",
+    const updates = translator().toUpdates(
       envelope("run.output.delta", { kind: "run_output_delta", text: "" }),
     );
     expect(updates).toEqual([]);
   });
 
   it("drops malformed run.output.delta payloads instead of throwing", () => {
-    const updates = envelopeToUpdates(
-      "acp-session",
+    const updates = translator().toUpdates(
       envelope("run.output.delta", { kind: "run_output_delta", text: 42 }),
     );
     expect(updates).toEqual([]);
@@ -58,7 +60,7 @@ describe("envelopeToUpdates", () => {
       "runtime.command.accepted",
       "something.new.from.muse-0.9",
     ]) {
-      expect(envelopeToUpdates("acp-session", envelope(type, { kind: "x" }))).toEqual([]);
+      expect(translator().toUpdates(envelope(type, { kind: "x" }))).toEqual([]);
     }
   });
 });

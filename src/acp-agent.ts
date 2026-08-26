@@ -21,7 +21,7 @@ import { isAbsolute } from "node:path";
 import packageJson from "../package.json" with { type: "json" };
 import { Logger } from "./logger.js";
 import { MuseExecHandle, spawnMuseExec } from "./muse-exec.js";
-import { envelopeToUpdates } from "./translate.js";
+import { TurnTranslator } from "./translate.js";
 import { nodeToWebReadable, nodeToWebWritable, unreachable } from "./utils.js";
 
 export type { Logger } from "./logger.js";
@@ -140,9 +140,10 @@ export class MuseAcpAgent {
     });
     session.activeTurn = handle;
 
+    const translator = new TurnTranslator(params.sessionId, this.logger);
     try {
       for await (const envelope of handle.events) {
-        for (const notification of envelopeToUpdates(params.sessionId, envelope)) {
+        for (const notification of translator.toUpdates(envelope)) {
           await this.client.sessionUpdate(notification);
         }
       }
