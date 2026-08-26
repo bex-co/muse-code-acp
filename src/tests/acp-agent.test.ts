@@ -20,7 +20,7 @@ describe("initialize", () => {
     // Advertised capabilities must match what is implemented.
     expect(response.agentCapabilities?.loadSession).toBe(true);
     expect(response.agentCapabilities?.sessionCapabilities).toEqual({ list: {} });
-    expect(response.authMethods ?? []).toEqual([]);
+    expect(response.authMethods?.length).toBe(2);
   });
 
   it("clamps future client protocol versions to our own", async () => {

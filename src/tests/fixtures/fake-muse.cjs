@@ -14,6 +14,9 @@ process.on("SIGINT", () => process.exit(130));
 process.on("SIGTERM", () => process.exit(143));
 
 const mode = process.env.FAKE_MUSE_MODE ?? "block";
+if (mode === "exit0") {
+  process.exit(0);
+}
 if (mode === "exit2") {
   process.stderr.write("usage: muse exec [OPTIONS] [PROMPT]\n");
   process.exit(2);

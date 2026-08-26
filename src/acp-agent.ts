@@ -1,8 +1,12 @@
 import {
   agent as acpAgent,
   AgentContext,
+  AuthenticateRequest,
+  AuthenticateResponse,
   CancelNotification,
   ClientApp,
+  LogoutRequest,
+  LogoutResponse,
   InitializeRequest,
   InitializeResponse,
   ListSessionsRequest,
@@ -27,6 +31,13 @@ import {
 import { randomUUID } from "node:crypto";
 import { isAbsolute } from "node:path";
 import packageJson from "../package.json" with { type: "json" };
+import {
+  isAuthenticated,
+  META_API_KEY_METHOD_ID,
+  MUSE_LOGIN_METHOD_ID,
+  museAuthMethods,
+  runMuseLogout,
+} from "./auth.js";
 import {
   applyConfigSelection,
   buildConfigOptions,
@@ -111,12 +122,39 @@ export class MuseAcpAgent {
         promptCapabilities: {},
         loadSession: true,
         sessionCapabilities: { list: {} },
+        auth: { logout: {} },
       },
+      authMethods: museAuthMethods(),
       agentInfo: {
         name: packageJson.name,
         version: packageJson.version,
       },
     };
+  }
+
+  /**
+   * For both methods `authenticate` VERIFIES the credential state: browser
+   * login runs client-side (terminal method / `--cli login`), and env keys
+   * are provided by the client's environment — the adapter only confirms.
+   */
+  async authenticate(params: AuthenticateRequest): Promise<AuthenticateResponse> {
+    if (params.methodId !== MUSE_LOGIN_METHOD_ID && params.methodId !== META_API_KEY_METHOD_ID) {
+      throw RequestError.invalidParams(undefined, `unknown auth method: ${params.methodId}`);
+    }
+    if (!isAuthenticated(this.options.env ?? process.env)) {
+      throw RequestError.authRequired(
+        undefined,
+        params.methodId === META_API_KEY_METHOD_ID
+          ? "META_API_KEY is not set in the adapter environment"
+          : "no stored muse credentials found — run `muse-code-acp --cli login` in a terminal",
+      );
+    }
+    return {};
+  }
+
+  async logout(_params: LogoutRequest): Promise<LogoutResponse> {
+    await runMuseLogout(this.options.env ?? process.env, this.options.museBinary, this.logger);
+    return {};
   }
 
   async newSession(params: NewSessionRequest): Promise<NewSessionResponse> {
@@ -374,6 +412,8 @@ export function createAgentConnection(
   let agent: MuseAcpAgent;
   const connection = acpAgent({ name: "muse-code-acp" })
     .onRequest(methods.agent.initialize, (ctx) => agent.initialize(ctx.params))
+    .onRequest(methods.agent.authenticate, (ctx) => agent.authenticate(ctx.params))
+    .onRequest(methods.agent.logout, (ctx) => agent.logout(ctx.params))
     .onRequest(methods.agent.session.new, (ctx) => agent.newSession(ctx.params))
     .onRequest(methods.agent.session.list, (ctx) => agent.listSessions(ctx.params))
     .onRequest(methods.agent.session.load, (ctx) => agent.loadSession(ctx.params))
