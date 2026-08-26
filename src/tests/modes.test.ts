@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { methods } from "@agentclientprotocol/sdk";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { availableModes, MODES } from "../modes.js";
 import { capturingLogger, connectTestClient, fakeMuseBinary, newTestSession } from "./helpers.js";
 
