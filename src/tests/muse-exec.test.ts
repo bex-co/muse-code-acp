@@ -1,14 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { chmodSync, mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { MuseEnvelope, MuseLineParser } from "../muse-events.js";
 import { spawnMuseExec } from "../muse-exec.js";
-import { museCliPath } from "../muse-cli.js";
-import { silentLogger } from "./helpers.js";
-
-const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
+import { fakeMuseBinary, fixturesDir, museAvailable, silentLogger } from "./helpers.js";
 
 function parseAll(text: string): { envelopes: MuseEnvelope[]; garbage: [string, string][] } {
   const envelopes: MuseEnvelope[] = [];
@@ -86,15 +82,6 @@ describe("MuseLineParser", () => {
   });
 });
 
-function museAvailable(): boolean {
-  try {
-    museCliPath();
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 // Live spawns need the muse binary (echo provider — offline and free, but the
 // CLI itself must be installed). CI without muse still runs everything above.
 describe.skipIf(!museAvailable())("spawnMuseExec (live echo provider)", () => {
@@ -126,13 +113,11 @@ describe.skipIf(!museAvailable())("spawnMuseExec (live echo provider)", () => {
 describe("spawnMuseExec cancellation", () => {
   it("kill() resolves cancelled and reaps the child", async () => {
     const cwd = mkdtempSync(join(tmpdir(), "muse-exec-test-"));
-    const fakeMuse = join(fixturesDir, "fake-muse.cjs");
-    chmodSync(fakeMuse, 0o755);
     const handle = spawnMuseExec({
       prompt: "blocked reply",
       sessionId: crypto.randomUUID(),
       cwd,
-      museBinary: fakeMuse,
+      museBinary: fakeMuseBinary(),
       logger: silentLogger(),
     });
 

@@ -1,29 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { methods } from "@agentclientprotocol/sdk";
-import { chmodSync, mkdtempSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { museCliPath } from "../muse-cli.js";
-import { connectTestClient, initialized, TestClient } from "./helpers.js";
+import { join } from "node:path";
+import {
+  connectTestClient,
+  fakeMuseBinary,
+  initialized,
+  museAvailable,
+  TestClient,
+} from "./helpers.js";
 import { sleep } from "../utils.js";
-
-const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
-
-function fakeMuseBinary(): string {
-  const fakeMuse = join(fixturesDir, "fake-muse.cjs");
-  chmodSync(fakeMuse, 0o755);
-  return fakeMuse;
-}
-
-function museAvailable(): boolean {
-  try {
-    museCliPath();
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 async function newSession(testClient: TestClient) {
   const ctx = await initialized(testClient);

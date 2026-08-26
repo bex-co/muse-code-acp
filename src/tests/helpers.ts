@@ -5,10 +5,33 @@ import {
   PROTOCOL_VERSION,
   SessionNotification,
 } from "@agentclientprotocol/sdk";
+import { chmodSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createAgentConnection, Logger, MuseAcpAgent, MuseAgentOptions } from "../acp-agent.js";
+import { museCliPath } from "../muse-cli.js";
+
+export const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
 
 export function silentLogger(): Logger {
   return { log: () => {}, error: () => {} };
+}
+
+/** True when the real muse CLI is installed (live echo-provider tests). */
+export function museAvailable(): boolean {
+  try {
+    museCliPath();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** The blocking fake `muse exec` used by deterministic cancellation tests. */
+export function fakeMuseBinary(): string {
+  const fakeMuse = join(fixturesDir, "fake-muse.cjs");
+  chmodSync(fakeMuse, 0o755);
+  return fakeMuse;
 }
 
 export interface TestClient {
