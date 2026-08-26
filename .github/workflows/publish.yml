@@ -1,0 +1,53 @@
+name: Publish and Release
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Tag or commit to publish
+        required: true
+        type: string
+
+jobs:
+  release-please:
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7
+        id: release
+        with:
+          # Do not add release-type here. The action ignores config-file whenever
+          # release-type is set, which silently disables the pre-1.0 versioning
+          # rules in release-please-config.json.
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+
+  publish-npm:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    needs: [release-please]
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || needs.release-please.outputs.release_created == 'true') }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref }}
+      # Setup .npmrc file to publish to npm
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "lts/*"
+          registry-url: "https://registry.npmjs.org"
+      - run: npm ci
+      - run: npm run build
+      - run: npm publish
