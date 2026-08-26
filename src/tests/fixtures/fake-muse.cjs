@@ -21,6 +21,17 @@ const envelope = {
   payload: { kind: "run_started", prompt: "fake" },
 };
 console.log(JSON.stringify(envelope));
+console.log(
+  JSON.stringify({
+    ...envelope,
+    id: "fake-2",
+    sequence: 2,
+    record_type: "status",
+    durability: "ephemeral",
+    payload_type: "run.output.delta",
+    payload: { kind: "run_output_delta", text: "thinking forever" },
+  }),
+);
 
 // Keep the event loop alive until a signal arrives.
 setInterval(() => {}, 1000);

@@ -66,6 +66,7 @@ export function spawnMuseExec(options: MuseExecOptions): MuseExecHandle {
   }
   args.push(options.prompt);
 
+  logger.log(`muse-exec spawn: ${binary} ${args.join(" ")}`);
   const child = spawn(binary, args, {
     cwd: options.cwd,
     env: (options.env ?? process.env) as Record<string, string>,

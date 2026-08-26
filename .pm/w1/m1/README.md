@@ -1,19 +1,19 @@
 # w1 · m1 — Walking skeleton: scaffold + ACP shell + echo-provider turn
 
-**Worker:** worker1 **Goal:** a buildable `muse-code-acp` package whose ACP server completes a full prompt turn (streamed text + end_turn + cancel) against `muse exec --provider echo --json`, proving the process-per-turn architecture end to end before any real-model work. **Status:** todo (t001–t003 done)
+**Worker:** worker1 **Goal:** a buildable `muse-code-acp` package whose ACP server completes a full prompt turn (streamed text + end_turn + cancel) against `muse exec --provider echo --json`, proving the process-per-turn architecture end to end before any real-model work. **Status:** todo (t001–t004 done)
 
 ## Tasks (in order)
 
-| id   | title                                                              | est | depends_on |
-| ---- | ------------------------------------------------------------------ | --- | ---------- |
-| t001 | Scaffold repo: package, tooling, CI transplant — **DONE**          | 45m | —          |
-| t002 | Transplant vendor-neutral shell (utils, index, logging) — **DONE** | 45m | t001       |
-| t003 | ACP wiring: runAcp, ClientConnection seam, initialize + new — **DONE** | 60m | t002 |
-| t004 | Muse exec runner: spawn, JSONL parser, exit-code mapping           | 60m | t001       |
-| t005 | Minimal prompt loop: text streaming, end_turn, cancel              | 60m | t003, t004 |
-| t006 | Simplify pass over milestone changes                               | 30m | t005       |
-| t007 | Test coverage for shipped behavior                                 | 45m | t006       |
-| t008 | Closeout                                                           | 15m | t007       |
+| id   | title                                                                  | est | depends_on |
+| ---- | ---------------------------------------------------------------------- | --- | ---------- |
+| t001 | Scaffold repo: package, tooling, CI transplant — **DONE**              | 45m | —          |
+| t002 | Transplant vendor-neutral shell (utils, index, logging) — **DONE**     | 45m | t001       |
+| t003 | ACP wiring: runAcp, ClientConnection seam, initialize + new — **DONE** | 60m | t002       |
+| t004 | Muse exec runner: spawn, JSONL parser, exit-code mapping — **DONE**    | 60m | t001       |
+| t005 | Minimal prompt loop: text streaming, end_turn, cancel                  | 60m | t003, t004 |
+| t006 | Simplify pass over milestone changes                                   | 30m | t005       |
+| t007 | Test coverage for shipped behavior                                     | 45m | t006       |
+| t008 | Closeout                                                               | 15m | t007       |
 
 ## Definition of done
 
