@@ -13,6 +13,20 @@
 process.on("SIGINT", () => process.exit(130));
 process.on("SIGTERM", () => process.exit(143));
 
+// Subcommand passthroughs, mode-independent: the adapter shells out to
+// `muse skills list --json` when advertising commands.
+if (process.argv.includes("skills")) {
+  console.log(
+    JSON.stringify({
+      skills: [
+        { id: "plan", description: "ground a plan in files", scope: "built-in", activation: "on" },
+        { id: "dormant", description: "inactive skill", scope: "user", activation: "off" },
+      ],
+    }),
+  );
+  process.exit(0);
+}
+
 const mode = process.env.FAKE_MUSE_MODE ?? "block";
 if (mode === "exit0") {
   process.exit(0);

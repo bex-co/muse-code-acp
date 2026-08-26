@@ -50,6 +50,7 @@ import { MuseExecHandle, spawnMuseExec } from "./muse-exec.js";
 import { readMuseSettings } from "./muse-settings.js";
 import { exportToUpdates, runMuseExport } from "./session-export.js";
 import { listStoredSessions } from "./session-store.js";
+import { listMuseSkills, skillsToCommands } from "./skills.js";
 import { TurnTranslator } from "./translate.js";
 import { nodeToWebReadable, nodeToWebWritable, unreachable } from "./utils.js";
 
@@ -178,11 +179,31 @@ export class MuseAcpAgent {
       modeId: "default",
       config,
     });
+    this.advertiseCommands(sessionId, params.cwd);
     return {
       sessionId,
       modes: modeState("default", guardContext()),
       configOptions: buildConfigOptions(config),
     };
+  }
+
+  /**
+   * Fire-and-forget: muse skills (per workspace) become ACP slash commands.
+   * Invocation is prompt passthrough — `/skill-id …` reaches muse verbatim.
+   */
+  private advertiseCommands(sessionId: string, cwd: string): void {
+    listMuseSkills(cwd, this.options.env ?? process.env, this.options.museBinary, this.logger)
+      .then((skills) => {
+        const availableCommands = skillsToCommands(skills);
+        if (availableCommands.length === 0) {
+          return;
+        }
+        return this.client.sessionUpdate({
+          sessionId,
+          update: { sessionUpdate: "available_commands_update", availableCommands },
+        });
+      })
+      .catch((err) => this.logger.log(`skills advertisement failed: ${err}`));
   }
 
   async listSessions(params: ListSessionsRequest): Promise<ListSessionsResponse> {
@@ -236,6 +257,7 @@ export class MuseAcpAgent {
       await this.client.sessionUpdate(notification);
     }
 
+    this.advertiseCommands(params.sessionId, params.cwd);
     return {
       modes: modeState("default", guardContext()),
       configOptions: buildConfigOptions(config),
