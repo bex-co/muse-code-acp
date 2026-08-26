@@ -64,12 +64,16 @@ describe.skipIf(!museAvailable())("multi-turn continuity (live echo provider)", 
     for (let i = 1; i < sequences.length; i++) {
       expect(sequences[i]).toBeGreaterThan(sequences[i - 1]);
     }
-    // The durable log uses the runtime.* vocabulary (differs from the stdout
-    // stream): one settled command intake per prompt turn.
-    const settledTurns = log.filter((line) =>
-      line.includes('"payload_type":"runtime.command_intake.settled"'),
-    );
-    expect(settledTurns.length).toBe(2);
+    // Both turns' replies streamed from the same session (the durable log
+    // uses an internal runtime.* vocabulary whose record counts are not 1:1
+    // with prompts, so the echoed outputs are the stable turn evidence).
+    const chunks = testClient.updates
+      .map((u) => u.update)
+      .filter((u) => u.sessionUpdate === "agent_message_chunk")
+      .map((u) => (u.content.type === "text" ? u.content.text : ""))
+      .join("");
+    expect(chunks).toContain("echo: repeat token one");
+    expect(chunks).toContain("echo: repeat token two");
   }, 60_000);
 
   it("a killed turn resumes cleanly on the next prompt", async () => {
