@@ -3,21 +3,8 @@ import { methods } from "@agentclientprotocol/sdk";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  connectTestClient,
-  fakeMuseBinary,
-  initialized,
-  museAvailable,
-  TestClient,
-} from "./helpers.js";
+import { connectTestClient, fakeMuseBinary, museAvailable, newTestSession } from "./helpers.js";
 import { sleep } from "../utils.js";
-
-async function newSession(testClient: TestClient) {
-  const ctx = await initialized(testClient);
-  const cwd = mkdtempSync(join(tmpdir(), "muse-prompt-test-"));
-  const { sessionId } = await ctx.request(methods.agent.session.new, { cwd, mcpServers: [] });
-  return { ctx, sessionId, cwd };
-}
 
 async function waitFor(predicate: () => boolean, timeoutMs = 10_000) {
   const start = Date.now();
@@ -35,7 +22,7 @@ describe.skipIf(!museAvailable())("session/prompt (live echo provider)", () => {
       provider: "echo",
       env: { ...process.env, XDG_DATA_HOME: mkdtempSync(join(tmpdir(), "muse-xdg-")) },
     });
-    const { ctx, sessionId } = await newSession(testClient);
+    const { ctx, sessionId } = await newTestSession(testClient);
 
     // Not "hello": muse special-cases greeting prompts with a canned reply
     // that bypasses the provider entirely (verified on muse 0.2.1).
@@ -59,7 +46,7 @@ describe.skipIf(!museAvailable())("session/prompt (live echo provider)", () => {
 describe("session/prompt (fake muse)", () => {
   it("cancel mid-turn settles the prompt with cancelled", async () => {
     const testClient = connectTestClient({ museBinary: fakeMuseBinary() });
-    const { ctx, sessionId } = await newSession(testClient);
+    const { ctx, sessionId } = await newTestSession(testClient);
 
     const promptPromise = ctx.request(methods.agent.session.prompt, {
       sessionId,
@@ -75,7 +62,7 @@ describe("session/prompt (fake muse)", () => {
 
   it("rejects a concurrent prompt on a busy session", async () => {
     const testClient = connectTestClient({ museBinary: fakeMuseBinary() });
-    const { ctx, sessionId } = await newSession(testClient);
+    const { ctx, sessionId } = await newTestSession(testClient);
 
     const first = ctx.request(methods.agent.session.prompt, {
       sessionId,
@@ -96,7 +83,7 @@ describe("session/prompt (fake muse)", () => {
 
   it("prompting again after cancel works on the same session", async () => {
     const testClient = connectTestClient({ museBinary: fakeMuseBinary() });
-    const { ctx, sessionId } = await newSession(testClient);
+    const { ctx, sessionId } = await newTestSession(testClient);
 
     const first = ctx.request(methods.agent.session.prompt, {
       sessionId,
@@ -118,7 +105,7 @@ describe("session/prompt (fake muse)", () => {
 
   it("rejects prompts without text content", async () => {
     const testClient = connectTestClient({ museBinary: fakeMuseBinary() });
-    const { ctx, sessionId } = await newSession(testClient);
+    const { ctx, sessionId } = await newTestSession(testClient);
 
     await expect(
       ctx.request(methods.agent.session.prompt, { sessionId, prompt: [] }),

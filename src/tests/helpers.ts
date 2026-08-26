@@ -5,7 +5,8 @@ import {
   PROTOCOL_VERSION,
   SessionNotification,
 } from "@agentclientprotocol/sdk";
-import { chmodSync } from "node:fs";
+import { chmodSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createAgentConnection, Logger, MuseAcpAgent, MuseAgentOptions } from "../acp-agent.js";
@@ -15,6 +16,11 @@ export const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), "fixtur
 
 export function silentLogger(): Logger {
   return { log: () => {}, error: () => {} };
+}
+
+/** Logger that records log lines (e.g. to assert spawned argv). */
+export function capturingLogger(lines: string[]): Logger {
+  return { log: (...args) => lines.push(args.join(" ")), error: () => {} };
 }
 
 /** True when the real muse CLI is installed (live echo-provider tests). */
@@ -70,4 +76,15 @@ export async function initialized(testClient: TestClient): Promise<ClientContext
   const ctx = await testClient.connect();
   await ctx.request(methods.agent.initialize, { protocolVersion: PROTOCOL_VERSION });
   return ctx;
+}
+
+/** initialize + session/new in a fresh temp cwd — the common test opening. */
+export async function newTestSession(testClient: TestClient) {
+  const ctx = await initialized(testClient);
+  const cwd = mkdtempSync(join(tmpdir(), "muse-acp-test-"));
+  const { sessionId, modes, configOptions } = await ctx.request(methods.agent.session.new, {
+    cwd,
+    mcpServers: [],
+  });
+  return { ctx, sessionId, cwd, modes, configOptions };
 }

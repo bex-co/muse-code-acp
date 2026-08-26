@@ -4,8 +4,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { availableModes, MODES } from "../modes.js";
-import { Logger } from "../logger.js";
-import { connectTestClient, fakeMuseBinary, initialized } from "./helpers.js";
+import { capturingLogger, connectTestClient, fakeMuseBinary, newTestSession } from "./helpers.js";
 
 const noYolo = { env: {}, isRoot: false };
 const yoloOptIn = { env: { MUSE_CODE_ACP_ALLOW_YOLO: "1" }, isRoot: false };
@@ -37,23 +36,9 @@ describe("availableModes guard", () => {
 });
 
 describe("session/set_mode", () => {
-  function capturingLogger(lines: string[]): Logger {
-    return { log: (...args) => lines.push(args.join(" ")), error: () => {} };
-  }
-
-  async function newSession(testClient: ReturnType<typeof connectTestClient>) {
-    const ctx = await initialized(testClient);
-    const cwd = mkdtempSync(join(tmpdir(), "muse-modes-test-"));
-    const { sessionId, modes } = await ctx.request(methods.agent.session.new, {
-      cwd,
-      mcpServers: [],
-    });
-    return { ctx, sessionId, modes };
-  }
-
   it("advertises modes on session/new with default current", async () => {
     const testClient = connectTestClient({ museBinary: fakeMuseBinary() });
-    const { modes } = await newSession(testClient);
+    const { modes } = await newTestSession(testClient);
 
     expect(modes?.currentModeId).toBe("default");
     expect(modes?.availableModes.map((m) => m.id)).toContain("bypassApprovals");
@@ -66,7 +51,7 @@ describe("session/set_mode", () => {
       { museBinary: fakeMuseBinary(), env: { ...process.env, FAKE_MUSE_MODE: "exit1" } },
       capturingLogger(lines),
     );
-    const { ctx, sessionId } = await newSession(testClient);
+    const { ctx, sessionId } = await newTestSession(testClient);
 
     await ctx.request(methods.agent.session.setMode, { sessionId, modeId: "bypassApprovals" });
     await ctx
@@ -86,7 +71,7 @@ describe("session/set_mode", () => {
       { museBinary: fakeMuseBinary(), env: { ...process.env, FAKE_MUSE_MODE: "exit1" } },
       capturingLogger(lines),
     );
-    const { ctx, sessionId } = await newSession(testClient);
+    const { ctx, sessionId } = await newTestSession(testClient);
 
     await ctx
       .request(methods.agent.session.prompt, {
@@ -101,7 +86,7 @@ describe("session/set_mode", () => {
 
   it("rejects unknown or unavailable modes", async () => {
     const testClient = connectTestClient({ museBinary: fakeMuseBinary() });
-    const { ctx, sessionId } = await newSession(testClient);
+    const { ctx, sessionId } = await newTestSession(testClient);
 
     await expect(
       ctx.request(methods.agent.session.setMode, { sessionId, modeId: "yolo" }),

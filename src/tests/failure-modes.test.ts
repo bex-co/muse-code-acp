@@ -4,7 +4,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnMuseExec } from "../muse-exec.js";
-import { connectTestClient, fakeMuseBinary, initialized, silentLogger } from "./helpers.js";
+import { connectTestClient, fakeMuseBinary, newTestSession, silentLogger } from "./helpers.js";
 
 function fakeMuseClient(mode: "block" | "exit1" | "exit2" | "failterm" | "autherr" | "maxsteps") {
   return connectTestClient({
@@ -13,17 +13,10 @@ function fakeMuseClient(mode: "block" | "exit1" | "exit2" | "failterm" | "auther
   });
 }
 
-async function newSession(testClient: ReturnType<typeof connectTestClient>) {
-  const ctx = await initialized(testClient);
-  const cwd = mkdtempSync(join(tmpdir(), "muse-failure-test-"));
-  const { sessionId } = await ctx.request(methods.agent.session.new, { cwd, mcpServers: [] });
-  return { ctx, sessionId };
-}
-
 describe("prompt failure modes", () => {
   it("exit 1 without a terminal event rejects as an internal error", async () => {
     const testClient = fakeMuseClient("exit1");
-    const { ctx, sessionId } = await newSession(testClient);
+    const { ctx, sessionId } = await newTestSession(testClient);
 
     await expect(
       ctx.request(methods.agent.session.prompt, {
@@ -37,7 +30,7 @@ describe("prompt failure modes", () => {
 
   it("exit 2 (usage error) rejects, naming the cause and the spawned argv", async () => {
     const testClient = fakeMuseClient("exit2");
-    const { ctx, sessionId } = await newSession(testClient);
+    const { ctx, sessionId } = await newTestSession(testClient);
 
     await expect(
       ctx.request(methods.agent.session.prompt, {
@@ -52,7 +45,7 @@ describe("prompt failure modes", () => {
 
   it("exit 1 with a terminal reason carries the reason in the error", async () => {
     const testClient = fakeMuseClient("failterm");
-    const { ctx, sessionId } = await newSession(testClient);
+    const { ctx, sessionId } = await newTestSession(testClient);
 
     await expect(
       ctx.request(methods.agent.session.prompt, {
@@ -67,7 +60,7 @@ describe("prompt failure modes", () => {
 
   it("classifies auth failures as auth_required", async () => {
     const testClient = fakeMuseClient("autherr");
-    const { ctx, sessionId } = await newSession(testClient);
+    const { ctx, sessionId } = await newTestSession(testClient);
 
     await expect(
       ctx.request(methods.agent.session.prompt, {
@@ -79,7 +72,7 @@ describe("prompt failure modes", () => {
 
   it("maps a max-model-steps cap to the max_turn_requests stop reason", async () => {
     const testClient = fakeMuseClient("maxsteps");
-    const { ctx, sessionId } = await newSession(testClient);
+    const { ctx, sessionId } = await newTestSession(testClient);
 
     await expect(
       ctx.request(methods.agent.session.prompt, {
@@ -91,7 +84,7 @@ describe("prompt failure modes", () => {
 
   it("cancel for an unknown session is a harmless no-op", async () => {
     const testClient = fakeMuseClient("block");
-    const { ctx, sessionId } = await newSession(testClient);
+    const { ctx, sessionId } = await newTestSession(testClient);
 
     await ctx.notify(methods.agent.session.cancel, { sessionId: crypto.randomUUID() });
 
@@ -105,7 +98,7 @@ describe("prompt failure modes", () => {
 
   it("double-cancel does not break the turn settlement", async () => {
     const testClient = fakeMuseClient("block");
-    const { ctx, sessionId } = await newSession(testClient);
+    const { ctx, sessionId } = await newTestSession(testClient);
 
     const prompt = ctx.request(methods.agent.session.prompt, {
       sessionId,

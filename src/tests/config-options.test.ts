@@ -4,9 +4,14 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { defaultSessionConfig } from "../config-options.js";
-import { Logger } from "../logger.js";
 import { readMuseSettings } from "../muse-settings.js";
-import { connectTestClient, fakeMuseBinary, initialized, silentLogger } from "./helpers.js";
+import {
+  capturingLogger,
+  connectTestClient,
+  fakeMuseBinary,
+  initialized,
+  silentLogger,
+} from "./helpers.js";
 
 function settingsEnv(contents: string | null): Record<string, string | undefined> {
   const configHome = mkdtempSync(join(tmpdir(), "muse-config-test-"));
@@ -56,10 +61,6 @@ describe("defaultSessionConfig", () => {
 });
 
 describe("session config options over ACP", () => {
-  function capturingLogger(lines: string[]): Logger {
-    return { log: (...args) => lines.push(args.join(" ")), error: () => {} };
-  }
-
   it("advertises options from settings defaults and injects unknown models", async () => {
     const env = settingsEnv(
       JSON.stringify({ schema_version: 1, model: "muse-spark-9.9-beta", reasoning_effort: "low" }),
