@@ -14,7 +14,12 @@ process.on("SIGINT", () => process.exit(130));
 process.on("SIGTERM", () => process.exit(143));
 
 // Subcommand passthroughs, mode-independent: the adapter shells out to
-// `muse skills list --json` when advertising commands.
+// `muse skills list --json` when advertising commands and `muse export`
+// when loading history. The fake export always fails (exit 2).
+if (process.argv.includes("export")) {
+  process.stderr.write("no session found\n");
+  process.exit(2);
+}
 if (process.argv.includes("skills")) {
   console.log(
     JSON.stringify({

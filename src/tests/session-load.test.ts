@@ -3,8 +3,14 @@ import { methods } from "@agentclientprotocol/sdk";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { exportToUpdates } from "../session-export.js";
-import { connectTestClient, initialized, museAvailable, silentLogger } from "./helpers.js";
+import { exportToUpdates, runMuseExport } from "../session-export.js";
+import {
+  connectTestClient,
+  fakeMuseBinary,
+  initialized,
+  museAvailable,
+  silentLogger,
+} from "./helpers.js";
 
 describe("exportToUpdates", () => {
   const wrap = (payload: Record<string, unknown>) => ({ envelope: { payload } });
@@ -37,6 +43,20 @@ describe("exportToUpdates", () => {
     ]);
   });
 
+  it("replays under a drifted export schema with a warning instead of failing", () => {
+    const doc = {
+      export_schema_version: 2,
+      events: [wrap({ kind: "run", event: { kind: "started", prompt: "still works" } })],
+    };
+    const logged: string[] = [];
+    const updates = exportToUpdates("s1", doc, {
+      log: (...a) => logged.push(a.join(" ")),
+      error: () => {},
+    });
+    expect(updates).toHaveLength(1);
+    expect(logged.join("\n")).toMatch(/schema 2/);
+  });
+
   it("skips model tasks and unknown kinds silently", () => {
     const doc = {
       export_schema_version: 1,
@@ -52,6 +72,14 @@ describe("exportToUpdates", () => {
       ],
     };
     expect(exportToUpdates("s1", doc, silentLogger())).toEqual([]);
+  });
+});
+
+describe("runMuseExport failure", () => {
+  it("rejects with the export error detail", async () => {
+    await expect(runMuseExport(crypto.randomUUID(), process.env, fakeMuseBinary())).rejects.toThrow(
+      /muse export exited 2: no session found/,
+    );
   });
 });
 
