@@ -14,7 +14,7 @@ Use Muse Code from any ACP client: Zed, VS Code (via
 1. Install [Muse Code](https://dev.meta.ai/docs/muse-code/) (`muse`, >= 0.2.1)
    and make sure it is on `PATH` (or set `MUSE_CODE_EXECUTABLE`).
 2. Authenticate: `muse login` (browser), or export `META_API_KEY`.
-3. Install the adapter: `npm install -g muse-code-acp`.
+3. Install the adapter: `npm install -g @bex-co/muse-code-acp`.
 4. Point your editor at it.
 
 ### Zed

@@ -14,7 +14,7 @@ describe("initialize", () => {
 
     expect(response.protocolVersion).toBe(PROTOCOL_VERSION);
     expect(response.agentInfo).toEqual({
-      name: "muse-code-acp",
+      name: packageJson.name,
       version: packageJson.version,
     });
     // Advertised capabilities must match what is implemented.
