@@ -13,6 +13,7 @@ import {
   ListSessionsResponse,
   LoadSessionRequest,
   LoadSessionResponse,
+  McpServer,
   methods,
   ndJsonStream,
   NewSessionRequest,
@@ -47,6 +48,7 @@ import {
 import { Logger } from "./logger.js";
 import { guardContext, isModeAvailable, MODES, modeState, MuseModeId } from "./modes.js";
 import { MuseExecHandle, spawnMuseExec } from "./muse-exec.js";
+import { createMuseMcpOverlay, MuseMcpOverlay } from "./mcp-overlay.js";
 import { readMuseSettings } from "./muse-settings.js";
 import { exportToUpdates, runMuseExport } from "./session-export.js";
 import { listStoredSessions } from "./session-store.js";
@@ -92,6 +94,10 @@ export interface SessionState {
   modeId: MuseModeId;
   /** Model + reasoning effort applied to every spawn for this session. */
   config: SessionConfig;
+  /** ACP-provided MCP servers injected into Muse for each turn. */
+  mcpServers: McpServer[];
+  /** Live per-turn Muse configuration overlay, if this session uses MCP. */
+  activeMcpOverlay: MuseMcpOverlay | null;
 }
 
 /**
@@ -121,6 +127,7 @@ export class MuseAcpAgent {
       // the milestones that ship them.
       agentCapabilities: {
         promptCapabilities: {},
+        mcpCapabilities: {},
         loadSession: true,
         sessionCapabilities: { list: {} },
         auth: { logout: {} },
@@ -165,7 +172,6 @@ export class MuseAcpAgent {
         `cwd must be an absolute path, got "${params.cwd}"`,
       );
     }
-    this.warnIgnoredMcpServers(params.mcpServers);
     // The ACP session id doubles as the muse `--session-id`. Muse creates its
     // on-disk session log lazily on the first exec, so nothing is spawned here.
     const sessionId = randomUUID();
@@ -179,6 +185,8 @@ export class MuseAcpAgent {
       cancelRequested: false,
       modeId: "default",
       config,
+      mcpServers: params.mcpServers,
+      activeMcpOverlay: null,
     });
     this.advertiseCommands(sessionId, params.cwd);
     return {
@@ -207,21 +215,6 @@ export class MuseAcpAgent {
       .catch((err) => this.logger.log(`skills advertisement failed: ${err}`));
   }
 
-  /**
-   * Muse 0.2.1 has no per-session MCP injection surface (see
-   * docs/mcp-passthrough.md); session-provided servers are ignored loudly
-   * rather than failing the session. Muse's own settings-configured MCP
-   * servers work unchanged.
-   */
-  private warnIgnoredMcpServers(mcpServers: NewSessionRequest["mcpServers"]): void {
-    if (mcpServers.length > 0) {
-      this.logger.error(
-        `ignoring ${mcpServers.length} client-provided MCP server(s): muse 0.2.1 only loads ` +
-          `MCP servers from ~/.config/muse/settings.json (docs/mcp-passthrough.md)`,
-      );
-    }
-  }
-
   async listSessions(params: ListSessionsRequest): Promise<ListSessionsResponse> {
     const sessions = listStoredSessions(
       params.cwd ?? null,
@@ -239,7 +232,6 @@ export class MuseAcpAgent {
   }
 
   async loadSession(params: LoadSessionRequest): Promise<LoadSessionResponse> {
-    this.warnIgnoredMcpServers(params.mcpServers);
     const env = this.options.env ?? process.env;
     const stored = listStoredSessions(null, env, this.logger).find(
       (session) => session.sessionId === params.sessionId,
@@ -259,6 +251,8 @@ export class MuseAcpAgent {
       cancelRequested: false,
       modeId: "default",
       config,
+      mcpServers: params.mcpServers,
+      activeMcpOverlay: null,
     });
 
     const doc = await runMuseExport(params.sessionId, env, this.options.museBinary).catch((err) => {
@@ -311,25 +305,28 @@ export class MuseAcpAgent {
     }
 
     session.cancelRequested = false;
-    const handle = spawnMuseExec({
-      prompt: promptText,
-      sessionId: session.museSessionId,
-      cwd: session.cwd,
-      museBinary: this.options.museBinary,
-      provider: this.options.provider,
-      // Model/effort flags only apply to the real provider; muse rejects or
-      // ignores them for echo, so tests with the echo provider skip them.
-      ...(this.options.provider === "echo"
-        ? {}
-        : { model: session.config.model, reasoningEffort: session.config.reasoningEffort }),
-      env: this.options.env,
-      extraArgs: MODES[session.modeId].flags,
-      logger: this.logger,
-    });
-    session.activeTurn = handle;
-
-    const translator = new TurnTranslator(params.sessionId, this.logger);
+    const baseEnv = this.options.env ?? process.env;
+    const mcpOverlay =
+      session.mcpServers.length > 0 ? createMuseMcpOverlay(session.mcpServers, baseEnv) : null;
+    session.activeMcpOverlay = mcpOverlay;
     try {
+      const translator = new TurnTranslator(params.sessionId, this.logger);
+      const handle = spawnMuseExec({
+        prompt: promptText,
+        sessionId: session.museSessionId,
+        cwd: session.cwd,
+        museBinary: this.options.museBinary,
+        provider: this.options.provider,
+        // Model/effort flags only apply to the real provider; muse rejects or
+        // ignores them for echo, so tests with the echo provider skip them.
+        ...(this.options.provider === "echo"
+          ? {}
+          : { model: session.config.model, reasoningEffort: session.config.reasoningEffort }),
+        env: mcpOverlay?.env ?? this.options.env,
+        extraArgs: MODES[session.modeId].flags,
+        logger: this.logger,
+      });
+      session.activeTurn = handle;
       for await (const envelope of handle.events) {
         for (const notification of translator.toUpdates(envelope)) {
           await this.client.sessionUpdate(notification);
@@ -364,6 +361,10 @@ export class MuseAcpAgent {
       }
     } finally {
       session.activeTurn = null;
+      mcpOverlay?.cleanup();
+      if (session.activeMcpOverlay === mcpOverlay) {
+        session.activeMcpOverlay = null;
+      }
     }
   }
 
@@ -412,6 +413,8 @@ export class MuseAcpAgent {
   async dispose(): Promise<void> {
     for (const session of this.sessions.values()) {
       session.activeTurn?.kill();
+      session.activeMcpOverlay?.cleanup();
+      session.activeMcpOverlay = null;
     }
   }
 }

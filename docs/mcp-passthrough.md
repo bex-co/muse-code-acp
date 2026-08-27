@@ -1,39 +1,55 @@
-# MCP passthrough decision (muse 0.2.1)
+# ACP session MCP passthrough
 
-ACP clients can pass per-session MCP servers (`session/new` → `mcpServers`).
-Muse Code reads MCP servers **only** from the user settings file
-(`~/.config/muse/settings.json`, `mcp_servers` block). This note records the
-mechanisms probed for bridging the two, and why the adapter currently ships
-**clean non-support** instead.
+ACP clients can pass per-session MCP servers (`session/new` or `session/load`
+via `mcpServers`). Muse Code 0.2.1 reads MCP servers only from the global
+`$XDG_CONFIG_HOME/muse/settings.json` `mcp_servers` block and has no per-run
+MCP flag, so the adapter bridges the two with a private configuration overlay.
 
-## Probed on muse 0.2.1 (2026-08-25)
+## Supported transport
 
-1. **Workspace-scoped settings document** — `muse init --dry-run` scaffolds
-   only `AGENTS.md` (project rules). There is no project-level settings file
-   muse merges, so there is nowhere workspace-scoped to declare `mcp_servers`.
-2. **`--agents <JSON>` ephemeral overlay** — a TUI/root option; `muse exec`
-   rejects the combination (`invalid TUI options: unexpected argument
-'--json'`). Same story as `--approval-mode`: not part of the headless
-   surface in this build.
-3. **`XDG_CONFIG_HOME` redirection** — technically possible (generate a config
-   dir with `mcp_servers` injected) but rejected: it shadows the user's
-   `settings.json` (model/provider defaults) and `auth.json` (credentials
-   would need copying into an adapter-owned directory). Both violate this
-   project's anti-goals (never write muse's settings; never touch secret
-   material).
+The adapter supports ACP stdio MCP servers. This is the transport Bex Security
+uses for its security workbench and the transport all ACP agents are required
+to support. HTTP, SSE, and ACP transports are not advertised.
 
-## Decision
+Each ACP stdio server is converted to Muse's native shape:
 
-- The adapter advertises **no** `mcpCapabilities` (absent = unsupported).
-- Session-provided MCP servers are **ignored with a logged warning** rather
-  than failing the session — clients often attach globally-configured servers
-  to every agent, and bricking sessions over them is hostile.
-- MCP servers the user configures in muse's own `settings.json` work
-  unchanged — muse loads them itself; there is nothing for the adapter to do.
+```json
+{
+  "mcp_servers": {
+    "security-tools": {
+      "transport": "stdio",
+      "command": "/absolute/path/to/server",
+      "args": ["--stdio"],
+      "env": { "SCAN_ROOT": "/workspace" }
+    }
+  }
+}
+```
 
-## Revisit when
+## Overlay lifecycle
 
-- muse ships a per-run MCP flag, a workspace settings document, or exec-level
-  `--agents`; or
-- muse's headless surface gains any config overlay that does not shadow user
-  settings or credentials.
+For each prompt that has session MCP servers, the adapter:
+
+1. creates a mode-0700 temporary XDG configuration directory;
+2. symlinks the user's existing XDG entries, including Muse authentication;
+3. writes a mode-0600 `muse/settings.json` containing the user's settings plus
+   the session MCP servers;
+4. starts `muse exec` with the temporary directory as `XDG_CONFIG_HOME`; and
+5. removes the temporary directory when the turn completes, fails, or is
+   cancelled.
+
+The user's `settings.json` is never modified. Existing user-configured MCP
+servers are preserved, while a session server replaces a user server with the
+same name for that turn only. Each concurrent ACP session gets its own overlay.
+
+The temporary settings copy can contain credentials already present in the
+user's settings or in an MCP server environment. It is readable only by the
+current user and exists only for the duration of the turn.
+
+## Additional directories
+
+The adapter does not advertise ACP `additionalDirectories`. Muse Code 0.2.1's
+headless CLI accepts one `--workspace` root and has no equivalent way to add
+independent filesystem roots without changing the session working directory.
+Clients should place the workbench MCP server and any scan target paths in the
+stdio server's command, arguments, or environment instead.

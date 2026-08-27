@@ -32,6 +32,19 @@ if (process.argv.includes("skills")) {
   process.exit(0);
 }
 
+if (process.argv.includes("exec") && process.env.FAKE_MUSE_SETTINGS_CAPTURE) {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const configHome = process.env.XDG_CONFIG_HOME;
+  const settings = JSON.parse(
+    fs.readFileSync(path.join(configHome, "muse", "settings.json"), "utf8"),
+  );
+  fs.writeFileSync(
+    process.env.FAKE_MUSE_SETTINGS_CAPTURE,
+    JSON.stringify({ configHome, settings }),
+  );
+}
+
 const mode = process.env.FAKE_MUSE_MODE ?? "block";
 if (mode === "exit0") {
   process.exit(0);

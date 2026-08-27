@@ -62,7 +62,8 @@ log. This adapter translates that stream into ACP session updates:
 | Auth: browser login, `META_API_KEY`, logout                  | ✅                                                 |
 | Interactive per-tool-call permission prompts                 | ❌ (muse limitation)                               |
 | Thinking/reasoning stream                                    | ❌ (muse encrypts reasoning)                       |
-| Client-provided MCP servers                                  | ❌ (see `docs/mcp-passthrough.md`)                 |
+| Client-provided stdio MCP servers                            | ✅ (see `docs/mcp-passthrough.md`)                 |
+| Additional workspace directories                             | ❌ (muse supports one workspace root)              |
 | Editor-side file edits (fs proxying)                         | ❌ (muse edits in its own sandbox; diffs reported) |
 
 ### Honest limitations (muse 0.2.1)
@@ -79,8 +80,12 @@ log. This adapter translates that stream into ACP session updates:
 - **Mode/config changes apply from the next prompt** (flags are per-spawn).
 - **Exit code 0 means the turn completed,** not that your tests pass.
 - **Per-turn spawn latency**: each prompt starts a fresh `muse exec`.
-- MCP servers configured in muse's own `~/.config/muse/settings.json` work
-  normally; ACP-client-provided ones are ignored with a logged warning.
+- ACP-client-provided stdio MCP servers are merged with Muse's user-configured
+  servers in a private per-turn settings overlay. The user's settings file is
+  never modified, and the overlay is removed after the turn. HTTP, SSE, and
+  ACP MCP transports are not advertised.
+- **No additional workspace roots.** Muse's headless CLI exposes one workspace
+  root, so the adapter does not advertise ACP `additionalDirectories`.
 
 ## Environment
 
