@@ -39,14 +39,14 @@ Muse Code has no SDK or server mode; its headless surface is
 conversation continuity through `--session-id` and muse's replay-exact session
 log. This adapter translates that stream into ACP session updates:
 
-| Muse                          | ACP                                                          |
-| ----------------------------- | ------------------------------------------------------------ |
-| `run.output.delta`            | `agent_message_chunk`                                        |
-| tool `side_effect_intent`     | `tool_call` (pending, policy verdict in `_meta`)             |
-| `tool.result`                 | `tool_call_update` (title/command, output, diffs, locations) |
-| `run.terminal.*` + exit code  | stop reason / error                                          |
-| session store + `muse export` | `session/list` + `session/load` history replay               |
-| `muse skills list`            | ACP slash commands (prompt passthrough)                      |
+| Muse                          | ACP                                                                          |
+| ----------------------------- | ---------------------------------------------------------------------------- |
+| `run.output.delta`            | `agent_message_chunk`                                                        |
+| tool `side_effect_intent`     | `tool_call` (pending, policy verdict in `_meta`)                             |
+| `tool.result`                 | `tool_call_update` (`rawInput` command, normalized output, diffs, locations) |
+| `run.terminal.*` + exit code  | stop reason / error                                                          |
+| session store + `muse export` | `session/list` + `session/load` history replay                               |
+| `muse skills list`            | ACP slash commands (prompt passthrough)                                      |
 
 ## Capabilities
 
@@ -64,6 +64,8 @@ log. This adapter translates that stream into ACP session updates:
 | Thinking/reasoning stream                                    | ❌ (muse encrypts reasoning)                       |
 | Client-provided stdio MCP servers                            | ✅ (see `docs/mcp-passthrough.md`)                 |
 | Additional workspace directories                             | ❌ (muse supports one workspace root)              |
+| Delegated workers                                            | ❌ (advertised in namespaced ACP metadata)         |
+| Token usage                                                  | ❌ (muse does not expose it)                       |
 | Editor-side file edits (fs proxying)                         | ❌ (muse edits in its own sandbox; diffs reported) |
 
 ### Honest limitations (muse 0.2.1)
@@ -77,6 +79,8 @@ log. This adapter translates that stream into ACP session updates:
   - `bypassApprovals` — `--disable-approval` (sandbox stays on)
   - `yolo` — muse's `--yolo`; hidden unless `MUSE_CODE_ACP_ALLOW_YOLO=1`,
     never available as root
+    If muse nevertheless enters an approval wait, the adapter stops the child
+    and fails the prompt clearly instead of leaving the ACP request blocked.
 - **Mode/config changes apply from the next prompt** (flags are per-spawn).
 - **Exit code 0 means the turn completed,** not that your tests pass.
 - **Per-turn spawn latency**: each prompt starts a fresh `muse exec`.
@@ -120,7 +124,7 @@ The work board lives in `.pm/` (workstream w1, milestones m1–m3).
 
 - Interactive approvals via blocking `PermissionRequest` hooks or an
   app-server mode, when muse ships one.
-- MCP passthrough when a per-run injection surface exists.
+- Native delegated workers and token-usage receipts when muse exposes them.
 
 ## License
 

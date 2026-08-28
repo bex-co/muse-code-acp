@@ -137,6 +137,13 @@ export class MuseAcpAgent {
         name: packageJson.name,
         version: packageJson.version,
       },
+      _meta: {
+        "bex.security/capabilities": {
+          delegatedWorkers: false,
+          usage: "unavailable",
+          interactivePermissions: false,
+        },
+      },
     };
   }
 
@@ -331,8 +338,18 @@ export class MuseAcpAgent {
         for (const notification of translator.toUpdates(envelope)) {
           await this.client.sessionUpdate(notification);
         }
+        if (translator.approvalWait !== null) {
+          handle.kill();
+          break;
+        }
       }
       const outcome = await handle.done;
+      if (translator.approvalWait !== null) {
+        throw RequestError.internalError(
+          undefined,
+          `muse requested approval for ${translator.approvalWait.toolName}, but muse 0.2.1 cannot route headless approvals through ACP; select bypassApprovals or readOnly before prompting`,
+        );
+      }
       if (session.cancelRequested || outcome.kind === "cancelled") {
         // ACP requires the prompt to settle with `cancelled` after a
         // session/cancel, even if the child managed to finish first.

@@ -87,6 +87,20 @@ export const toolResultPayloadSchema = z.looseObject({
     .nullish(),
 });
 
+/** `payload_type: "approval_wait.effect.started"` — muse entered a
+ * headless approval wait that ACP cannot answer in muse 0.2.1. */
+export const approvalWaitStartedPayloadSchema = z.looseObject({
+  kind: z.literal("approval_wait_effect"),
+  run_id: z.string(),
+  record: z.looseObject({
+    kind: z.string(),
+    pending_action_id: z.string(),
+    task_id: z.string(),
+    tool_call_id: z.string(),
+    tool_name: z.string(),
+  }),
+});
+
 export type RunOutputDeltaPayload = z.infer<typeof runOutputDeltaPayloadSchema>;
 export type RunTerminalPayload = z.infer<typeof runTerminalPayloadSchema>;
 export type SideEffectIntentPayload = z.infer<typeof sideEffectIntentPayloadSchema>;

@@ -129,6 +129,7 @@ interface ResultPresentation {
   title?: string;
   content?: ToolCallContent[];
   locations?: { path: string }[];
+  rawInput?: Record<string, unknown>;
   rawOutput?: Record<string, unknown>;
 }
 
@@ -143,7 +144,23 @@ function presentResult(
       return {
         title: parsed.description || parsed.command,
         content: parsed.output ? [textContent(parsed.output)] : [],
-        rawOutput: parsed.raw,
+        rawInput: { command: parsed.command },
+        rawOutput: {
+          ...parsed.raw,
+          formatted_output: parsed.output,
+        },
+      };
+    }
+  }
+  if (toolName === "read_file") {
+    const path = text.match(/^Read text file `([^`\r\n]+)`\./u)?.[1];
+    if (path) {
+      return {
+        title: `read_file: ${path}`,
+        content: [textContent(text)],
+        locations: [{ path }],
+        rawInput: { path },
+        rawOutput: { formatted_output: text },
       };
     }
   }

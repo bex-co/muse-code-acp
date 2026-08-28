@@ -51,6 +51,12 @@ describe("tool-call translation (real fixture)", () => {
     expect(catUpdate?.status).toBe("completed");
     const text = catUpdate?.content?.map((c) => (c.type === "content" ? c : null)).filter(Boolean);
     expect(JSON.stringify(text)).toContain("alpha");
+    expect(catUpdate?.rawInput).toEqual({ command: "cat notes.txt" });
+    expect(catUpdate?.rawOutput).toMatchObject({
+      command: "cat notes.txt",
+      formatted_output: "alpha",
+      exit_code: 0,
+    });
   });
 
   it("marks the failing bash command failed", () => {
@@ -85,6 +91,28 @@ describe("tool-call translation (real fixture)", () => {
 });
 
 describe("tool-call translation (synthetic edges)", () => {
+  it("records an unsupported headless approval wait", () => {
+    const translator = new TurnTranslator("acp-session", silentLogger());
+    expect(
+      translator.toUpdates(
+        envelope("approval_wait.effect.started", {
+          kind: "approval_wait_effect",
+          run_id: "run-1",
+          record: {
+            kind: "approval_wait_started",
+            pending_action_id: "pending-1",
+            task_id: "task-1",
+            tool_call_id: "call-1",
+            tool_name: "bash",
+          },
+        }),
+      ),
+    ).toEqual([]);
+    expect(translator.approvalWait).toEqual({
+      toolName: "bash",
+      toolCallId: "call-1",
+    });
+  });
   it("handles a tool.result for an unknown call id without an intent", () => {
     const translator = new TurnTranslator("acp-session", silentLogger());
     const updates = translator.toUpdates(
@@ -116,6 +144,43 @@ describe("tool-call translation (synthetic edges)", () => {
       sessionUpdate: "tool_call",
       status: "completed",
       kind: "read",
+    });
+  });
+
+  it("normalizes a completed read_file result with its path", () => {
+    const translator = new TurnTranslator("acp-session", silentLogger());
+    const path = "/workspace/src/server.ts";
+    translator.toUpdates(
+      envelope("task.lifecycle.side_effect_intent", {
+        kind: "task_lifecycle",
+        task_id: "task_read",
+        event: {
+          kind: "side_effect_intent",
+          task_id: "task_read",
+          operation: "tool:read_file",
+          idempotency_key: "tool:call_read",
+          policy_decision: "allow:policy",
+        },
+      }),
+    );
+    const updates = translator.toUpdates(
+      envelope("tool.result", {
+        kind: "tool_result",
+        call_id: "call_read",
+        text: `Read text file \`${path}\`.\n1|export const server = true;`,
+        correlation_facts: { tool_name: "read_file", outcome: "success" },
+      }),
+    );
+
+    expect(updates[0].update).toMatchObject({
+      sessionUpdate: "tool_call_update",
+      status: "completed",
+      title: `read_file: ${path}`,
+      locations: [{ path }],
+      rawInput: { path },
+      rawOutput: {
+        formatted_output: `Read text file \`${path}\`.\n1|export const server = true;`,
+      },
     });
   });
 

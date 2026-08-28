@@ -6,7 +6,9 @@ import { join } from "node:path";
 import { spawnMuseExec } from "../muse-exec.js";
 import { connectTestClient, fakeMuseBinary, newTestSession, silentLogger } from "./helpers.js";
 
-function fakeMuseClient(mode: "block" | "exit1" | "exit2" | "failterm" | "autherr" | "maxsteps") {
+function fakeMuseClient(
+  mode: "block" | "exit1" | "exit2" | "failterm" | "autherr" | "maxsteps" | "approval",
+) {
   return connectTestClient({
     museBinary: fakeMuseBinary(),
     env: { ...process.env, FAKE_MUSE_MODE: mode },
@@ -14,6 +16,21 @@ function fakeMuseClient(mode: "block" | "exit1" | "exit2" | "failterm" | "auther
 }
 
 describe("prompt failure modes", () => {
+  it("fails a headless approval wait promptly instead of hanging", async () => {
+    const testClient = fakeMuseClient("approval");
+    const { ctx, sessionId } = await newTestSession(testClient);
+
+    await expect(
+      ctx.request(methods.agent.session.prompt, {
+        sessionId,
+        prompt: [{ type: "text", text: "request an approval" }],
+      }),
+    ).rejects.toMatchObject({
+      code: -32603,
+      message: expect.stringMatching(/cannot route headless approvals through ACP/),
+    });
+    expect(testClient.agent.sessions.get(sessionId)?.activeTurn).toBeNull();
+  });
   it("exit 1 without a terminal event rejects as an internal error", async () => {
     const testClient = fakeMuseClient("exit1");
     const { ctx, sessionId } = await newTestSession(testClient);

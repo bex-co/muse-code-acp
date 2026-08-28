@@ -7,6 +7,7 @@
 //   failterm        — emit run.terminal.failed (generic reason), exit 1
 //   autherr         — emit run.terminal.failed (auth reason), exit 1
 //   maxsteps        — emit run.terminal.failed (max-steps reason), exit 1
+//   approval        — enter a headless approval wait and block
 // A Node script (not sh) because signal dispositions inherited as SIG_IGN —
 // e.g. inside vitest fork workers — cannot be trapped by POSIX shells, while
 // Node installs handlers regardless.
@@ -79,6 +80,30 @@ console.log(
     payload: { kind: "run_output_delta", text: "thinking forever" },
   }),
 );
+
+if (mode === "approval") {
+  console.log(
+    JSON.stringify({
+      ...envelope,
+      id: "fake-approval",
+      sequence: 3,
+      payload_type: "approval_wait.effect.started",
+      payload: {
+        kind: "approval_wait_effect",
+        run_id: "run-1",
+        record: {
+          kind: "approval_wait_started",
+          pending_action_id: "pending-1",
+          task_id: "task-1",
+          run_stream: { kind: "run", id: "run-1" },
+          task_stream: { kind: "task", id: "task-1" },
+          tool_call_id: "call-1",
+          tool_name: "bash",
+        },
+      },
+    }),
+  );
+}
 
 function terminalFailed(reason) {
   console.log(
