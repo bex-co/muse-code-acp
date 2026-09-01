@@ -60,6 +60,7 @@ updates:
 | Tool calls with results, diffs, locations                     | ✅ (title upgraded at result time)                 |
 | Cancellation (`session/cancel` → SIGINT, safe resume)         | ✅                                                 |
 | Session close (cancel, release adapter state, retain history) | ✅                                                 |
+| Session resume (same workspace, no history replay)            | ✅                                                 |
 | Multi-turn sessions, `session/list`, `session/load`           | ✅                                                 |
 | Session modes: default / read-only / bypass-approvals / yolo  | ✅ (see below)                                     |
 | Model + reasoning-effort config options                       | ✅                                                 |
