@@ -60,7 +60,11 @@ describe.skipIf(!museAvailable())("multi-turn continuity (live echo provider)", 
     expect(dirs[0].endsWith(sessionId)).toBe(true);
 
     const log = readFileSync(join(dirs[0], "session.jsonl"), "utf8").trim().split("\n");
-    const sequences = log.map((line) => JSON.parse(line).sequence as number);
+    const sequences = log.flatMap((line) => {
+      const sequence = (JSON.parse(line) as { sequence?: unknown }).sequence;
+      return typeof sequence === "number" ? [sequence] : [];
+    });
+    expect(sequences.length).toBeGreaterThan(1);
     for (let i = 1; i < sequences.length; i++) {
       expect(sequences[i]).toBeGreaterThan(sequences[i - 1]);
     }
