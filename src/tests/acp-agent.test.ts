@@ -19,7 +19,7 @@ describe("initialize", () => {
     });
     // Advertised capabilities must match what is implemented.
     expect(response.agentCapabilities?.loadSession).toBe(true);
-    expect(response.agentCapabilities?.sessionCapabilities).toEqual({ list: {} });
+    expect(response.agentCapabilities?.sessionCapabilities).toEqual({ list: {}, close: {} });
     expect(response._meta?.["bex.security/capabilities"]).toEqual({
       delegatedWorkers: false,
       usage: "unavailable",

@@ -5,6 +5,8 @@ import {
   AuthenticateResponse,
   CancelNotification,
   ClientApp,
+  CloseSessionRequest,
+  CloseSessionResponse,
   LogoutRequest,
   LogoutResponse,
   InitializeRequest,
@@ -49,6 +51,7 @@ import { Logger } from "./logger.js";
 import { guardContext, isModeAvailable, MODES, modeState, MuseModeId } from "./modes.js";
 import { MuseExecHandle, spawnMuseExec } from "./muse-exec.js";
 import { createMuseMcpOverlay, MuseMcpOverlay } from "./mcp-overlay.js";
+import { compileMusePrompt, type CompiledMusePrompt } from "./prompt-content.js";
 import { readMuseSettings } from "./muse-settings.js";
 import { exportToUpdates, runMuseExport } from "./session-export.js";
 import { listStoredSessions } from "./session-store.js";
@@ -88,6 +91,8 @@ export interface SessionState {
   museSessionId: string;
   /** Live `muse exec` child while a prompt turn is running. */
   activeTurn: MuseExecHandle | null;
+  /** Completion signal that reserves the session through final turn cleanup. */
+  turnFinished: Promise<void> | null;
   /** Set by `session/cancel`; forces the turn to settle with `cancelled`. */
   cancelRequested: boolean;
   /** Active ACP session mode; decides the safety flags of the next spawn. */
@@ -111,6 +116,20 @@ export interface MuseAgentOptions {
   env?: Record<string, string | undefined>;
 }
 
+async function cleanupPromptArtifacts(
+  mcpOverlay: MuseMcpOverlay | null,
+  compiledPrompt: CompiledMusePrompt | undefined,
+): Promise<void> {
+  const results = await Promise.allSettled([
+    Promise.resolve().then(() => mcpOverlay?.cleanup()),
+    compiledPrompt?.cleanup() ?? Promise.resolve(),
+  ]);
+  const failure = results.find((result) => result.status === "rejected");
+  if (failure?.status === "rejected") {
+    throw failure.reason;
+  }
+}
+
 export class MuseAcpAgent {
   readonly sessions = new Map<string, SessionState>();
 
@@ -126,10 +145,10 @@ export class MuseAcpAgent {
       // Only advertise what is actually implemented; capabilities grow with
       // the milestones that ship them.
       agentCapabilities: {
-        promptCapabilities: {},
+        promptCapabilities: { image: true },
         mcpCapabilities: {},
         loadSession: true,
-        sessionCapabilities: { list: {} },
+        sessionCapabilities: { list: {}, close: {} },
         auth: { logout: {} },
       },
       authMethods: museAuthMethods(),
@@ -189,6 +208,7 @@ export class MuseAcpAgent {
       cwd: params.cwd,
       museSessionId: sessionId,
       activeTurn: null,
+      turnFinished: null,
       cancelRequested: false,
       modeId: "default",
       config,
@@ -255,6 +275,7 @@ export class MuseAcpAgent {
       cwd: params.cwd,
       museSessionId: params.sessionId,
       activeTurn: null,
+      turnFinished: null,
       cancelRequested: false,
       modeId: "default",
       config,
@@ -299,27 +320,31 @@ export class MuseAcpAgent {
 
   async prompt(params: PromptRequest): Promise<PromptResponse> {
     const session = this.requireSession(params.sessionId);
-    if (session.activeTurn) {
+    if (session.turnFinished) {
       throw RequestError.invalidRequest(
         undefined,
         `session ${params.sessionId} already has a prompt turn in flight`,
       );
     }
 
-    const promptText = promptToText(params.prompt);
-    if (promptText.length === 0) {
-      throw RequestError.invalidParams(undefined, "prompt contains no text content");
-    }
-
+    const { promise: turnFinished, resolve: finishTurn } = Promise.withResolvers<void>();
+    session.turnFinished = turnFinished;
     session.cancelRequested = false;
     const baseEnv = this.options.env ?? process.env;
-    const mcpOverlay =
-      session.mcpServers.length > 0 ? createMuseMcpOverlay(session.mcpServers, baseEnv) : null;
-    session.activeMcpOverlay = mcpOverlay;
+    let compiledPrompt: CompiledMusePrompt | undefined;
+    let mcpOverlay: MuseMcpOverlay | null = null;
     try {
+      compiledPrompt = await compileMusePrompt(params.prompt);
+      if (session.cancelRequested) {
+        return { stopReason: "cancelled" };
+      }
+      mcpOverlay =
+        session.mcpServers.length > 0 ? createMuseMcpOverlay(session.mcpServers, baseEnv) : null;
+      session.activeMcpOverlay = mcpOverlay;
       const translator = new TurnTranslator(params.sessionId, this.logger);
       const handle = spawnMuseExec({
-        prompt: promptText,
+        prompt: compiledPrompt.prompt,
+        imagePaths: compiledPrompt.imagePaths,
         sessionId: session.museSessionId,
         cwd: session.cwd,
         museBinary: this.options.museBinary,
@@ -378,9 +403,14 @@ export class MuseAcpAgent {
       }
     } finally {
       session.activeTurn = null;
-      mcpOverlay?.cleanup();
-      if (session.activeMcpOverlay === mcpOverlay) {
-        session.activeMcpOverlay = null;
+      try {
+        await cleanupPromptArtifacts(mcpOverlay, compiledPrompt);
+        if (session.activeMcpOverlay === mcpOverlay) {
+          session.activeMcpOverlay = null;
+        }
+      } finally {
+        session.turnFinished = null;
+        finishTurn();
       }
     }
   }
@@ -419,6 +449,17 @@ export class MuseAcpAgent {
     session.activeTurn?.kill();
   }
 
+  async closeSession(params: CloseSessionRequest): Promise<CloseSessionResponse> {
+    const session = this.requireSession(params.sessionId);
+    const turnFinished = session.turnFinished;
+    session.cancelRequested = true;
+    session.activeTurn?.kill();
+    // Deletion revokes admission before the close waits for the active turn to unwind.
+    this.sessions.delete(params.sessionId);
+    await turnFinished;
+    return {};
+  }
+
   requireSession(sessionId: string): SessionState {
     const session = this.sessions.get(sessionId);
     if (!session) {
@@ -434,21 +475,6 @@ export class MuseAcpAgent {
       session.activeMcpOverlay = null;
     }
   }
-}
-
-/**
- * m1 supports text prompts only. Text blocks are joined; other block types
- * (images, resources) arrive in later milestones and are ignored with a log
- * so the turn still runs.
- */
-function promptToText(blocks: PromptRequest["prompt"]): string {
-  const parts: string[] = [];
-  for (const block of blocks) {
-    if (block.type === "text") {
-      parts.push(block.text);
-    }
-  }
-  return parts.join("\n\n").trim();
 }
 
 /**
@@ -471,6 +497,7 @@ export function createAgentConnection(
     .onRequest(methods.agent.session.new, (ctx) => agent.newSession(ctx.params))
     .onRequest(methods.agent.session.list, (ctx) => agent.listSessions(ctx.params))
     .onRequest(methods.agent.session.load, (ctx) => agent.loadSession(ctx.params))
+    .onRequest(methods.agent.session.close, (ctx) => agent.closeSession(ctx.params))
     .onRequest(methods.agent.session.setMode, (ctx) => agent.setSessionMode(ctx.params))
     .onRequest(methods.agent.session.setConfigOption, (ctx) =>
       agent.setSessionConfigOption(ctx.params),
