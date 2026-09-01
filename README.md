@@ -34,10 +34,11 @@ for the current settings shape.)
 
 ## How it works
 
-Muse Code has no SDK or server mode; its headless surface is
-`muse exec --json` — one process per prompt turn streaming JSONL events, with
-conversation continuity through `--session-id` and muse's replay-exact session
-log. This adapter translates that stream into ACP session updates:
+Muse Code exposes Muse Session Protocol rather than ACP. This adapter uses its
+headless `muse exec --json` surface: one process per prompt turn streaming JSONL
+events, with conversation continuity through `--session-id` and Muse's
+replay-exact session log. The adapter translates that stream into ACP session
+updates:
 
 | Muse                          | ACP                                                                          |
 | ----------------------------- | ---------------------------------------------------------------------------- |
@@ -53,6 +54,9 @@ log. This adapter translates that stream into ACP session updates:
 | Surface                                                      | Status                                             |
 | ------------------------------------------------------------ | -------------------------------------------------- |
 | Prompt turns with streamed text                              | ✅                                                 |
+| Resource links                                               | ✅ (rendered as deterministic prompt context)      |
+| PNG, JPEG, GIF, and WebP prompt images                       | ✅ (private turn-scoped files)                     |
+| Audio and embedded resource blocks                           | ❌ (rejected with an actionable ACP error)         |
 | Tool calls with results, diffs, locations                    | ✅ (title upgraded at result time)                 |
 | Cancellation (`session/cancel` → SIGINT, safe resume)        | ✅                                                 |
 | Multi-turn sessions, `session/list`, `session/load`          | ✅                                                 |
@@ -84,6 +88,9 @@ log. This adapter translates that stream into ACP session updates:
 - **Mode/config changes apply from the next prompt** (flags are per-spawn).
 - **Exit code 0 means the turn completed,** not that your tests pass.
 - **Per-turn spawn latency**: each prompt starts a fresh `muse exec`.
+- **Images need accompanying text or a resource link.** Muse rejects an
+  image-only headless prompt, so the adapter reports that requirement before
+  starting the process.
 - ACP-client-provided stdio MCP servers are merged with Muse's user-configured
   servers in a private per-turn settings overlay. The user's settings file is
   never modified, and the overlay is removed after the turn. HTTP, SSE, and

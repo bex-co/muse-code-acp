@@ -49,6 +49,7 @@ import { Logger } from "./logger.js";
 import { guardContext, isModeAvailable, MODES, modeState, MuseModeId } from "./modes.js";
 import { MuseExecHandle, spawnMuseExec } from "./muse-exec.js";
 import { createMuseMcpOverlay, MuseMcpOverlay } from "./mcp-overlay.js";
+import { compileMusePrompt } from "./prompt-content.js";
 import { readMuseSettings } from "./muse-settings.js";
 import { exportToUpdates, runMuseExport } from "./session-export.js";
 import { listStoredSessions } from "./session-store.js";
@@ -88,6 +89,8 @@ export interface SessionState {
   museSessionId: string;
   /** Live `muse exec` child while a prompt turn is running. */
   activeTurn: MuseExecHandle | null;
+  /** Reserves the session from prompt compilation through final cleanup. */
+  turnInProgress: boolean;
   /** Set by `session/cancel`; forces the turn to settle with `cancelled`. */
   cancelRequested: boolean;
   /** Active ACP session mode; decides the safety flags of the next spawn. */
@@ -126,7 +129,7 @@ export class MuseAcpAgent {
       // Only advertise what is actually implemented; capabilities grow with
       // the milestones that ship them.
       agentCapabilities: {
-        promptCapabilities: {},
+        promptCapabilities: { image: true },
         mcpCapabilities: {},
         loadSession: true,
         sessionCapabilities: { list: {} },
@@ -189,6 +192,7 @@ export class MuseAcpAgent {
       cwd: params.cwd,
       museSessionId: sessionId,
       activeTurn: null,
+      turnInProgress: false,
       cancelRequested: false,
       modeId: "default",
       config,
@@ -255,6 +259,7 @@ export class MuseAcpAgent {
       cwd: params.cwd,
       museSessionId: params.sessionId,
       activeTurn: null,
+      turnInProgress: false,
       cancelRequested: false,
       modeId: "default",
       config,
@@ -299,27 +304,30 @@ export class MuseAcpAgent {
 
   async prompt(params: PromptRequest): Promise<PromptResponse> {
     const session = this.requireSession(params.sessionId);
-    if (session.activeTurn) {
+    if (session.turnInProgress) {
       throw RequestError.invalidRequest(
         undefined,
         `session ${params.sessionId} already has a prompt turn in flight`,
       );
     }
 
-    const promptText = promptToText(params.prompt);
-    if (promptText.length === 0) {
-      throw RequestError.invalidParams(undefined, "prompt contains no text content");
-    }
-
+    session.turnInProgress = true;
     session.cancelRequested = false;
     const baseEnv = this.options.env ?? process.env;
-    const mcpOverlay =
-      session.mcpServers.length > 0 ? createMuseMcpOverlay(session.mcpServers, baseEnv) : null;
-    session.activeMcpOverlay = mcpOverlay;
+    let compiledPrompt: Awaited<ReturnType<typeof compileMusePrompt>> | undefined;
+    let mcpOverlay: MuseMcpOverlay | null = null;
     try {
+      compiledPrompt = await compileMusePrompt(params.prompt);
+      if (session.cancelRequested) {
+        return { stopReason: "cancelled" };
+      }
+      mcpOverlay =
+        session.mcpServers.length > 0 ? createMuseMcpOverlay(session.mcpServers, baseEnv) : null;
+      session.activeMcpOverlay = mcpOverlay;
       const translator = new TurnTranslator(params.sessionId, this.logger);
       const handle = spawnMuseExec({
-        prompt: promptText,
+        prompt: compiledPrompt.prompt,
+        imagePaths: compiledPrompt.imagePaths,
         sessionId: session.museSessionId,
         cwd: session.cwd,
         museBinary: this.options.museBinary,
@@ -379,9 +387,11 @@ export class MuseAcpAgent {
     } finally {
       session.activeTurn = null;
       mcpOverlay?.cleanup();
+      await compiledPrompt?.cleanup();
       if (session.activeMcpOverlay === mcpOverlay) {
         session.activeMcpOverlay = null;
       }
+      session.turnInProgress = false;
     }
   }
 
@@ -434,21 +444,6 @@ export class MuseAcpAgent {
       session.activeMcpOverlay = null;
     }
   }
-}
-
-/**
- * m1 supports text prompts only. Text blocks are joined; other block types
- * (images, resources) arrive in later milestones and are ignored with a log
- * so the turn still runs.
- */
-function promptToText(blocks: PromptRequest["prompt"]): string {
-  const parts: string[] = [];
-  for (const block of blocks) {
-    if (block.type === "text") {
-      parts.push(block.text);
-    }
-  }
-  return parts.join("\n\n").trim();
 }
 
 /**

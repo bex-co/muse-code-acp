@@ -16,6 +16,8 @@ export interface MuseExecOptions {
   provider?: "meta" | "echo";
   model?: string;
   reasoningEffort?: string;
+  /** Turn-scoped images forwarded through Muse's repeatable `--image` flag. */
+  imagePaths?: string[];
   /** Extra CLI flags appended verbatim (e.g. `--echo-delay-ms` in tests). */
   extraArgs?: string[];
   env?: Record<string, string | undefined>;
@@ -58,6 +60,9 @@ export function spawnMuseExec(options: MuseExecOptions): MuseExecHandle {
   }
   if (options.reasoningEffort) {
     args.push("--reasoning-effort", options.reasoningEffort);
+  }
+  for (const imagePath of options.imagePaths ?? []) {
+    args.push("--image", imagePath);
   }
   // Note: no `--no-session-log` ever — muse rejects it alongside
   // `--session-id` ("a session id needs retained logging"), and session
