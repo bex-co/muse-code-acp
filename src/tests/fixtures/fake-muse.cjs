@@ -46,6 +46,25 @@ if (process.argv.includes("exec") && process.env.FAKE_MUSE_SETTINGS_CAPTURE) {
   );
 }
 
+if (process.argv.includes("exec") && process.env.FAKE_MUSE_ARGV_CAPTURE) {
+  const fs = require("node:fs");
+  const imagePaths = process.argv.flatMap((arg, index, argv) =>
+    arg === "--image" && argv[index + 1] ? [argv[index + 1]] : [],
+  );
+  fs.writeFileSync(
+    process.env.FAKE_MUSE_ARGV_CAPTURE,
+    JSON.stringify({
+      argv: process.argv.slice(2),
+      directoryMode: imagePaths[0] ? fs.statSync(require("node:path").dirname(imagePaths[0])).mode & 0o777 : null,
+      images: imagePaths.map((imagePath) => ({
+        path: imagePath,
+        data: fs.readFileSync(imagePath).toString("base64"),
+        mode: fs.statSync(imagePath).mode & 0o777,
+      })),
+    }),
+  );
+}
+
 const mode = process.env.FAKE_MUSE_MODE ?? "block";
 if (mode === "exit0") {
   process.exit(0);
