@@ -32,12 +32,15 @@ export function isAuthenticated(env: Record<string, string | undefined> = proces
  * Browser login runs through the `--cli` passthrough (`muse-code-acp --cli
  * login` execs `muse login` with inherited stdio); the `terminal-auth` _meta
  * mirrors claude-agent-acp's convention for clients that spawn terminal
- * commands themselves.
+ * commands themselves. Terminal methods are only advertised when the client
+ * reports `clientCapabilities.auth.terminal`.
  */
-export function museAuthMethods(): AuthMethod[] {
+export function museAuthMethods(options: { includeTerminal?: boolean } = {}): AuthMethod[] {
+  const includeTerminal = options.includeTerminal ?? true;
   const baseArgs = process.argv.slice(1).filter((arg) => arg !== "--cli");
-  return [
-    {
+  const methods: AuthMethod[] = [];
+  if (includeTerminal) {
+    methods.push({
       type: "terminal",
       id: MUSE_LOGIN_METHOD_ID,
       name: "Meta account (browser)",
@@ -50,15 +53,16 @@ export function museAuthMethods(): AuthMethod[] {
           label: "Muse Login",
         },
       },
-    },
-    {
-      type: "env_var",
-      id: META_API_KEY_METHOD_ID,
-      name: "Meta API key",
-      description: "Set META_API_KEY for headless/CI use (muse env precedence applies).",
-      vars: [{ name: "META_API_KEY", label: "Meta API key", secret: true }],
-    },
-  ];
+    });
+  }
+  methods.push({
+    type: "env_var",
+    id: META_API_KEY_METHOD_ID,
+    name: "Meta API key",
+    description: "Set META_API_KEY for headless/CI use (muse env precedence applies).",
+    vars: [{ name: "META_API_KEY", label: "Meta API key", secret: true }],
+  });
+  return methods;
 }
 
 /**

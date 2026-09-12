@@ -11,6 +11,13 @@ export const EFFORT_CONFIG_ID = "reasoningEffort";
  */
 export const KNOWN_MODELS = ["muse-spark-1.2", "muse-spark-1.2-contributor"];
 export const EFFORT_LEVELS = ["none", "minimal", "low", "medium", "high", "xhigh", "ultra"];
+export const SDK_EFFORT_LEVELS = ["low", "medium", "high"];
+
+export function normalizeSdkEffort(value: string): string {
+  if (value === "none" || value === "minimal") return "low";
+  if (value === "xhigh" || value === "ultra") return "high";
+  return SDK_EFFORT_LEVELS.includes(value) ? value : "high";
+}
 
 const DEFAULT_MODEL = "muse-spark-1.2";
 const DEFAULT_EFFORT = "high";
@@ -21,17 +28,25 @@ export interface SessionConfig {
 }
 
 /** Resolution order: user muse settings > built-in defaults. */
-export function defaultSessionConfig(settings: MuseSettings): SessionConfig {
+export function defaultSessionConfig(
+  settings: MuseSettings,
+  backend: "sdk" | "exec" = "exec",
+): SessionConfig {
   return {
     model: settings.model ?? DEFAULT_MODEL,
     reasoningEffort:
-      settings.reasoningEffort && EFFORT_LEVELS.includes(settings.reasoningEffort)
-        ? settings.reasoningEffort
-        : DEFAULT_EFFORT,
+      backend === "sdk"
+        ? normalizeSdkEffort(settings.reasoningEffort ?? DEFAULT_EFFORT)
+        : settings.reasoningEffort && EFFORT_LEVELS.includes(settings.reasoningEffort)
+          ? settings.reasoningEffort
+          : DEFAULT_EFFORT,
   };
 }
 
-export function buildConfigOptions(config: SessionConfig): SessionConfigOption[] {
+export function buildConfigOptions(
+  config: SessionConfig,
+  backend: "sdk" | "exec" = "exec",
+): SessionConfigOption[] {
   const models = KNOWN_MODELS.includes(config.model)
     ? KNOWN_MODELS
     : [config.model, ...KNOWN_MODELS];
@@ -50,7 +65,10 @@ export function buildConfigOptions(config: SessionConfig): SessionConfigOption[]
       category: "thought_level",
       type: "select",
       currentValue: config.reasoningEffort,
-      options: EFFORT_LEVELS.map((effort) => ({ value: effort, name: effort })),
+      options: (backend === "sdk" ? SDK_EFFORT_LEVELS : EFFORT_LEVELS).map((effort) => ({
+        value: effort,
+        name: effort,
+      })),
     },
   ];
 }
@@ -60,6 +78,7 @@ export function applyConfigSelection(
   config: SessionConfig,
   configId: string,
   value: unknown,
+  backend: "sdk" | "exec" = "exec",
 ): SessionConfig {
   if (typeof value !== "string") {
     throw RequestError.invalidParams(undefined, `config ${configId} expects a select value`);
@@ -68,7 +87,7 @@ export function applyConfigSelection(
     case MODEL_CONFIG_ID:
       return { ...config, model: value };
     case EFFORT_CONFIG_ID:
-      if (!EFFORT_LEVELS.includes(value)) {
+      if (!(backend === "sdk" ? SDK_EFFORT_LEVELS : EFFORT_LEVELS).includes(value)) {
         throw RequestError.invalidParams(undefined, `unknown reasoning effort: ${value}`);
       }
       return { ...config, reasoningEffort: value };

@@ -43,18 +43,14 @@ describe("exportToUpdates", () => {
     ]);
   });
 
-  it("replays under a drifted export schema with a warning instead of failing", () => {
+  it("rejects a drifted export schema instead of replaying partially", () => {
     const doc = {
       export_schema_version: 2,
       events: [wrap({ kind: "run", event: { kind: "started", prompt: "still works" } })],
     };
-    const logged: string[] = [];
-    const updates = exportToUpdates("s1", doc, {
-      log: (...a) => logged.push(a.join(" ")),
-      error: () => {},
-    });
-    expect(updates).toHaveLength(1);
-    expect(logged.join("\n")).toMatch(/schema 2/);
+    expect(() => exportToUpdates("s1", doc, silentLogger())).toThrow(
+      /unsupported muse export schema/,
+    );
   });
 
   it("skips model tasks and unknown kinds silently", () => {
@@ -90,7 +86,7 @@ describe.skipIf(!museAvailable())("session list + load round trip (live echo)", 
     const cwd = mkdtempSync(join(tmpdir(), "muse-load-cwd-"));
 
     // Session 1: create history.
-    const first = connectTestClient({ provider: "echo", env });
+    const first = connectTestClient({ backend: "exec", provider: "echo", env });
     const firstCtx = await initialized(first);
     const { sessionId } = await firstCtx.request(methods.agent.session.new, {
       cwd,
@@ -102,7 +98,7 @@ describe.skipIf(!museAvailable())("session list + load round trip (live echo)", 
     });
 
     // Fresh client: list, load, continue.
-    const second = connectTestClient({ provider: "echo", env });
+    const second = connectTestClient({ backend: "exec", provider: "echo", env });
     const ctx = await initialized(second);
 
     const { sessions } = await ctx.request(methods.agent.session.list, { cwd });
@@ -138,6 +134,7 @@ describe.skipIf(!museAvailable())("session list + load round trip (live echo)", 
   it("rejects loading a session that is not in the store", async () => {
     const xdg = mkdtempSync(join(tmpdir(), "muse-load-xdg-"));
     const testClient = connectTestClient({
+      backend: "exec",
       provider: "echo",
       env: { ...process.env, XDG_DATA_HOME: xdg },
     });

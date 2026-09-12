@@ -1,0 +1,6 @@
+[
+  {"itemId":"i1","callId":"bash-1","turnId":"t1","kind":"toolCall","tool":"bash","revision":1,"status":"inProgress","args":"{\"command\":\"pwd\",\"description\":\"pwd\"}"},
+  {"itemId":"i1","callId":"bash-1","turnId":"t1","kind":"toolCall","tool":"bash","revision":2,"status":"completed","args":"{\"command\":\"pwd\"}","visibleOutput":"{\"command\":\"pwd\",\"output\":\"/tmp\"}"},
+  {"itemId":"i2","callId":"read-1","turnId":"t1","kind":"toolCall","tool":"read_file","revision":1,"status":"inProgress","args":"{\"path\":\"/workspace/a.ts\"}"},
+  {"itemId":"i2","callId":"read-1","turnId":"t1","kind":"toolCall","tool":"read_file","revision":2,"status":"completed","visibleOutput":"Read text file `/workspace/a.ts`."}
+]

@@ -8,7 +8,7 @@ import {
 } from "./muse-events.js";
 
 /** Muse tool name → ACP tool kind (icons/UI treatment in clients). */
-const TOOL_KINDS: Record<string, ToolKind> = {
+export const TOOL_KINDS: Record<string, ToolKind> = {
   bash: "execute",
   write_file: "edit",
   edit_file: "edit",
@@ -133,7 +133,7 @@ interface ResultPresentation {
   rawOutput?: Record<string, unknown>;
 }
 
-function presentResult(
+export function presentResult(
   toolName: string | undefined | null,
   text: string,
   logger: Logger,

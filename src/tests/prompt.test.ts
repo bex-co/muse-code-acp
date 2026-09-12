@@ -19,6 +19,7 @@ async function waitFor(predicate: () => boolean, timeoutMs = 10_000) {
 describe.skipIf(!museAvailable())("session/prompt (live echo provider)", () => {
   it("streams text chunks and settles with end_turn", async () => {
     const testClient = connectTestClient({
+      backend: "exec",
       provider: "echo",
       env: { ...process.env, XDG_DATA_HOME: mkdtempSync(join(tmpdir(), "muse-xdg-")) },
     });
@@ -45,7 +46,7 @@ describe.skipIf(!museAvailable())("session/prompt (live echo provider)", () => {
 
 describe("session/prompt (fake muse)", () => {
   it("cancel mid-turn settles the prompt with cancelled", async () => {
-    const testClient = connectTestClient({ museBinary: fakeMuseBinary() });
+    const testClient = connectTestClient({ backend: "exec", museBinary: fakeMuseBinary() });
     const { ctx, sessionId } = await newTestSession(testClient);
 
     const promptPromise = ctx.request(methods.agent.session.prompt, {
@@ -61,7 +62,7 @@ describe("session/prompt (fake muse)", () => {
   }, 15_000);
 
   it("rejects a concurrent prompt on a busy session", async () => {
-    const testClient = connectTestClient({ museBinary: fakeMuseBinary() });
+    const testClient = connectTestClient({ backend: "exec", museBinary: fakeMuseBinary() });
     const { ctx, sessionId } = await newTestSession(testClient);
 
     const first = ctx.request(methods.agent.session.prompt, {
@@ -82,7 +83,7 @@ describe("session/prompt (fake muse)", () => {
   }, 15_000);
 
   it("prompting again after cancel works on the same session", async () => {
-    const testClient = connectTestClient({ museBinary: fakeMuseBinary() });
+    const testClient = connectTestClient({ backend: "exec", museBinary: fakeMuseBinary() });
     const { ctx, sessionId } = await newTestSession(testClient);
 
     const first = ctx.request(methods.agent.session.prompt, {
@@ -103,12 +104,46 @@ describe("session/prompt (fake muse)", () => {
     await expect(second).resolves.toMatchObject({ stopReason: "cancelled" });
   }, 15_000);
 
-  it("rejects prompts without text content", async () => {
-    const testClient = connectTestClient({ museBinary: fakeMuseBinary() });
+  it("rejects prompts without text or resource_link content", async () => {
+    const testClient = connectTestClient({ backend: "exec", museBinary: fakeMuseBinary() });
     const { ctx, sessionId } = await newTestSession(testClient);
 
     await expect(
       ctx.request(methods.agent.session.prompt, { sessionId, prompt: [] }),
     ).rejects.toMatchObject({ code: -32602 });
+  });
+
+  it("accepts resource_link-only prompts and requires text alongside exec images", async () => {
+    const testClient = connectTestClient({ backend: "exec", museBinary: fakeMuseBinary() });
+    const { ctx, sessionId } = await newTestSession(testClient);
+
+    const promptPromise = ctx.request(methods.agent.session.prompt, {
+      sessionId,
+      prompt: [
+        {
+          type: "resource_link",
+          name: "only.md",
+          uri: "file:///tmp/only.md",
+        },
+      ],
+    });
+    await waitFor(() => testClient.updates.length > 0);
+    await ctx.notify(methods.agent.session.cancel, { sessionId });
+    await expect(promptPromise).resolves.toMatchObject({ stopReason: "cancelled" });
+
+    await expect(
+      ctx.request(methods.agent.session.prompt, {
+        sessionId,
+        prompt: [
+          {
+            type: "image",
+            data: "aaaa",
+            mimeType: "image/png",
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      message: expect.stringMatching(/requires text or a resource link alongside image content/),
+    });
   });
 });

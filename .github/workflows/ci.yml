@@ -6,22 +6,30 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        description: Exact commit to validate before publishing
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: "ci-${{ github.ref }}"
+  group: "ci-${{ github.workflow }}-${{ inputs.ref || github.ref }}"
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
 
       - name: Use Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -41,5 +49,53 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Run tests
-        run: npm run test:run
+      - name: Run deterministic contract tests
+        run: npm run test:unit
+
+      - name: Packed install smoke
+        run: npm run test:pack-smoke
+
+  muse-loopback:
+    name: Muse loopback integration
+    # Muse 1.1.1's bwrap cannot create its loopback namespace under Ubuntu
+    # 24.04's default AppArmor policy. Keep sandboxed execution enabled on 22.04.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    needs: build
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - name: Use Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      # Pinned public artifact and SHA-256 from Meta's 1.1.1-R2514.1 manifest.
+      - name: Install verified Muse Code CLI
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/muse-code"
+          curl --fail --location --silent --show-error --retry 3 \
+            'https://lookaside.facebook.com/lookaside/muse/download/?channel=muse&version=1.1.1-R2514.1&file=muse-x86-linux' \
+            --output "$RUNNER_TEMP/muse-code/muse"
+          echo "47908f2e5b0ac5b0c0ba147a48b30a9e48c0aebea3c5cc891ad34d95425a4993  $RUNNER_TEMP/muse-code/muse" | sha256sum --check
+          chmod +x "$RUNNER_TEMP/muse-code/muse"
+          echo "$RUNNER_TEMP/muse-code" >> "$GITHUB_PATH"
+          echo "MUSE_CODE_EXECUTABLE=$RUNNER_TEMP/muse-code/muse" >> "$GITHUB_ENV"
+          "$RUNNER_TEMP/muse-code/muse" --version
+          "$RUNNER_TEMP/muse-code/muse" serve --help >/dev/null
+
+      - name: Run required real-host loopback suites
+        run: npm run test:muse-loopback
+        env:
+          MUSE_CODE_ACP_REQUIRE_MUSE: "1"

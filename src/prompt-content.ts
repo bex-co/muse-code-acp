@@ -1,117 +1,109 @@
-import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { RequestError, type ContentBlock, type ResourceLink } from "@agentclientprotocol/sdk";
+import { decodeImage, IMAGE_EXTENSIONS } from "./prompt-images.js";
+import { ContentBlock, PromptRequest, RequestError } from "@agentclientprotocol/sdk";
 
-const IMAGE_EXTENSIONS = new Map([
-  ["image/gif", "gif"],
-  ["image/jpeg", "jpg"],
-  ["image/png", "png"],
-  ["image/webp", "webp"],
-]);
+/** Muse turn input text part. */
+export type MuseTextInputPart = { type: "text"; text: string };
+export type MuseInputPart =
+  MuseTextInputPart | { type: "image"; base64Data: string; mediaType: string };
 
-const SUPPORTED_IMAGE_TYPES = [...IMAGE_EXTENSIONS.keys()].join(", ");
-
-export type CompiledMusePrompt = {
-  prompt: string;
-  imagePaths: string[];
-  cleanup(): Promise<void>;
-};
-
-function unsupportedContent(type: string, detail?: string): RequestError {
-  const suffix = detail ? ` (${detail})` : "";
-  return RequestError.invalidParams(
-    undefined,
-    `unsupported ACP prompt content: ${type}${suffix}. ` +
-      "Muse Code accepts text, resource links, and PNG/JPEG/GIF/WebP images; " +
-      "send embedded resources as resource_link blocks instead.",
-  );
-}
-
-function decodeImage(data: string): Buffer {
-  const normalized = data.replace(/\s/gu, "");
-  if (!normalized || normalized.length % 4 === 1 || !/^[A-Za-z0-9+/]*={0,2}$/u.test(normalized)) {
-    throw unsupportedContent("image", "invalid base64 data");
+/**
+ * Lossless text encoding for ACP `resource_link` blocks. Muse's turn input
+ * only declares `text` | `image`, so resource links travel as ordered text
+ * parts that preserve name/uri/description/title/mimeType without fetching.
+ */
+export function formatResourceLink(
+  block: Extract<ContentBlock, { type: "resource_link" }>,
+): string {
+  const lines = [`Resource: ${block.name}`, `URI: ${block.uri}`];
+  if (block.title) {
+    lines.push(`Title: ${block.title}`);
   }
-  const decoded = Buffer.from(normalized, "base64");
-  const canonical = normalized.replace(/=+$/u, "");
-  if (!decoded.length || decoded.toString("base64").replace(/=+$/u, "") !== canonical) {
-    throw unsupportedContent("image", "invalid base64 data");
+  if (block.description) {
+    lines.push(`Description: ${block.description}`);
   }
-  return decoded;
+  if (block.mimeType) {
+    lines.push(`MIME: ${block.mimeType}`);
+  }
+  return lines.join("\n");
 }
 
-function renderResourceLink(link: ResourceLink): string {
-  const fields = [
-    `name=${JSON.stringify(link.name)}`,
-    `uri=${JSON.stringify(link.uri)}`,
-    ...(link.mimeType ? [`mimeType=${JSON.stringify(link.mimeType)}`] : []),
-    ...(link.size == null ? [] : [`size=${String(link.size)}`]),
-    ...(link.title ? [`title=${JSON.stringify(link.title)}`] : []),
-    ...(link.description ? [`description=${JSON.stringify(link.description)}`] : []),
-  ];
-  return `Resource link: ${fields.join("; ")}`;
-}
+export type PromptConversion =
+  { ok: true; parts: MuseInputPart[]; text: string } | { ok: false; error: RequestError };
 
-export async function compileMusePrompt(blocks: ContentBlock[]): Promise<CompiledMusePrompt> {
-  const promptParts: string[] = [];
-  const images: Array<{ bytes: Buffer; extension: string }> = [];
+/**
+ * Convert ACP prompt content into Muse turn input and a legacy exec string.
+ * Baseline ACP requires text + resource_link; images use inline MSP parts; audio and embedded resources are rejected.
+ */
+export function convertPromptContent(blocks: PromptRequest["prompt"]): PromptConversion {
+  if (blocks.length === 0) {
+    return {
+      ok: false,
+      error: RequestError.invalidParams(undefined, "prompt contains no content"),
+    };
+  }
 
+  const parts: MuseInputPart[] = [];
   for (const block of blocks) {
     switch (block.type) {
       case "text":
-        promptParts.push(block.text);
+        parts.push({ type: "text", text: block.text });
         break;
       case "resource_link":
-        promptParts.push(renderResourceLink(block));
+        parts.push({ type: "text", text: formatResourceLink(block) });
         break;
       case "image": {
-        const mimeType = block.mimeType.trim().toLowerCase();
-        const extension = IMAGE_EXTENSIONS.get(mimeType);
-        if (!extension) {
-          throw unsupportedContent("image", `supported MIME types: ${SUPPORTED_IMAGE_TYPES}`);
+        const mediaType = block.mimeType.trim().toLowerCase();
+        if (!IMAGE_EXTENSIONS.has(mediaType))
+          return {
+            ok: false,
+            error: RequestError.invalidParams(
+              undefined,
+              "supported MIME types: image/png, image/jpeg, image/gif, image/webp",
+            ),
+          };
+        try {
+          parts.push({
+            type: "image",
+            mediaType,
+            base64Data: decodeImage(block.data).toString("base64"),
+          });
+        } catch (error) {
+          return { ok: false, error: error as RequestError };
         }
-        images.push({ bytes: decodeImage(block.data), extension });
         break;
       }
       case "audio":
-        throw unsupportedContent("audio");
       case "resource":
-        throw unsupportedContent("embedded resource");
+        return {
+          ok: false,
+          error: RequestError.invalidParams(
+            undefined,
+            `unsupported prompt content type: ${block.type}; this agent advertises text, resource_link and image; send embedded resources as resource_link blocks instead`,
+          ),
+        };
       default:
-        throw unsupportedContent("unknown");
+        return {
+          ok: false,
+          error: RequestError.invalidParams(
+            undefined,
+            `unsupported prompt content type: ${(block as { type: string }).type}`,
+          ),
+        };
     }
   }
 
-  const prompt = promptParts.join("\n\n").trim();
-  if (!prompt) {
-    throw RequestError.invalidParams(
-      undefined,
-      images.length > 0
-        ? "Muse Code requires text or a resource link alongside image content"
-        : "prompt contains no text or resource link content",
-    );
-  }
-  if (images.length === 0) {
-    return { prompt, imagePaths: [], cleanup: async () => {} };
-  }
-
-  const directory = await mkdtemp(join(tmpdir(), "muse-code-acp-images-"));
-  await chmod(directory, 0o700);
-  try {
-    const imagePaths: string[] = [];
-    for (const [index, image] of images.entries()) {
-      const imagePath = join(directory, `image-${String(index + 1)}.${image.extension}`);
-      await writeFile(imagePath, image.bytes, { mode: 0o600 });
-      imagePaths.push(imagePath);
-    }
+  const text = parts
+    .flatMap((part) => (part.type === "text" ? [part.text] : []))
+    .join("\n\n")
+    .trim();
+  if (text.length === 0 && !parts.some((part) => part.type === "image")) {
     return {
-      prompt,
-      imagePaths,
-      cleanup: async () => await rm(directory, { recursive: true, force: true }),
+      ok: false,
+      error: RequestError.invalidParams(
+        undefined,
+        "prompt contains no text or resource_link content",
+      ),
     };
-  } catch (error) {
-    await rm(directory, { recursive: true, force: true });
-    throw error;
   }
+  return { ok: true, parts, text };
 }
