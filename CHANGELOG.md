@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/bex-co/muse-code-acp/compare/v0.3.0...v0.4.0) (2026-09-12)
+
+
+### Features
+
+* expose persistent Muse goal observations ([a5d29ad](https://github.com/bex-co/muse-code-acp/commit/a5d29ad7284278bf97c0fb0201a4ad4156aaf4e4))
+
 ## [0.3.0](https://github.com/bex-co/muse-code-acp/compare/v0.2.0...v0.3.0) (2026-09-12)
 
 
