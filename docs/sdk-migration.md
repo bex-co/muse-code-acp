@@ -127,7 +127,12 @@ input request. Cancelling a turn never waits for a still-open client dialog.
 | `src/tests/acp-wire.test.ts`        | Spawned `dist/index.js` NDJSON wire                                      |
 
 CI installs the public Linux Muse **1.1.1-R2514.1** artifact and verifies its
-pinned SHA-256. The restart test verifies that provider input includes the prior
+pinned SHA-256. Real-host tests run on Ubuntu 22.04: Muse 1.1.1's bundled
+Bubblewrap fails to create its loopback namespace under Ubuntu 24.04's default
+AppArmor policy (`Failed RTM_NEWADDR: Operation not permitted`). This is a host
+sandbox limitation; ACP reports the failed tool result. CI keeps the sandbox
+enabled and requires proof that an approved command actually writes its file.
+The restart test verifies that provider input includes the prior
 conversation and that the saved model/effort survive the ACP process restart.
 Publishing resolves the release ref to an immutable commit, runs this same CI
 workflow on that commit, and only publishes after all checks succeed. Manual

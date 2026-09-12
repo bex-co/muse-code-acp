@@ -57,7 +57,9 @@ jobs:
 
   muse-loopback:
     name: Muse loopback integration
-    runs-on: ubuntu-latest
+    # Muse 1.1.1's bwrap cannot create its loopback namespace under Ubuntu
+    # 24.04's default AppArmor policy. Keep sandboxed execution enabled on 22.04.
+    runs-on: ubuntu-22.04
     timeout-minutes: 25
     needs: build
 

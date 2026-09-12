@@ -36,7 +36,7 @@ describe("SDK live approval gating (real Muse host)", () => {
     ).toBe(true);
   });
 
-  it("allow writes the marker; deny leaves it absent", async () => {
+  it("allow writes the marker", async () => {
     expect(museReady).toBe(true);
 
     const provider = await startLoopbackProvider({
@@ -75,7 +75,12 @@ describe("SDK live approval gating (real Muse host)", () => {
       ).toBeTruthy();
       release({ outcome: { outcome: "selected", optionId: allow!.optionId } });
       await expect(prompt).resolves.toEqual({ stopReason: "end_turn" });
-      await expect.poll(() => existsSync(marker), { timeout: 15_000 }).toBe(true);
+      expect(
+        existsSync(marker),
+        `approved command did not write its marker; tool updates: ${JSON.stringify(
+          client.updates.filter(({ update }) => update.sessionUpdate === "tool_call_update"),
+        )}`,
+      ).toBe(true);
       expect(readFileSync(marker, "utf8").trim()).toBe("yes");
       expect(provider.scriptedToolCalls()).toBe(1);
     } finally {
