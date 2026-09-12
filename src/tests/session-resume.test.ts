@@ -1,5 +1,5 @@
 import { methods, type McpServer } from "@agentclientprotocol/sdk";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -89,6 +89,16 @@ describe("session/resume", () => {
       code: -32602,
       message: expect.stringMatching(/workspace directory does not exist.*missing-muse-resume/),
     });
+  });
+
+  it("rejects a regular file used as a workspace", async () => {
+    const client = fakeClient();
+    const { sessionId, cwd } = await newTestSession(client);
+    const file = join(cwd, "file");
+    writeFileSync(file, "not a directory");
+    await expect(
+      client.agent.resumeSession({ sessionId, cwd: file, mcpServers: [] }),
+    ).rejects.toMatchObject({ code: -32602 });
   });
 
   it("rejects a deleted stored workspace with a new-session next step", async () => {

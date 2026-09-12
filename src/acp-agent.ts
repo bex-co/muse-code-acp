@@ -41,7 +41,7 @@ import {
 import { createUuidV7Mint } from "@muse-code/sdk";
 import { randomUUID } from "node:crypto";
 import { isAbsolute } from "node:path";
-import { realpathSync } from "node:fs";
+import { realpathSync, statSync } from "node:fs";
 import packageJson from "../package.json" with { type: "json" };
 import {
   isAuthenticated,
@@ -143,7 +143,9 @@ export interface MuseAgentOptions {
 
 function resolveResumeWorkspace(cwd: string, stored: boolean): string {
   try {
-    return realpathSync(cwd);
+    const canonical = realpathSync(cwd);
+    if (!statSync(canonical).isDirectory()) throw new Error("not a directory");
+    return canonical;
   } catch {
     throw RequestError.invalidParams(
       undefined,
