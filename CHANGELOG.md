@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0](https://github.com/bex-co/muse-code-acp/compare/v0.2.0...v0.3.0) (2026-09-12)
+
+
+### Features
+
+* close Muse ACP sessions cleanly ([#4](https://github.com/bex-co/muse-code-acp/issues/4)) ([0aa9979](https://github.com/bex-co/muse-code-acp/commit/0aa99791f07070a623ae541e074a935f7a129dd2))
+* forward ACP prompt content to Muse ([#3](https://github.com/bex-co/muse-code-acp/issues/3)) ([3beeee8](https://github.com/bex-co/muse-code-acp/commit/3beeee88f84c13b5c6ba2947171b148ec0c4156f))
+* resume Muse ACP sessions without replay ([#5](https://github.com/bex-co/muse-code-acp/issues/5)) ([dfc1d31](https://github.com/bex-co/muse-code-acp/commit/dfc1d3104f05f7be4b3417454d894885b9e56e44))
+
 ## [0.2.0](https://github.com/bex-co/muse-code-acp/compare/v0.1.1...v0.2.0) (2026-09-12)
 
 
