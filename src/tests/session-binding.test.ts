@@ -12,17 +12,15 @@ describe("session binding races", () => {
     });
     const { sessionId, cwd } = await newTestSession(client);
     const gate = Promise.withResolvers<Awaited<ReturnType<typeof history.runMuseExport>>>();
-    const list = vi
-      .spyOn(store, "listStoredSessions")
-      .mockReturnValue([
-        {
-          sessionId,
-          cwd,
-          logPath: "/unused/session.jsonl",
-          title: "test",
-          updatedAt: "2026-09-12T00:00:00Z",
-        },
-      ]);
+    const list = vi.spyOn(store, "listStoredSessions").mockReturnValue([
+      {
+        sessionId,
+        cwd,
+        logPath: "/unused/session.jsonl",
+        title: "test",
+        updatedAt: "2026-09-12T00:00:00Z",
+      },
+    ]);
     const read = vi.spyOn(history, "runMuseExport").mockReturnValue(gate.promise);
     try {
       const load = client.agent.loadSession({ sessionId, cwd, mcpServers: [] });
