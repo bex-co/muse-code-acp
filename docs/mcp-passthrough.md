@@ -34,7 +34,8 @@ For each prompt that has session MCP servers, the adapter:
 2. symlinks the user's existing XDG entries, including Muse authentication;
 3. writes a mode-0600 `muse/settings.json` containing the user's settings plus
    the session MCP servers;
-4. starts `muse exec` with the temporary directory as `XDG_CONFIG_HOME`; and
+4. starts `muse serve` (SDK default) or `muse exec` (legacy) with the temporary
+   directory as `XDG_CONFIG_HOME`; and
 5. removes the temporary directory when the turn completes, fails, or is
    cancelled.
 

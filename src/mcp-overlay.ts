@@ -12,6 +12,7 @@ import {
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import type { SessionConfig } from "./config-options.js";
 
 export interface MuseMcpOverlay {
   env: Record<string, string | undefined>;
@@ -52,6 +53,7 @@ export function museMcpServers(mcpServers: McpServer[]): Record<string, unknown>
 export function createMuseMcpOverlay(
   mcpServers: McpServer[],
   baseEnv: Record<string, string | undefined> = process.env,
+  executionConfig?: SessionConfig,
 ): MuseMcpOverlay {
   const sourceConfigHome = baseEnv.XDG_CONFIG_HOME || join(baseEnv.HOME ?? homedir(), ".config");
   const configHome = mkdtempSync(join(tmpdir(), "muse-code-acp-"));
@@ -75,6 +77,11 @@ export function createMuseMcpOverlay(
     const merged = {
       schema_version: 1,
       ...settings,
+      // Muse 1.1.1 initializes its execution provider from settings even when
+      // MSP selects another session model. Keep both views in agreement.
+      ...(executionConfig
+        ? { model: executionConfig.model, reasoning_effort: executionConfig.reasoningEffort }
+        : {}),
       mcp_servers: {
         ...(existingMcp ?? {}),
         ...museMcpServers(mcpServers),

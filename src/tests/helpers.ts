@@ -1,8 +1,12 @@
 import {
   client,
   ClientContext,
+  CreateElicitationRequest,
+  CreateElicitationResponse,
   methods,
   PROTOCOL_VERSION,
+  RequestPermissionRequest,
+  RequestPermissionResponse,
   SessionNotification,
 } from "@agentclientprotocol/sdk";
 import { chmodSync, mkdtempSync } from "node:fs";
@@ -40,10 +44,24 @@ export function fakeMuseBinary(): string {
   return fakeMuse;
 }
 
+export type PermissionResponder = (
+  params: RequestPermissionRequest,
+) => RequestPermissionResponse | Promise<RequestPermissionResponse>;
+
+export type ElicitationResponder = (
+  params: CreateElicitationRequest,
+) => CreateElicitationResponse | Promise<CreateElicitationResponse>;
+
 export interface TestClient {
   /** Every session/update notification the agent sent, in order. */
   updates: SessionNotification[];
+  /** Permission requests the agent sent to the client, in order. */
+  permissionRequests: RequestPermissionRequest[];
+  /** Elicitation requests the agent sent to the client, in order. */
+  elicitationRequests: CreateElicitationRequest[];
   agent: MuseAcpAgent;
+  setPermissionResponder(responder: PermissionResponder): void;
+  setElicitationResponder(responder: ElicitationResponder): void;
   /** Context for sending agent-side requests (initialize, session/new, …). */
   connect(): Promise<ClientContext>;
 }
@@ -57,6 +75,12 @@ export function connectTestClient(
   logger: Logger = silentLogger(),
 ): TestClient {
   const updates: SessionNotification[] = [];
+  const permissionRequests: RequestPermissionRequest[] = [];
+  const elicitationRequests: CreateElicitationRequest[] = [];
+  let permissionResponder: PermissionResponder = () => ({
+    outcome: { outcome: "cancelled" },
+  });
+  let elicitationResponder: ElicitationResponder = () => ({ action: "cancel" });
   let resolveCtx!: (ctx: ClientContext) => void;
   const ctxPromise = new Promise<ClientContext>((resolve) => {
     resolveCtx = resolve;
@@ -66,21 +90,50 @@ export function connectTestClient(
     .onNotification(methods.client.session.update, (ctx) => {
       updates.push(ctx.params);
     })
+    .onRequest(methods.client.session.requestPermission, async (ctx) => {
+      permissionRequests.push(ctx.params);
+      return permissionResponder(ctx.params);
+    })
+    .onRequest(methods.client.elicitation.create, async (ctx) => {
+      elicitationRequests.push(ctx.params);
+      return elicitationResponder(ctx.params);
+    })
     .onConnect((conn) => resolveCtx(conn.agent));
 
   const { agent } = createAgentConnection(clientApp, logger, options);
-  return { updates, agent, connect: () => ctxPromise };
+  return {
+    updates,
+    permissionRequests,
+    elicitationRequests,
+    agent,
+    setPermissionResponder(responder) {
+      permissionResponder = responder;
+    },
+    setElicitationResponder(responder) {
+      elicitationResponder = responder;
+    },
+    connect: () => ctxPromise,
+  };
 }
 
-export async function initialized(testClient: TestClient): Promise<ClientContext> {
+export async function initialized(
+  testClient: TestClient,
+  clientCapabilities: Record<string, unknown> = { auth: { terminal: true } },
+): Promise<ClientContext> {
   const ctx = await testClient.connect();
-  await ctx.request(methods.agent.initialize, { protocolVersion: PROTOCOL_VERSION });
+  await ctx.request(methods.agent.initialize, {
+    protocolVersion: PROTOCOL_VERSION,
+    clientCapabilities,
+  });
   return ctx;
 }
 
 /** initialize + session/new in a fresh temp cwd — the common test opening. */
-export async function newTestSession(testClient: TestClient) {
-  const ctx = await initialized(testClient);
+export async function newTestSession(
+  testClient: TestClient,
+  clientCapabilities?: Record<string, unknown>,
+) {
+  const ctx = await initialized(testClient, clientCapabilities);
   const cwd = mkdtempSync(join(tmpdir(), "muse-acp-test-"));
   const { sessionId, modes, configOptions } = await ctx.request(methods.agent.session.new, {
     cwd,
