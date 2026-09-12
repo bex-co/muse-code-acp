@@ -22,6 +22,7 @@ function capturePath(): string {
 
 function blockingClient(capture: string) {
   return connectTestClient({
+    backend: "exec",
     museBinary: fakeMuseBinary(),
     env: {
       ...process.env,
@@ -106,7 +107,8 @@ describe("session/close", () => {
     await waitFor(
       () => existsSync(capture) && Boolean(testClient.agent.sessions.get(sessionId)?.activeTurn),
     );
-    const pid = testClient.agent.sessions.get(sessionId)?.activeTurn?.pid;
+    const turn = testClient.agent.sessions.get(sessionId)?.activeTurn;
+    const pid = turn && "pid" in turn ? turn.pid : undefined;
     if (!pid) {
       throw new Error("fake Muse did not expose its process id");
     }
@@ -177,6 +179,8 @@ describe("session/close", () => {
     const releaseUpdate = Promise.withResolvers<void>();
     const agent = new MuseAcpAgent(
       {
+        requestPermission: async () => ({ outcome: { outcome: "cancelled" } }),
+        createElicitation: async () => ({ action: "cancel" }),
         sessionUpdate: async (notification) => {
           if (notification.update.sessionUpdate !== "agent_message_chunk") {
             return;
@@ -188,6 +192,7 @@ describe("session/close", () => {
       },
       silentLogger(),
       {
+        backend: "exec",
         museBinary: fakeMuseBinary(),
         env: { ...process.env, FAKE_MUSE_MODE: "block" },
       },
@@ -215,6 +220,7 @@ describe("session/close", () => {
     async () => {
       const xdg = mkdtempSync(join(tmpdir(), "muse-close-xdg-"));
       const testClient = connectTestClient({
+        backend: "exec",
         provider: "echo",
         env: { ...process.env, XDG_DATA_HOME: xdg },
       });

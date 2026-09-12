@@ -10,6 +10,7 @@ describe("initialize", () => {
 
     const response = await ctx.request(methods.agent.initialize, {
       protocolVersion: PROTOCOL_VERSION,
+      clientCapabilities: { auth: { terminal: true } },
     });
 
     expect(response.protocolVersion).toBe(PROTOCOL_VERSION);
@@ -27,7 +28,7 @@ describe("initialize", () => {
     expect(response._meta?.["bex.security/capabilities"]).toEqual({
       delegatedWorkers: false,
       usage: "unavailable",
-      interactivePermissions: false,
+      interactivePermissions: true,
     });
     expect(response.authMethods?.length).toBe(2);
   });
@@ -40,6 +41,15 @@ describe("initialize", () => {
       protocolVersion: PROTOCOL_VERSION + 5,
     });
 
+    expect(response.protocolVersion).toBe(PROTOCOL_VERSION);
+  });
+
+  it("returns our version for older unsupported clients too", async () => {
+    const testClient = connectTestClient();
+    const ctx = await testClient.connect();
+    const response = await ctx.request(methods.agent.initialize, {
+      protocolVersion: 0 as typeof PROTOCOL_VERSION,
+    });
     expect(response.protocolVersion).toBe(PROTOCOL_VERSION);
   });
 });

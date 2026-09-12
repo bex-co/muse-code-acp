@@ -23,7 +23,7 @@ const stdioServer: McpServer = {
 
 describe("MCP passthrough", () => {
   it("advertises the ACP-required stdio transport without remote transports", async () => {
-    const testClient = connectTestClient({ museBinary: fakeMuseBinary() });
+    const testClient = connectTestClient({ backend: "exec", museBinary: fakeMuseBinary() });
     const ctx = await testClient.connect();
     const response = await ctx.request(methods.agent.initialize, { protocolVersion: 1 });
 
@@ -81,6 +81,7 @@ describe("MCP passthrough", () => {
       '{"schema_version":1,"model":"original-model"}\n',
     );
     const testClient = connectTestClient({
+      backend: "exec",
       museBinary: fakeMuseBinary(),
       env: {
         ...process.env,
@@ -106,5 +107,14 @@ describe("MCP passthrough", () => {
     expect(capture.settings.model).toBe("original-model");
     expect(capture.settings.mcp_servers["security-tools"].command).toBe("/bin/security-mcp");
     expect(existsSync(capture.configHome)).toBe(false);
+  });
+
+  it("rejects unsupported non-stdio MCP transports", () => {
+    expect(() =>
+      createMuseMcpOverlay(
+        [{ name: "remote", type: "http", url: "https://example.com" } as unknown as McpServer],
+        process.env,
+      ),
+    ).toThrow(/unsupported MCP transport/);
   });
 });

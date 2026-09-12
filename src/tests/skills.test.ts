@@ -47,7 +47,7 @@ describe.skipIf(!museAvailable())("listMuseSkills (real muse)", () => {
 
 describe("commands advertisement over ACP", () => {
   it("sends available_commands_update with active skills after session/new", async () => {
-    const testClient = connectTestClient({ museBinary: fakeMuseBinary() });
+    const testClient = connectTestClient({ backend: "exec", museBinary: fakeMuseBinary() });
     await newTestSession(testClient);
 
     const deadline = Date.now() + 5000;

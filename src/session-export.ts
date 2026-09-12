@@ -1,4 +1,4 @@
-import { SessionNotification } from "@agentclientprotocol/sdk";
+import { RequestError, SessionNotification } from "@agentclientprotocol/sdk";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -43,10 +43,13 @@ export interface MuseExportDocument {
 export function exportToUpdates(
   sessionId: string,
   doc: MuseExportDocument,
-  logger: Logger = console,
+  _logger: Logger = console,
 ): SessionNotification[] {
   if (doc.export_schema_version !== 1) {
-    logger.log(`muse export schema ${doc.export_schema_version} (expected 1); replaying anyway`);
+    throw RequestError.internalError(
+      undefined,
+      `unsupported muse export schema ${doc.export_schema_version}; expected 1`,
+    );
   }
   const updates: SessionNotification[] = [];
   /** task_id → call info for tool tasks seen in this replay. */
@@ -89,6 +92,25 @@ export function exportToUpdates(
           title: toolName,
           name: toolName,
           status: "pending",
+        });
+      } else if (
+        (event.kind === "completed" || event.kind === "failed") &&
+        !toolTasks.has(taskId) &&
+        typeof event.operation === "string" &&
+        event.operation.startsWith("tool:")
+      ) {
+        // Completion-only tool items (intent lost) still surface once.
+        const toolName = event.operation.slice("tool:".length);
+        const callId =
+          typeof event.idempotency_key === "string" && event.idempotency_key.startsWith("tool:")
+            ? event.idempotency_key.slice("tool:".length)
+            : taskId || toolName;
+        push({
+          sessionUpdate: "tool_call",
+          toolCallId: callId,
+          title: toolName,
+          name: toolName,
+          status: event.kind === "completed" ? "completed" : "failed",
         });
       } else if (event.kind === "completed" || event.kind === "failed") {
         const call = toolTasks.get(taskId);

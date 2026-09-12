@@ -18,6 +18,7 @@ describe.skipIf(!enabled)("real provider integration", () => {
   it("runs a tool-using turn with streamed tool calls and diffs", async () => {
     const xdg = mkdtempSync(join(tmpdir(), "muse-integration-xdg-"));
     const testClient = connectTestClient({
+      backend: "exec",
       env: { ...process.env, XDG_DATA_HOME: xdg },
     });
     const ctx = await initialized(testClient);

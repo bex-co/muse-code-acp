@@ -1,15 +1,16 @@
 import { SessionModeState } from "@agentclientprotocol/sdk";
 
 /**
- * ACP session modes mapped honestly onto muse's headless safety levers.
+ * ACP session modes mapped onto Muse safety levers.
  *
- * Muse 0.2.1 headless has NO interactive approval channel — approvals resolve
- * inside muse via its policy engine + LLM judge. So there is no mode that
- * routes individual tool calls through ACP `session/request_permission`; the
- * modes only choose which muse safety flags each `muse exec` spawn gets, and a
- * mode change applies from the NEXT prompt (spawn-time flags).
+ * Exec backend: modes choose spawn-time `muse exec` flags. Approvals resolve
+ * inside Muse (policy + judge) unless the SDK path is selected.
+ *
+ * SDK backend: only `default` and `readOnly` are advertised. Approvals route
+ * through ACP `session/request_permission`; `serve` has no bypass/yolo flags.
  */
 export type MuseModeId = "default" | "readOnly" | "bypassApprovals" | "yolo";
+export type MuseBackendId = "exec" | "sdk";
 
 export interface ModeDef {
   id: MuseModeId;
@@ -21,13 +22,19 @@ export interface ModeDef {
   dangerous?: boolean;
 }
 
+const EXEC_DEFAULT_DESCRIPTION =
+  "Muse's approval policy and LLM judge decide tool calls autonomously inside its " +
+  "sandbox; decisions are reported, not asked. Applies from the next prompt.";
+
+const SDK_DEFAULT_DESCRIPTION =
+  "Tool calls that need approval are offered through ACP permission requests " +
+  "(approval mode onRequest). Applies from the next prompt.";
+
 export const MODES: Record<MuseModeId, ModeDef> = {
   default: {
     id: "default",
-    name: "Policy + judge (report-only)",
-    description:
-      "Muse's approval policy and LLM judge decide tool calls autonomously inside its " +
-      "sandbox; decisions are reported, not asked. Applies from the next prompt.",
+    name: "Default",
+    description: EXEC_DEFAULT_DESCRIPTION,
     flags: [],
   },
   readOnly: {
@@ -41,7 +48,7 @@ export const MODES: Record<MuseModeId, ModeDef> = {
     id: "bypassApprovals",
     name: "Bypass approvals",
     description:
-      "Skip muse's approval prompts; the OS sandbox stays on. Applies from the next prompt.",
+      "Skip muse's approval prompts; the OS sandbox stays on. Applies from the next prompt. Exec backend only.",
     flags: ["--disable-approval"],
     dangerous: true,
   },
@@ -50,7 +57,7 @@ export const MODES: Record<MuseModeId, ModeDef> = {
     name: "Yolo (no approval, no sandbox)",
     description:
       "Disable approval AND the OS sandbox and trust this workspace — muse's own --yolo. " +
-      "Only for already-isolated environments. Applies from the next prompt.",
+      "Only for already-isolated environments. Exec backend only. Applies from the next prompt.",
     flags: ["--yolo"],
     dangerous: true,
   },
@@ -89,13 +96,18 @@ export function isModeAvailable(id: string, guard: ModeGuardContext): id is Muse
   return availableModes(guard).some((mode) => mode.id === id);
 }
 
-export function modeState(current: MuseModeId, guard: ModeGuardContext): SessionModeState {
+export function modeState(
+  current: MuseModeId,
+  guard: ModeGuardContext,
+  backend: MuseBackendId = "exec",
+): SessionModeState {
   return {
     currentModeId: current,
     availableModes: availableModes(guard).map((mode) => ({
       id: mode.id,
       name: mode.name,
-      description: mode.description,
+      description:
+        mode.id === "default" && backend === "sdk" ? SDK_DEFAULT_DESCRIPTION : mode.description,
     })),
   };
 }

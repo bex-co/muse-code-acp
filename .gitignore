@@ -5,3 +5,4 @@ coverage
 .claude/*.local.*
 CLAUDE.local.md
 .idea/
+.tmp

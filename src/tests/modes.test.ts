@@ -34,7 +34,7 @@ describe("availableModes guard", () => {
 
 describe("session/set_mode", () => {
   it("advertises modes on session/new with default current", async () => {
-    const testClient = connectTestClient({ museBinary: fakeMuseBinary() });
+    const testClient = connectTestClient({ backend: "exec", museBinary: fakeMuseBinary() });
     const { modes } = await newTestSession(testClient);
 
     expect(modes?.currentModeId).toBe("default");
@@ -45,7 +45,11 @@ describe("session/set_mode", () => {
   it("applies the mode's flags to the next spawn", async () => {
     const lines: string[] = [];
     const testClient = connectTestClient(
-      { museBinary: fakeMuseBinary(), env: { ...process.env, FAKE_MUSE_MODE: "exit1" } },
+      {
+        backend: "exec",
+        museBinary: fakeMuseBinary(),
+        env: { ...process.env, FAKE_MUSE_MODE: "exit1" },
+      },
       capturingLogger(lines),
     );
     const { ctx, sessionId } = await newTestSession(testClient);
@@ -65,7 +69,11 @@ describe("session/set_mode", () => {
   it("default mode spawns without safety flags", async () => {
     const lines: string[] = [];
     const testClient = connectTestClient(
-      { museBinary: fakeMuseBinary(), env: { ...process.env, FAKE_MUSE_MODE: "exit1" } },
+      {
+        backend: "exec",
+        museBinary: fakeMuseBinary(),
+        env: { ...process.env, FAKE_MUSE_MODE: "exit1" },
+      },
       capturingLogger(lines),
     );
     const { ctx, sessionId } = await newTestSession(testClient);
@@ -82,7 +90,7 @@ describe("session/set_mode", () => {
   });
 
   it("rejects unknown or unavailable modes", async () => {
-    const testClient = connectTestClient({ museBinary: fakeMuseBinary() });
+    const testClient = connectTestClient({ backend: "exec", museBinary: fakeMuseBinary() });
     const { ctx, sessionId } = await newTestSession(testClient);
 
     await expect(

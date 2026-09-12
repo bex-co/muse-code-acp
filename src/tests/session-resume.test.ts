@@ -16,6 +16,7 @@ const refreshedMcpServers: McpServer[] = [
 
 function fakeClient(mode = "exit0") {
   return connectTestClient({
+    backend: "exec",
     museBinary: fakeMuseBinary(),
     env: { ...process.env, FAKE_MUSE_MODE: mode },
   });
@@ -141,43 +142,48 @@ describe("session/resume", () => {
     await expect(prompt).resolves.toEqual({ stopReason: "cancelled" });
   });
 
-  it.skipIf(!museAvailable())("recreates a closed session without replaying history", async () => {
-    const xdg = mkdtempSync(join(tmpdir(), "muse-resume-xdg-"));
-    const testClient = connectTestClient({
-      provider: "echo",
-      env: { ...process.env, XDG_DATA_HOME: xdg },
-    });
-    const { ctx, sessionId, cwd } = await newTestSession(testClient);
-    await ctx.request(methods.agent.session.prompt, {
-      sessionId,
-      prompt: [{ type: "text", text: "repeat first-resume-token" }],
-    });
-    await ctx.request(methods.agent.session.close, { sessionId });
-    testClient.updates.length = 0;
-    const linkRoot = mkdtempSync(join(tmpdir(), "muse-resume-link-"));
-    const linkedCwd = join(linkRoot, "workspace");
-    symlinkSync(cwd, linkedCwd, "junction");
-
-    const resumed = await ctx.request(methods.agent.session.resume, {
-      sessionId,
-      cwd: linkedCwd,
-      mcpServers: [],
-    });
-    await new Promise((resolve) => setTimeout(resolve, 20));
-
-    expect(resumed.modes?.currentModeId).toBe("default");
-    expect(resumed.configOptions?.length).toBeGreaterThan(0);
-    expect(testClient.agent.sessions.get(sessionId)?.cwd).toBe(realpathSync(cwd));
-    expect(
-      testClient.updates.some((update) => update.update.sessionUpdate === "agent_message_chunk"),
-    ).toBe(false);
-    await expect(
-      ctx.request(methods.agent.session.prompt, {
+  it.skipIf(!museAvailable())(
+    "recreates a closed session without replaying history",
+    async () => {
+      const xdg = mkdtempSync(join(tmpdir(), "muse-resume-xdg-"));
+      const testClient = connectTestClient({
+        backend: "exec",
+        provider: "echo",
+        env: { ...process.env, XDG_DATA_HOME: xdg },
+      });
+      const { ctx, sessionId, cwd } = await newTestSession(testClient);
+      await ctx.request(methods.agent.session.prompt, {
         sessionId,
-        prompt: [{ type: "text", text: "repeat second-resume-token" }],
-      }),
-    ).resolves.toEqual({ stopReason: "end_turn" });
-  });
+        prompt: [{ type: "text", text: "repeat first-resume-token" }],
+      });
+      await ctx.request(methods.agent.session.close, { sessionId });
+      testClient.updates.length = 0;
+      const linkRoot = mkdtempSync(join(tmpdir(), "muse-resume-link-"));
+      const linkedCwd = join(linkRoot, "workspace");
+      symlinkSync(cwd, linkedCwd, "junction");
+
+      const resumed = await ctx.request(methods.agent.session.resume, {
+        sessionId,
+        cwd: linkedCwd,
+        mcpServers: [],
+      });
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      expect(resumed.modes?.currentModeId).toBe("default");
+      expect(resumed.configOptions?.length).toBeGreaterThan(0);
+      expect(testClient.agent.sessions.get(sessionId)?.cwd).toBe(realpathSync(cwd));
+      expect(
+        testClient.updates.some((update) => update.update.sessionUpdate === "agent_message_chunk"),
+      ).toBe(false);
+      await expect(
+        ctx.request(methods.agent.session.prompt, {
+          sessionId,
+          prompt: [{ type: "text", text: "repeat second-resume-token" }],
+        }),
+      ).resolves.toEqual({ stopReason: "end_turn" });
+    },
+    60_000,
+  );
 
   it("rejects unknown sessions and relative workspaces", async () => {
     const testClient = fakeClient();

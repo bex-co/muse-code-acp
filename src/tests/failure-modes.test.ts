@@ -10,6 +10,7 @@ function fakeMuseClient(
   mode: "block" | "exit1" | "exit2" | "failterm" | "autherr" | "maxsteps" | "approval",
 ) {
   return connectTestClient({
+    backend: "exec",
     museBinary: fakeMuseBinary(),
     env: { ...process.env, FAKE_MUSE_MODE: mode },
   });

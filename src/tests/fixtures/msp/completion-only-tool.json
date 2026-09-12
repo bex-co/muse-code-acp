@@ -1,0 +1,1 @@
+{"itemId":"late","callId":"late-1","turnId":"t1","kind":"toolCall","tool":"bash","revision":1,"status":"completed","args":"{\"command\":\"echo hi\"}","visibleOutput":"{\"command\":\"echo hi\",\"output\":\"hi\"}"}

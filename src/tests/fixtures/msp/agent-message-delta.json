@@ -1,0 +1,5 @@
+[
+  {"kind":"item","item":{"itemId":"m1","turnId":"t1","kind":"agentMessage","revision":1,"status":"inProgress","text":""}},
+  {"kind":"delta","delta":{"itemId":"m1","delta":"hello"}},
+  {"kind":"item","item":{"itemId":"m1","turnId":"t1","kind":"agentMessage","revision":2,"status":"completed","text":"hello world"}}
+]
