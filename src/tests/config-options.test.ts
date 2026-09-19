@@ -55,7 +55,7 @@ describe("defaultSessionConfig", () => {
       defaultSessionConfig({ model: "muse-spark-1.2-contributor", reasoningEffort: "ultra" }),
     ).toEqual({ model: "muse-spark-1.2-contributor", reasoningEffort: "ultra" });
     expect(defaultSessionConfig({ reasoningEffort: "bogus" })).toEqual({
-      model: "muse-spark-1.2",
+      model: "muse-spark-1.3",
       reasoningEffort: "high",
     });
   });
