@@ -116,8 +116,10 @@ including a reused multi-turn session. Failed admission starts no turn and does
 not persist the selection as successfully applied. Config options represent requested
 settings; negotiated `muse/sessionState` reports native observations separately.
 The overlay remains until its retained host closes; user settings stay intact.
-Named profile identity is preserved in discovery, but effective routing is unverified;
-named-profile selections are unavailable with an actionable explanation.
+Named profile identity is preserved in discovery and in the selection sent through
+`session/setModel`. `model/list` reports the profile per catalog, and on Muse
+1.3.0 every live provider-catalog row carries it, so profiled rows are offered and
+selectable like any other choice.
 
 Form elicitation supports single selections, bounded multiple selections, and
 free text up to 500 characters. Invalid responses fail the turn and cancel the

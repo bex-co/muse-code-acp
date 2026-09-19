@@ -55,7 +55,7 @@ export function buildConfigOptions(
   const discovered: readonly DiscoveredModel[] =
     backend === "sdk"
       ? discovery?.status === "available"
-        ? discovery.models.filter((model) => model.profileId == null)
+        ? discovery.models
         : []
       : KNOWN_MODELS.map((id) => ({ id, name: id }));
   const current = discovered.filter(
@@ -174,11 +174,6 @@ export function selectModel(
     );
   if (matches.length === 1) {
     const model = matches[0];
-    if (model.profileId != null)
-      throw RequestError.invalidParams(
-        undefined,
-        "Named model profile routing is unverified on supported Muse hosts; choose a provider model without a named profile",
-      );
     return { ...config, model: model.id, providerId: model.providerId, profileId: model.profileId };
   }
   if (

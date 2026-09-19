@@ -301,10 +301,6 @@ export class MuseSdkHost {
 
   private async open(preparing: () => void): Promise<HostLease> {
     const options = this.options;
-    if (options.profileId != null)
-      throw new Error(
-        "Named model profile routing is unverified on supported Muse hosts; choose a provider model without a named profile. No turn was started",
-      );
     // Only probed when the host check runs: spawning the real binary for a
     // version string is exactly what `checkHost: false` exists to avoid.
     const hostVersion =
