@@ -24,7 +24,7 @@ export function isReasoningEffort(value: unknown): value is MuseReasoningEffort 
   return typeof value === "string" && (EFFORT_LEVELS as readonly string[]).includes(value);
 }
 
-const DEFAULT_MODEL = "muse-spark-1.2";
+const DEFAULT_MODEL = "muse-spark-1.3";
 const DEFAULT_EFFORT = "high";
 
 export interface SessionConfig {

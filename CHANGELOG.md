@@ -5,6 +5,7 @@
 ### Fixes
 
 - Offer catalog models that carry a named profile. Muse 1.3.0 tags every live `providerCatalog` row with the catalog's profile, so the model menu showed only the current model and no catalog choice could be selected. Profiled rows are now advertised and selectable, and the profile travels with the selection through `session/setModel`.
+- Default to `muse-spark-1.3` when neither the session nor Muse settings name a model. Muse's own catalog default can be a `-contributor` variant, whose content may be used for product improvement, so the adapter keeps an explicit non-contributor default rather than following it.
 
 ## [0.6.1](https://github.com/bex-co/muse-code-acp/compare/v0.6.0...v0.6.1) (2026-09-16)
 
