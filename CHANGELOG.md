@@ -6,6 +6,7 @@
 
 - Offer the `max` reasoning effort, which Muse 1.3 and later treat as its own tier between `xhigh` and `ultra`. Previously `max` from Muse settings silently became `high` and a client selection of `max` was rejected, while `ultra` is gated on newer hosts and falls back to `xhigh`, so the strongest effort a user could reach was below `max` ([#13](https://github.com/bex-co/muse-code-acp/issues/13)).
 - Log an unknown `reasoning_effort` in Muse settings before the default applies, instead of silently running at `high` ([#11](https://github.com/bex-co/muse-code-acp/issues/11)).
+- Offer catalog models that carry a named profile. Muse 1.3.0 tags every live `providerCatalog` row with the catalog's profile, so the model menu showed only the current model and no catalog choice could be selected. Profiled rows are now advertised and selectable, and the profile travels with the selection through `session/setModel`.
 
 ## [0.7.0](https://github.com/bex-co/muse-code-acp/compare/v0.6.1...v0.7.0) (2026-09-25)
 

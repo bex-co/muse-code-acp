@@ -120,13 +120,19 @@ it("recommendations retain explicit values and use only advertised choices", asy
   ).toMatchObject({ source: "retainedSelection", applied: false });
 });
 
-it("does not advertise unverified named-profile routing or lose its identity", () => {
+it("advertises and selects catalog models that carry a named profile", () => {
+  // Muse 1.3.0 provider catalogs tag every row with the account's catalog
+  // profile, so filtering profiled rows left only the synthetic current model.
   const profiled = { id: "named", name: "Named", providerId: "meta", profileId: "team" };
   const catalog = { status: "available" as const, source: "providerCatalog", models: [profiled] };
   const value = modelChoice(profiled);
-  const options = buildConfigOptions(config, "sdk", catalog);
-  expect(JSON.stringify(options)).not.toContain(value);
-  expect(() => selectModel(config, value, catalog)).toThrow(
-    /Named model profile routing is unverified/,
-  );
+  const option = buildConfigOptions(config, "sdk", catalog).find((o) => o.id === "model")!;
+  if (option.type !== "select") throw Error("wrong type");
+  expect(option.options.map((o) => ("value" in o ? o.value : undefined))).toContain(value);
+  expect(selectModel(config, value, catalog)).toMatchObject({
+    model: "named",
+    providerId: "meta",
+    profileId: "team",
+  });
+  expect(selectModel(config, "named", catalog)).toMatchObject({ profileId: "team" });
 });
