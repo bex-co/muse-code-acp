@@ -31,6 +31,26 @@ describe("readMuseSettings edge cases", () => {
     expect(lines.some((line) => line.includes("is not an object"))).toBe(true);
   });
 
+  it("reports a reasoning_effort the adapter cannot carry", () => {
+    const lines: string[] = [];
+    expect(
+      readMuseSettings(
+        settingsEnv(JSON.stringify({ reasoning_effort: "max" })),
+        capturingLogger(lines),
+      ),
+    ).toEqual({ reasoningEffort: "max" });
+    expect(lines.some((line) => line.includes('unknown reasoning_effort "max"'))).toBe(true);
+  });
+
+  it("stays quiet on a reasoning_effort it supports", () => {
+    const lines: string[] = [];
+    readMuseSettings(
+      settingsEnv(JSON.stringify({ reasoning_effort: "xhigh" })),
+      capturingLogger(lines),
+    );
+    expect(lines.some((line) => line.includes("reasoning_effort"))).toBe(false);
+  });
+
   it("ignores non-string fields while keeping valid ones", () => {
     expect(
       readMuseSettings(
