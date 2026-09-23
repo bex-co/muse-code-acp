@@ -48,6 +48,29 @@ export function parseClientProvider(value: unknown): ClientProvider {
     );
   return { providerId: "meta", baseUrl: url.toString().replace(/\/$/, ""), apiKey: v.apiKey };
 }
+export const GATEWAY_URL_ENV = "MUSE_CODE_ACP_GATEWAY_URL";
+export const GATEWAY_KEY_ENV = "MUSE_CODE_ACP_GATEWAY_KEY";
+
+/**
+ * The same explicit endpoint contract as `muse/provider`, for clients that
+ * configure an agent's environment rather than negotiating an extension. Both
+ * variables are required together: a URL without a credential would otherwise
+ * fall back to the default gateway, which an explicit endpoint never does.
+ */
+export function gatewayFromEnv(
+  env: Record<string, string | undefined>,
+): ClientProvider | undefined {
+  const baseUrl = env[GATEWAY_URL_ENV]?.trim();
+  const apiKey = env[GATEWAY_KEY_ENV]?.trim();
+  if (!baseUrl && !apiKey) return undefined;
+  if (!baseUrl || !apiKey)
+    throw RequestError.invalidParams(
+      undefined,
+      `${GATEWAY_URL_ENV} and ${GATEWAY_KEY_ENV} must be set together`,
+    );
+  return parseClientProvider({ providerId: "meta", baseUrl, apiKey });
+}
+
 export function providerBinding(provider: ClientProvider): string {
   return createHash("sha256")
     .update(JSON.stringify([provider.providerId, provider.baseUrl]))

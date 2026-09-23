@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { buildConfigOptions, modelChoice, selectModel } from "../config-options.js";
-import { parseClientProvider, providerBinding } from "../client-provider.js";
+import { gatewayFromEnv, parseClientProvider, providerBinding } from "../client-provider.js";
 
 const config = { model: "shared", reasoningEffort: "high" };
 const discovery = {
@@ -71,6 +71,27 @@ it("provider credentials are explicit, rotated separately and absent from durabl
   );
   expect(() => parseClientProvider({ ...a, apiKey: "" })).toThrow(/nonempty/);
   expect(() => parseClientProvider({ ...a, providerId: "unknown" })).toThrow(/Unsupported/);
+});
+it("an environment gateway is the same explicit endpoint, and needs both halves", () => {
+  expect(gatewayFromEnv({})).toBeUndefined();
+  expect(
+    gatewayFromEnv({
+      MUSE_CODE_ACP_GATEWAY_URL: "https://gateway.example/meta/",
+      MUSE_CODE_ACP_GATEWAY_KEY: "secret",
+    }),
+  ).toEqual({ providerId: "meta", baseUrl: "https://gateway.example/meta", apiKey: "secret" });
+  expect(() => gatewayFromEnv({ MUSE_CODE_ACP_GATEWAY_URL: "https://gateway.example" })).toThrow(
+    /must be set together/,
+  );
+  expect(() => gatewayFromEnv({ MUSE_CODE_ACP_GATEWAY_KEY: "secret" })).toThrow(
+    /must be set together/,
+  );
+  expect(() =>
+    gatewayFromEnv({
+      MUSE_CODE_ACP_GATEWAY_URL: "https://user:secret@gateway.example",
+      MUSE_CODE_ACP_GATEWAY_KEY: "secret",
+    }),
+  ).toThrow(/without embedded credentials/);
 });
 
 it("recommendations retain explicit values and use only advertised choices", async () => {

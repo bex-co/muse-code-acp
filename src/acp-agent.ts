@@ -62,6 +62,7 @@ import {
 import { createUuidV7Mint } from "@muse-code/sdk";
 import {
   PROVIDER_EXTENSION,
+  gatewayFromEnv,
   RECOMMENDATION_EXTENSION,
   parseClientProvider,
   providerBinding,
@@ -292,9 +293,13 @@ export class MuseAcpAgent {
     sessionId: string,
     meta?: Record<string, unknown> | null,
   ): Promise<void> {
-    const value = meta?.[PROVIDER_EXTENSION];
+    const fromClient = meta?.[PROVIDER_EXTENSION];
     const existing = this.providers.get(sessionId);
     const env = this.options.env ?? process.env;
+    // An environment gateway configures the same endpoint without the
+    // extension, so plain ACP clients can route a session too. An explicit
+    // client value still wins: it is per-session, the environment is not.
+    const value = fromClient ?? (this.backend === "sdk" ? gatewayFromEnv(env) : undefined);
     const saved = readSessionPreferences(sessionId, env).providerBinding;
     if (value === undefined) {
       if (saved && !existing)
@@ -304,7 +309,10 @@ export class MuseAcpAgent {
         );
       return;
     }
-    if (this.backend !== "sdk" || this.clientCapabilities._meta?.[PROVIDER_EXTENSION] !== 1)
+    if (
+      fromClient !== undefined &&
+      (this.backend !== "sdk" || this.clientCapabilities._meta?.[PROVIDER_EXTENSION] !== 1)
+    )
       throw RequestError.invalidParams(
         undefined,
         "muse/provider must be negotiated for the SDK backend",

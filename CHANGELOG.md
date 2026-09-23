@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Features
+
+- Read an explicit gateway endpoint from `MUSE_CODE_ACP_GATEWAY_URL` and `MUSE_CODE_ACP_GATEWAY_KEY`, so a client that configures the agent's environment can route a session without negotiating `muse/provider`. Both variables are required together, the same URL validation, guards and session binding apply, and a client-supplied `muse/provider` still wins. SDK backend only.
+
 ## [0.6.1](https://github.com/bex-co/muse-code-acp/compare/v0.6.0...v0.6.1) (2026-09-16)
 
 ### Fixes
