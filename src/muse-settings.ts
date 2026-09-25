@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { EFFORT_LEVELS, isReasoningEffort } from "./config-options.js";
 import { Logger } from "./logger.js";
 
 /**
@@ -36,10 +37,20 @@ export function readMuseSettings(
     return {};
   }
   const settings = raw as Record<string, unknown>;
+  const reasoningEffort =
+    typeof settings.reasoning_effort === "string" ? settings.reasoning_effort : undefined;
+  // The muse CLI documents efforts this adapter cannot carry (`max`), so a
+  // value copied from `muse exec --help` would otherwise fall back to the
+  // default with nothing said anywhere.
+  if (reasoningEffort !== undefined && !isReasoningEffort(reasoningEffort)) {
+    logger.log(
+      `muse settings at ${path}: unknown reasoning_effort "${reasoningEffort}"; ` +
+        `using the default (supported: ${EFFORT_LEVELS.join(", ")})`,
+    );
+  }
   return {
     provider: typeof settings.provider === "string" ? settings.provider : undefined,
     model: typeof settings.model === "string" ? settings.model : undefined,
-    reasoningEffort:
-      typeof settings.reasoning_effort === "string" ? settings.reasoning_effort : undefined,
+    reasoningEffort,
   };
 }
