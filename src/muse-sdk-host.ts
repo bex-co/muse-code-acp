@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { RequestError, type SessionNotification } from "@agentclientprotocol/sdk";
 import { cancelWorkflow } from "./async-tasks.js";
+import { isLegacyAutoReviewRefusal, LEGACY_AUTO_REVIEW_MESSAGE } from "./legacy-profile.js";
 import type { MuseSdkTranslator } from "./muse-sdk-events.js";
 import { foldedProgress, type ProgressFacts } from "./session-progress.js";
 import {
@@ -56,13 +57,17 @@ interface HostLease {
   session: Session;
 }
 
+/** Hosts whose public workflow/cancel was verified against a real observed run. */
+const WORKFLOW_CANCEL_HOSTS = ["1.2.1", "1.3.0"];
+
 /** A single ACP session owns this process and its spawn-time configuration. */
 export class MuseSdkHost {
   readonly generation = randomUUID();
   private retained = new Map<string, MuseSdkTranslator>();
   private taskDelivery = Promise.resolve();
   get workflowCancellationSupported() {
-    return this.lease?.host.initializeResult.serverInfo?.version === "1.2.1";
+    const version = this.lease?.host.initializeResult.serverInfo?.version;
+    return version !== undefined && WORKFLOW_CANCEL_HOSTS.includes(version);
   }
   retainProgress(turnId: string, translator: MuseSdkTranslator) {
     this.retained.set(turnId, translator);
@@ -358,19 +363,8 @@ export class MuseSdkHost {
     try {
       session = await client.resumeSession({ sessionId: options.sessionId, excludeItems: true });
     } catch (error) {
-      if (
-        error instanceof MspError &&
-        error.code === -32603 &&
-        error.message.includes("permission profile ':auto-review' cannot be used") &&
-        error.message.includes("the automated reviewer is unavailable on this host")
-      ) {
-        throw new Error(
-          "This Muse host cannot resume a saved session using the :auto-review permission profile " +
-            "because its automated reviewer is unavailable. Continue it in Muse with reviewer support, " +
-            "or start a new ACP session. The public SDK cannot replace a saved permission profile.",
-          { cause: error },
-        );
-      }
+      if (isLegacyAutoReviewRefusal(error))
+        throw new Error(LEGACY_AUTO_REVIEW_MESSAGE, { cause: error });
       this.ensureOpen();
       if (!(error instanceof MspError) || error.code !== -32020) throw error;
       session = await client.startSession({

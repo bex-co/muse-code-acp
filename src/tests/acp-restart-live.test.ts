@@ -11,7 +11,11 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { museCliPath } from "../muse-cli.js";
 import { agentEntrypoint } from "./acp-wire-helpers.js";
-import { expectLegacyContinuation, spawnAcpAgent } from "./acp-real-host-helpers.js";
+import {
+  expectLegacyContinuation,
+  expectLegacyLoad,
+  spawnAcpAgent,
+} from "./acp-real-host-helpers.js";
 import { connectTestClient, initialized, museAvailable } from "./helpers.js";
 import { ALTERNATE_MODEL_ID, startLoopbackProvider } from "./loopback-provider.js";
 
@@ -175,27 +179,32 @@ describe("ACP process restart continuity (real Muse host)", () => {
           });
           const agent3 = await spawnAcpAgent({ env: sharedEnv, cwd });
           try {
-            await agent3.ctx.request(methods.agent.session.load, {
-              sessionId: old.sessionId,
-              cwd,
-              mcpServers: [],
-            });
-            // Legacy echo history requires an explicit provider migration.
-            await agent3.ctx.request(methods.agent.session.prompt, {
-              sessionId: old.sessionId,
-              prompt: [{ type: "text", text: "/models" }],
-            });
-            await agent3.ctx.request(methods.agent.session.setConfigOption, {
-              sessionId: old.sessionId,
-              configId: "model",
-              value: modelChoice({ id: "fake-model", name: "fake-model", providerId: "meta" }),
-            });
-            await expectLegacyContinuation(
-              agent3.ctx.request(methods.agent.session.prompt, {
+            if (
+              await expectLegacyLoad(
+                agent3.ctx.request(methods.agent.session.load, {
+                  sessionId: old.sessionId,
+                  cwd,
+                  mcpServers: [],
+                }),
+              )
+            ) {
+              // Legacy echo history requires an explicit provider migration.
+              await agent3.ctx.request(methods.agent.session.prompt, {
                 sessionId: old.sessionId,
-                prompt: [{ type: "text", text: "continue legacy" }],
-              }),
-            );
+                prompt: [{ type: "text", text: "/models" }],
+              });
+              await agent3.ctx.request(methods.agent.session.setConfigOption, {
+                sessionId: old.sessionId,
+                configId: "model",
+                value: modelChoice({ id: "fake-model", name: "fake-model", providerId: "meta" }),
+              });
+              await expectLegacyContinuation(
+                agent3.ctx.request(methods.agent.session.prompt, {
+                  sessionId: old.sessionId,
+                  prompt: [{ type: "text", text: "continue legacy" }],
+                }),
+              );
+            }
           } finally {
             await agent3.dispose();
           }

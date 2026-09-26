@@ -40,6 +40,12 @@ export const IGNORED_VIEW_EVENTS: Readonly<Record<string, string>> = {
   "turn/retryScheduled":
     "Native scheduling unobserved on 1.1.1/1.2.1; future w1/006. Error rendering: w2/m8.",
   "session/branchChanged": "No ACP field carries the workspace branch; not scheduled.",
+  "session/nameChanged":
+    "SDK 1.3.0 addition; ACP titles come from session-title.ts. Host-name sync not scheduled.",
+  "session/reasoningEffortChanged":
+    "SDK 1.3.0 addition; effort is adapter-configured per turn. Observed-effort sync not scheduled.",
+  "session/modelRouteUnserved":
+    "SDK 1.3.0 addition; disclosure only after a provider swap the adapter never issues; not scheduled.",
 };
 
 /** Every classified method. A method may appear in exactly one table. */
@@ -67,7 +73,7 @@ export const ITEM_KIND_CONSUMERS: Readonly<Record<string, string>> = {
     "muse-sdk-events.ts renders generic shell output; background lifecycle/control: w2/m9.",
   subagent: "Handled by retained MuseSdkTranslator worker cards; native child controls: w1/005.",
   workflow:
-    "Handled by retained worker cards; negotiated 1.2.1 workflow cancellation; 1.1.1 workflow lifecycle/control unverified.",
+    "Handled by retained worker cards; negotiated 1.2.1/1.3.0 workflow cancellation; 1.1.1 workflow lifecycle/control unverified.",
   reminderChild: "Handled child attribution cards; child history remains w1/005.",
   compaction: "Native durable compaction rejects on 1.1.1/1.2.1; future w1/004.",
 };

@@ -23,15 +23,16 @@ Task cards then include `_meta["muse/asyncTasks"]` with `kind`, an opaque `targe
 { "method": "_muse/task", "params": { "sessionId": "…", "target": "…", "action": "cancel" } }
 ```
 
-On verified Muse 1.2.1, running workflows advertise `cancel`. The adapter calls
+On verified Muse 1.2.1 and 1.3.0, running workflows advertise `cancel`. The adapter calls
 public `workflow/cancel` with the exact observed workflowRunId, through the SDK
-connection; SDK 0.1.1 lacks the type declaration, but Muse's public conformance
+connection; SDK 1.3.0 declares the method, and Muse's public conformance
 [transcript](https://github.com/meta-models/muse-code-sdk/blob/fbce769ccb75ab971d00e01a00fe076de4c773fc/schema/msp/transcripts/workflow-cancel-round-trip/transcript.ndjson) documents the command and real-host execution verifies it. An
 `accepted` response is admission only: the subsequent item terminal is the
 outcome. Generation-bound targets cannot operate on replacement hosts or another
 ACP session. No provider prompt, process signal or guessed child ID is used.
 
-Muse 1.1.1 has no verified workflow lifecycle/control delivery; public shell and
+Other hosts show observed workflow cards without `cancel`. Muse 1.1.1 has no
+verified workflow lifecycle/control delivery; public shell and
 reminder cards still work. A workflow tool result alone is not proof of an
 observable controllable workflow. `workflow/childControl` rejected the observed
 child target in the 1.2.1 probe, so it is not advertised. Direct native child

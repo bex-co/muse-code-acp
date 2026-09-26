@@ -19,7 +19,7 @@ export function parseTaskRequest(raw: unknown) {
   return { sessionId: value.sessionId, target: value.target };
 }
 
-/** Public Muse conformance transcript; SDK 0.1.1 omits this served method. */
+/** Public MSP workflow/cancel (declared in SDK 1.3.0; Connection.command stays untyped). */
 export async function cancelWorkflow(
   connection: Connection,
   sessionId: string,

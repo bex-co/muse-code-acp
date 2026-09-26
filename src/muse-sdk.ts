@@ -406,8 +406,9 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
       // ---- Approval reconciliation ---------------------------------------
       // Muse 1.2.1 advances a multi-stage approval by REFRESHING it
       // (`approval/updated`) instead of re-issuing `approval/requested`, and the
-      // pinned SDK routes only the request to `onApproval` — so a router-driven
-      // client answers stage 0 and then waits forever (w2/m1 "Issue cause").
+      // SDK 0.1.1 routed only the request to `onApproval` — so a router-driven
+      // client answered stage 0 and then waited forever (w2/m1 "Issue cause";
+      // fixed upstream in SDK 1.3.0, meta-models/muse-code-sdk#10).
       // Deciding from the fold covers both frames with one path, the way pending
       // user input is already handled, and keeps the SDK's stage latch out of the
       // critical path. The ACP round trip is NOT awaited in the poll loop:

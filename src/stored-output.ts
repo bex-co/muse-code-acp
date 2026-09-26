@@ -101,7 +101,7 @@ export function restoredOutputUpdates(
   });
 }
 
-/** Documented public item/readOutput; SDK 0.1.1 omits this host method. */
+/** Documented public item/readOutput (declared in SDK 1.3.0; Connection.request stays untyped). */
 export async function readStoredOutput(
   connection: Connection,
   params: OutputRequest,

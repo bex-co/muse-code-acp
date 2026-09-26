@@ -126,7 +126,12 @@ it("cancels only an observed workflow and rejects stale host targets", async () 
           ? [n.update]
           : [],
       );
-    if (!spawnSync(museCliPath(), ["--version"], { encoding: "utf8" }).stdout.includes("1.2.1")) {
+    // Workflow cancellation is verified on 1.2.1 and 1.3.0 (WORKFLOW_CANCEL_HOSTS).
+    if (
+      !/\b1\.(2\.1|3\.0)\b/.test(
+        spawnSync(museCliPath(), ["--version"], { encoding: "utf8" }).stdout,
+      )
+    ) {
       expect(
         client.updates.some(
           (n) =>

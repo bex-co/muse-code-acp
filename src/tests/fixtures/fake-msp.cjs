@@ -353,6 +353,13 @@ rl.on("line", async (line) => {
     }
     case "session/read":
       if (mode === "metadata-timeout" && turnId) break;
+      if (mode === "autoReviewReadRefused") {
+        write({ id, error: { code: -32603,
+          message: "retained session refused (class c): compose session permission profile: permission profile ':auto-review' cannot be used: the automated reviewer is unavailable on this host [/tmp/session.jsonl]; remedy: retry with a compatible host that can read the retained permission frame, or start a new session",
+          data: { kind: "internal", retryable: false, reason: "resume_refused_class_c", details: { refusalClass: "c", detail: "compose session permission profile: permission profile ':auto-review' cannot be used: the automated reviewer is unavailable on this host" } },
+        } });
+        break;
+      }
       reply({session: {sessionId: params.sessionId, workspaceRoot: process.cwd(), modelId: currentModelId, providerId: currentProviderId, activeTurnId: null}, pendingRequests: []});
       break;
     case "session/resume":

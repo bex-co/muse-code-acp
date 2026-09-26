@@ -1,6 +1,6 @@
 import { modelChoice } from "../config-options.js";
 import { startLoopbackProvider } from "./loopback-provider.js";
-import { expectLegacyContinuation } from "./acp-real-host-helpers.js";
+import { expectLegacyContinuation, expectLegacyLoad } from "./acp-real-host-helpers.js";
 import { CAT_IMAGE_BASE64 } from "./fixtures/cat-image.js";
 import { methods } from "@agentclientprotocol/sdk";
 import { spawnSync } from "node:child_process";
@@ -167,24 +167,29 @@ describe.skipIf(!available)("SDK live host (no external API)", () => {
       const old = await legacyCtx.request(methods.agent.session.new, { cwd, mcpServers: [] });
       expect(old.sessionId.split("-")[2][0]).toBe("4");
       await legacyCtx.request(methods.agent.session.prompt, { sessionId: old.sessionId, prompt });
-      await loaded.request(methods.agent.session.load, {
-        sessionId: old.sessionId,
-        cwd,
-        mcpServers: [],
-      });
-      // Legacy echo history requires an explicit provider migration.
-      await loaded.request(methods.agent.session.prompt, {
-        sessionId: old.sessionId,
-        prompt: [{ type: "text", text: "/models" }],
-      });
-      await loaded.request(methods.agent.session.setConfigOption, {
-        sessionId: old.sessionId,
-        configId: "model",
-        value: modelChoice({ id: "fake-model", name: "fake-model", providerId: "meta" }),
-      });
-      await expectLegacyContinuation(
-        loaded.request(methods.agent.session.prompt, { sessionId: old.sessionId, prompt }),
-      );
+      if (
+        await expectLegacyLoad(
+          loaded.request(methods.agent.session.load, {
+            sessionId: old.sessionId,
+            cwd,
+            mcpServers: [],
+          }),
+        )
+      ) {
+        // Legacy echo history requires an explicit provider migration.
+        await loaded.request(methods.agent.session.prompt, {
+          sessionId: old.sessionId,
+          prompt: [{ type: "text", text: "/models" }],
+        });
+        await loaded.request(methods.agent.session.setConfigOption, {
+          sessionId: old.sessionId,
+          configId: "model",
+          value: modelChoice({ id: "fake-model", name: "fake-model", providerId: "meta" }),
+        });
+        await expectLegacyContinuation(
+          loaded.request(methods.agent.session.prompt, { sessionId: old.sessionId, prompt }),
+        );
+      }
     } finally {
       await Promise.all([first.agent.dispose(), second.agent.dispose(), legacy.agent.dispose()]);
       server.closeAllConnections();

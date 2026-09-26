@@ -5,7 +5,7 @@ import { RequestError } from "@agentclientprotocol/sdk";
 import { museCliPath } from "./muse-cli.js";
 
 /** Pinned `@muse-code/sdk` and the Muse host verified against it for `serve`. */
-export const SDK_PACKAGE = "@muse-code/sdk@0.1.1";
+export const SDK_PACKAGE = "@muse-code/sdk@1.3.0";
 export const MIN_MUSE_HOST_FOR_SDK = "1.1.1";
 
 export interface SdkHostCheck {

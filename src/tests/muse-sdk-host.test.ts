@@ -2,7 +2,12 @@ import { afterEach, expect, test } from "vitest";
 import { chmodSync, copyFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { MuseSdkHost, spawnMuseSdkTurn, type MuseSdkOptions } from "../muse-sdk.js";
+import {
+  MuseSdkHost,
+  readMuseSdkSession,
+  spawnMuseSdkTurn,
+  type MuseSdkOptions,
+} from "../muse-sdk.js";
 import { fixturesDir, silentLogger } from "./helpers.js";
 
 const cleanup: (() => Promise<void>)[] = [];
@@ -107,6 +112,21 @@ test("saved auto-review profiles fail with an actionable host limitation without
       .some((r) => ["session/start", "turn/start", "session/setApprovalMode"].includes(r.method)),
   ).toBe(false);
   expect(f.owner.closed).toBe(true);
+});
+
+test("a refused auto-review read fails load with the same actionable limitation", async () => {
+  const f = fixture("autoReviewReadRefused");
+  const read = readMuseSdkSession(f.options);
+  await expect(read).rejects.toThrow(
+    "This Muse host cannot resume a saved session using the :auto-review permission profile",
+  );
+  await expect(read).rejects.toThrow("No model turn was submitted");
+  await expect(read).rejects.not.toThrow("retained session refused");
+  await expect(read).rejects.toMatchObject({
+    code: -32603,
+    data: { failure: { source: "host", kind: "legacyProfileUnavailable", outcome: "failed" } },
+  });
+  expect(f.requests().map((r) => r.method)).not.toContain("session/resume");
 });
 
 test("retention expiry closes a host with active native goal work and releases resources once", async () => {

@@ -18,18 +18,35 @@ import { agentEntrypoint } from "./acp-wire-helpers.js";
 /**
  * w2/m2: these exact hosts cannot compose legacy :auto-review profiles in serve.
  * Builds stay enumerated so an unlisted host is expected to succeed — that is how
- * 1.3.0-R3057.1 was caught still reproducing the limitation rather than fixing it.
+ * 1.3.0-R3057.1 and then 1.3.0-R3401.1 were caught still reproducing it.
+ * R3401.1 also refuses the lease-free session/read, so load itself fails there.
  */
-const LEGACY_PROFILE_LIMITED = ["(1.2.1-R2847.1)", "(1.3.0-R3057.1)"];
+const LEGACY_PROFILE_LIMITED = ["(1.2.1-R2847.1)", "(1.3.0-R3057.1)", "(1.3.0-R3401.1)"];
+const LEGACY_PROFILE_READ_REFUSED = ["(1.3.0-R3401.1)"];
+const LEGACY_PROFILE_ERROR = {
+  code: -32603,
+  message: expect.stringContaining(
+    "This Muse host cannot resume a saved session using the :auto-review permission profile",
+  ),
+};
+const museVersion = () =>
+  spawnSync(museCliPath(), ["--version"], { encoding: "utf8" }).stdout ?? "";
+
+/** Resolves true when the legacy session loaded and the continuation steps should run. */
+export async function expectLegacyLoad(load: Promise<unknown>): Promise<boolean> {
+  const version = museVersion();
+  if (LEGACY_PROFILE_READ_REFUSED.some((build) => version.includes(build))) {
+    await expect(load).rejects.toMatchObject(LEGACY_PROFILE_ERROR);
+    return false;
+  }
+  await load;
+  return true;
+}
+
 export async function expectLegacyContinuation(prompt: Promise<unknown>): Promise<void> {
-  const version = spawnSync(museCliPath(), ["--version"], { encoding: "utf8" }).stdout ?? "";
+  const version = museVersion();
   if (LEGACY_PROFILE_LIMITED.some((build) => version.includes(build))) {
-    await expect(prompt).rejects.toMatchObject({
-      code: -32603,
-      message: expect.stringContaining(
-        "This Muse host cannot resume a saved session using the :auto-review permission profile",
-      ),
-    });
+    await expect(prompt).rejects.toMatchObject(LEGACY_PROFILE_ERROR);
   } else {
     await expect(prompt).resolves.toEqual({ stopReason: "end_turn" });
   }

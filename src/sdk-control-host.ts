@@ -1,5 +1,6 @@
 import { spawnMspConnection } from "@muse-code/sdk";
 import { museCliPath } from "./muse-cli.js";
+import { isLegacyAutoReviewRefusal, legacyAutoReviewReadError } from "./legacy-profile.js";
 import { SdkOperation, SdkCancelled, sdkDeadline } from "./sdk-operation.js";
 import type { Logger } from "./logger.js";
 import packageJson from "../package.json" with { type: "json" };
@@ -42,7 +43,11 @@ export async function withSdkControlHost<T>(
       handshake.initialize({ clientInfo: { name: "muse_code_acp", version: packageJson.version } }),
     );
     operation.enter("reading", 20_000);
-    return await operation.wait(read(host, operation));
+    return await operation.wait(
+      read(host, operation).catch((error: unknown) => {
+        throw isLegacyAutoReviewRefusal(error) ? legacyAutoReviewReadError() : error;
+      }),
+    );
   } catch (error) {
     throw operation.error(error, options.env);
   } finally {

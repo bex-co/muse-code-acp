@@ -6,6 +6,15 @@
 
 - Read an explicit gateway endpoint from `MUSE_CODE_ACP_GATEWAY_URL` and `MUSE_CODE_ACP_GATEWAY_KEY`, so a client that configures the agent's environment can route a session without negotiating `muse/provider`. Both variables are required together, the same URL validation, guards and session binding apply, and a client-supplied `muse/provider` still wins. SDK backend only.
 
+### Fixes
+
+- Report legacy `:auto-review` sessions that the host refuses to read (Muse 1.3.0-R3401.1, `resume_refused_class_c`) with the same actionable message as a refused resume, so `session/load` no longer surfaces the raw host refusal. Detection uses the structured refusal detail as well as the older message form.
+- Advertise workflow `cancel` on Muse 1.3.0 as well as 1.2.1, after verifying public `workflow/cancel` against a real observed run on 1.3.0-R3401.1. Other hosts still show workflow cards without `cancel`.
+
+### Dependencies
+
+- Bump `@muse-code/sdk` from 0.1.1 to 1.3.0. The SDK now reroutes `onApproval` when `approval/updated` advances a multi-stage requirement ([upstream #10](https://github.com/meta-models/muse-code-sdk/issues/10)); the adapter already decides approvals from the fold, so behavior is unchanged. The three newly folded view events (`session/nameChanged`, `session/reasoningEffortChanged`, `session/modelRouteUnserved`) are classified as ignored.
+
 ## [0.6.1](https://github.com/bex-co/muse-code-acp/compare/v0.6.0...v0.6.1) (2026-09-16)
 
 ### Fixes
