@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.7.0](https://github.com/bex-co/muse-code-acp/compare/v0.6.1...v0.7.0) (2026-09-25)
+
 ### Features
 
 - Read an explicit gateway endpoint from `MUSE_CODE_ACP_GATEWAY_URL` and `MUSE_CODE_ACP_GATEWAY_KEY`, so a client that configures the agent's environment can route a session without negotiating `muse/provider`. Both variables are required together, the same URL validation, guards and session binding apply, and a client-supplied `muse/provider` still wins. SDK backend only.
@@ -14,6 +16,12 @@
 ### Dependencies
 
 - Bump `@muse-code/sdk` from 0.1.1 to 1.3.0. The SDK now reroutes `onApproval` when `approval/updated` advances a multi-stage requirement ([upstream #10](https://github.com/meta-models/muse-code-sdk/issues/10)); the adapter already decides approvals from the fold, so behavior is unchanged. The three newly folded view events (`session/nameChanged`, `session/reasoningEffortChanged`, `session/modelRouteUnserved`) are classified as ignored.
+
+### Compatibility and upgrading
+
+The adapter now depends on `@muse-code/sdk@1.3.0`. No ACP IDs, config options or approval behavior change; approvals are still decided from the fold, so the SDK's new multi-stage routing is not relied on.
+
+On Muse 1.3.0-R3401.1, a legacy `muse exec` session saved with `:auto-review` now fails at `session/load` rather than at the next prompt, because that host refuses to read it. The message and remedy are the same: continue it in Muse with reviewer support, or start a new ACP session. This is a host behavior change; the pinned 1.1.1 baseline is unchanged.
 
 ## [0.6.1](https://github.com/bex-co/muse-code-acp/compare/v0.6.0...v0.6.1) (2026-09-16)
 
