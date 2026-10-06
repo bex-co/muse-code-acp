@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterAll, beforeEach, expect, it, vi } from "vitest";
+import { MspError } from "@muse-code/sdk";
 const mocks = vi.hoisted(() => ({ command: vi.fn(), close: vi.fn() }));
 vi.mock("@muse-code/sdk", async (original) => ({
   ...(await original<typeof import("@muse-code/sdk")>()),
@@ -75,6 +76,22 @@ it.each(["identity", "model", "provenance", "boundary"])(
     expect(mocks.close).toHaveBeenCalledOnce();
   },
 );
+it.each([
+  ["an earlier turn", "first", /accept only the latest one \(latest\)/],
+  ["the latest turn", "latest", /rejected: forkBoundaryInvalid\. No model turn/],
+])("explains a rejected boundary at %s", async (_, lastTurnId, message) => {
+  mocks.command.mockImplementation(async (method) => {
+    if (method === "session/read")
+      return { session: source, pendingRequests: [], lastTurn: { turnId: "latest" } };
+    throw new MspError({
+      code: -32602,
+      message: "invalid fork boundary: InvalidCut",
+      data: { kind: "forkBoundaryInvalid" },
+    });
+  });
+  await expect(forkMuseSession({ ...options, lastTurnId })).rejects.toThrow(message);
+  expect(mocks.close).toHaveBeenCalledOnce();
+});
 it("preserves fork timeout certainty and never retries a possibly created branch", async () => {
   vi.useFakeTimers();
   try {

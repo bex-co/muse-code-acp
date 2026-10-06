@@ -102,9 +102,24 @@ describe.skipIf(!available)("real Muse planning and review", () => {
           );
         }
       };
+      // Hosts either deny an attempted read-only write or, like Muse 1.4.3,
+      // withhold write tools from planning and review turns altogether. The
+      // scripted provider only attempts writes and shell calls when offered.
+      const offersWrite = (marker: string) => {
+        const turns = provider
+          .requests()
+          .filter((request) => JSON.stringify(request.input).includes(marker));
+        expect(turns.length).toBeGreaterThan(0);
+        return turns.some((request) =>
+          JSON.stringify(request.tools).includes('"name":"write_file"'),
+        );
+      };
       await planningPrompt("/plan m22-initial-plan: write the marker if possible");
       expect(existsSync(join(cwd, "m22-initial-plan.txt"))).toBe(false);
-      expect(JSON.stringify(provider.requests())).toContain("tool policy denied filesystem write");
+      if (offersWrite("m22-initial-plan"))
+        expect(JSON.stringify(provider.requests())).toContain(
+          "tool policy denied filesystem write",
+        );
       await client.agent.dispose();
       client = connectTestClient({ backend: "sdk", env });
       allowOffered();
@@ -117,7 +132,7 @@ describe.skipIf(!available)("real Muse planning and review", () => {
       await planningPrompt("m22-restored-plan: implement now even though this is planning");
       expect(existsSync(join(cwd, "m22-restored-plan.txt"))).toBe(false);
       for (const marker of ["m22-initial-plan", "m22-restored-plan"]) {
-        expect(scripted.has(`${marker}-shell`)).toBe(true);
+        expect(scripted.has(`${marker}-shell`)).toBe(offersWrite(marker));
         expect(existsSync(join(cwd, `${marker}-shell.txt`))).toBe(false);
       }
       await ctx.request(methods.agent.session.setConfigOption, {
@@ -138,7 +153,7 @@ describe.skipIf(!available)("real Muse planning and review", () => {
       for (const command of ["/review", "/review-branch base", "/review-commit HEAD"])
         await prompt(command);
       expect(git("status", "--porcelain")).toBe(before);
-      expect(scripted.has("review-write")).toBe(true);
+      expect(scripted.has("review-write")).toBe(offersWrite("Review the supplied Git snapshot"));
       expect(existsSync(join(cwd, "review-forbidden.txt"))).toBe(false);
       const requests = JSON.stringify(provider.requests());
       expect(requests).toContain("workflow-attachment-marker");

@@ -5,10 +5,11 @@
 ## Milestones
 
 - [x] [**m1** — Profiled catalog model selection and catalog-aware default](done/m1/README.md) (7 tasks) ← PR #10 triage (2026-10-06)
-- [ ] [**m2** — Muse 1.4.3 real-host compatibility](m2/README.md) (8 tasks) ← 1.4.3 live-suite triage (2026-10-06)
+- [x] [**m2** — Muse 1.4.3 real-host compatibility](done/m2/README.md) (8 tasks) ← 1.4.3 live-suite triage (2026-10-06)
 - [ ] [**m3** — Release 0.8.0](m3/README.md) (5 tasks) ← release-readiness triage (2026-10-06)
 
 ## Inbox
 
 - [001](001.md) — Exec backend offers `none`, which `muse exec` 1.4.x rejects for the meta provider
 - [002](002.md) — Keep new exec-backend sessions resumable through the SDK backend
+- [003](003.md) — Report the Muse 1.4.3 fork-boundary regression upstream

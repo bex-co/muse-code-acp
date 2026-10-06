@@ -8,6 +8,7 @@
 - Log an unknown `reasoning_effort` in Muse settings before the default applies, instead of silently running at `high` ([#11](https://github.com/bex-co/muse-code-acp/issues/11)).
 - Offer catalog models that carry a named profile. Muse 1.3.0 tags every live `providerCatalog` row with the catalog's profile, so the model menu showed only the current model and no catalog choice could be selected. Profiled rows are now advertised and selectable, and the profile travels with the selection through `session/setModel`. Verified on Muse 1.3.0-R3401.1 and 1.4.3 ([#10](https://github.com/bex-co/muse-code-acp/pull/10), thanks @jean-losi).
 - Show a model selected before the catalog arrived, or saved by an earlier version without a profile, as the one catalog row it names instead of listing it twice.
+- Explain a rejected fork boundary on Muse 1.4.3, which accepts only the latest completed turn although its schema accepts any: the error now names the latest turn and suggests forking at it or without a boundary. Earlier boundaries are not emulated.
 
 ### Features
 

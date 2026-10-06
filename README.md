@@ -23,10 +23,12 @@ and HTTP MCP tool calls and startup failures on **1.2.1-R2847.1**. ACP-provided
 MCP servers explicitly use required startup mode; authentication, malformed
 responses and unreachable endpoints fail the prompt.
 
-One host limitation remains on 1.2.1 and 1.3.0: legacy `muse exec` sessions saved with
+One host limitation remains on 1.2.1, 1.3.0 and 1.4.3: legacy `muse exec` sessions saved with
 `:auto-review` cannot be resumed in `muse serve`, whose automated reviewer is
 unavailable. From 1.3.0-R3401.1 the host also refuses to read them, so ACP
-`session/load` fails with the same message instead of replaying history. This affects the legacy-continuation portion of three live tests;
+`session/load` fails with the same message instead of replaying history. From 1.4.3
+`muse exec` saves new sessions with `:auto-review` by default, so new sessions from
+the opt-in exec backend are affected too. This affects the legacy-continuation portion of three live tests;
 SDK-created session continuation passes. The adapter reports an actionable error
 and does not replay the prompt or change the saved permission profile. Start a
 new ACP session or continue the old one in Muse with reviewer support.

@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { methods } from "@agentclientprotocol/sdk";
 import { describe, expect, it } from "vitest";
 import { connectTestClient, initialized, museAvailable } from "./helpers.js";
-import { spawnAcpAgent } from "./acp-real-host-helpers.js";
+import { forkCutLatestOnly, spawnAcpAgent } from "./acp-real-host-helpers.js";
 import { ALTERNATE_MODEL_ID, startLoopbackProvider } from "./loopback-provider.js";
 
 const available = museAvailable();
@@ -51,11 +51,18 @@ describe.skipIf(!available)("native Muse fork continuity", () => {
           prompt: [{ type: "text", text }],
         });
       await prompt(sessionId, "m12-source-first");
-      const firstTurn = first.updates
-        .map((n) => n.update._meta?.["muse/activeTurnId"])
-        .find((v) => typeof v === "string") as string;
+      const turnIds = () => [
+        ...new Set(
+          first.updates
+            .map((n) => n.update._meta?.["muse/activeTurnId"])
+            .filter((v): v is string => typeof v === "string"),
+        ),
+      ];
+      const [firstTurn] = turnIds();
       expect(firstTurn).toBeTypeOf("string");
       await prompt(sessionId, "m12-source-second");
+      const latestTurn = turnIds()[1];
+      expect(latestTurn).toBeTypeOf("string");
       await expect(
         ctx.request(methods.agent.session.fork, {
           sessionId,
@@ -63,10 +70,21 @@ describe.skipIf(!available)("native Muse fork continuity", () => {
           _meta: { "muse/fork": { lastTurnId: randomUUID() } },
         }),
       ).rejects.toThrow("forkBoundaryInvalid");
+      // Hosts that accept only the latest boundary get an actionable rejection
+      // and the branch is cut at the latest turn instead.
+      const latestOnly = forkCutLatestOnly();
+      if (latestOnly)
+        await expect(
+          ctx.request(methods.agent.session.fork, {
+            sessionId,
+            cwd,
+            _meta: { "muse/fork": { lastTurnId: firstTurn } },
+          }),
+        ).rejects.toThrow(`accept only the latest one (${latestTurn})`);
       const fork = await ctx.request(methods.agent.session.fork, {
         sessionId,
         cwd,
-        _meta: { "muse/fork": { lastTurnId: firstTurn } },
+        _meta: { "muse/fork": { lastTurnId: latestOnly ? latestTurn : firstTurn } },
       });
       expect(fork.sessionId).not.toBe(sessionId);
       expect(fork.modes?.currentModeId).toBe("default");
@@ -124,7 +142,8 @@ describe.skipIf(!available)("native Muse fork continuity", () => {
           ?.input,
       );
       expect(branchInput).toContain("m12-source-first");
-      expect(branchInput).not.toContain("m12-source-second");
+      if (latestOnly) expect(branchInput).toContain("m12-source-second");
+      else expect(branchInput).not.toContain("m12-source-second");
       const sourceInput = JSON.stringify(
         provider
           .requests()
