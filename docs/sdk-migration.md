@@ -121,8 +121,17 @@ settings; negotiated `muse/sessionState` reports native observations separately.
 The overlay remains until its retained host closes; user settings stay intact.
 Named profile identity is preserved in discovery and in the selection sent through
 `session/setModel`. `model/list` reports the profile per catalog, and on Muse
-1.3.0 every live provider-catalog row carries it, so profiled rows are offered and
-selectable like any other choice.
+1.3.0 and 1.4.3 every live provider-catalog row carries it, so profiled rows are
+offered and selectable like any other choice. A selection recorded without a
+profile (a turn before the catalog arrived, or an earlier adapter version) is shown
+as the one catalog row it names; an ambiguous one stays a separate entry.
+
+When Muse settings name no model, a new SDK session starts with the built-in
+`muse-spark-1.2` and follows the catalog default while no turn or selection has used
+it, which needs a catalog before the first turn (`/models`, or one already
+discovered by this agent). A contributor catalog default yields to its listed
+non-contributor model, because contributor models may use content for product
+improvement. Legacy exec keeps the built-in default.
 
 Form elicitation supports single selections, bounded multiple selections, and
 free text up to 500 characters. Invalid responses fail the turn and cancel the

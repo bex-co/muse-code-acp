@@ -3,7 +3,7 @@ import { methods } from "@agentclientprotocol/sdk";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { defaultSessionConfig } from "../config-options.js";
+import { catalogDefaultModel, defaultSessionConfig } from "../config-options.js";
 import { readSessionEffort } from "../session-preferences.js";
 import { readMuseSettings } from "../muse-settings.js";
 import {
@@ -78,6 +78,41 @@ describe("defaultSessionConfig", () => {
       model: "muse-spark-1.2",
       reasoningEffort: "high",
     });
+  });
+});
+
+describe("catalogDefaultModel", () => {
+  const row = (id: string, isDefault = false) => ({
+    id,
+    name: id,
+    providerId: "meta",
+    profileId: "tbh",
+    ...(isDefault ? { isDefault } : {}),
+  });
+  const catalog = (...models: ReturnType<typeof row>[]) => ({
+    status: "available" as const,
+    source: "providerCatalog",
+    models,
+  });
+
+  it("prefers the non-contributor sibling of a contributor default", () => {
+    expect(
+      catalogDefaultModel(catalog(row("muse-spark-1.3"), row("muse-spark-1.3-contributor", true))),
+    ).toMatchObject({ id: "muse-spark-1.3", profileId: "tbh" });
+  });
+
+  it("keeps a contributor default without a listed sibling", () => {
+    expect(
+      catalogDefaultModel(catalog(row("muse-spark-1.2"), row("muse-spark-1.3-contributor", true))),
+    ).toMatchObject({ id: "muse-spark-1.3-contributor" });
+  });
+
+  it("uses a plain catalog default and has none without a catalog default", () => {
+    expect(catalogDefaultModel(catalog(row("a"), row("b", true)))).toMatchObject({ id: "b" });
+    expect(catalogDefaultModel(catalog(row("a")))).toBeUndefined();
+    expect(catalogDefaultModel({ status: "fallback", models: [], reason: "offline" })).toBe(
+      undefined,
+    );
   });
 });
 

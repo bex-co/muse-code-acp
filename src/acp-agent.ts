@@ -85,6 +85,7 @@ import { configRecommendations } from "./config-recommendations.js";
 import {
   applyConfigSelection,
   buildConfigOptions,
+  catalogDefaultModel,
   defaultSessionConfig,
   resolvedModel,
   SessionConfig,
@@ -202,6 +203,8 @@ export interface SessionState {
   /** Model + reasoning effort applied to every spawn for this session. */
   config: SessionConfig;
   modelDiscovery?: ModelDiscoveryResult;
+  /** The model is the built-in default: no settings named one and no turn or selection used it. */
+  builtInModel?: boolean;
   modelRefresh?: { dispose(): Promise<void> };
   /** ACP-provided MCP servers injected into Muse for each turn. */
   mcpServers: McpServer[];
@@ -665,6 +668,7 @@ export class MuseAcpAgent {
     if (cache) this.modelDiscovery.remember(session.cwd, env, result);
     const previous = this.sessionConfigOptions(session);
     session.modelDiscovery = result;
+    this.adoptCatalogDefault(session);
     const configOptions = this.sessionConfigOptions(session);
     if (JSON.stringify(previous) === JSON.stringify(configOptions)) return true;
     await this.client.sessionUpdate({
@@ -677,6 +681,18 @@ export class MuseAcpAgent {
     return true;
   }
 
+  /** Until a turn or selection uses it, the built-in default follows the catalog. */
+  private adoptCatalogDefault(session: SessionState): void {
+    const model = session.builtInModel && catalogDefaultModel(session.modelDiscovery);
+    if (model)
+      session.config = {
+        ...session.config,
+        model: model.id,
+        providerId: model.providerId,
+        profileId: model.profileId,
+      };
+  }
+
   async newSession(params: NewSessionRequest): Promise<NewSessionResponse> {
     requireSingleWorkspace(params.additionalDirectories);
     this.assertRunning();
@@ -687,9 +703,8 @@ export class MuseAcpAgent {
     const sessionId = this.backend === "sdk" ? createUuidV7Mint()() : randomUUID();
     return this.withSessionBinding(sessionId, async () => {
       await this.prepareProvider(sessionId, params._meta);
-      const config = defaultSessionConfig(
-        readMuseSettings(this.providerEnv(sessionId), this.logger),
-      );
+      const settings = readMuseSettings(this.providerEnv(sessionId), this.logger);
+      const config = defaultSessionConfig(settings);
       const modelDiscovery =
         this.backend === "sdk"
           ? this.modelDiscovery.peek(cwd, this.providerEnv(sessionId))
@@ -704,9 +719,11 @@ export class MuseAcpAgent {
         modeId: "default",
         config,
         modelDiscovery,
+        builtInModel: this.backend === "sdk" && settings.model === undefined,
         mcpServers: params.mcpServers,
         activeMcpOverlay: null,
       });
+      this.adoptCatalogDefault(this.sessions.get(sessionId)!);
       try {
         await this.publishGoal(sessionId, this.sessions.get(sessionId)!, {
           status: "known",
@@ -1278,6 +1295,7 @@ export class MuseAcpAgent {
       this.backend === "sdk" ? session.modelDiscovery : undefined,
     );
     if (this.backend === "sdk" && params.configId === "model") {
+      session.builtInModel = false;
       const provider =
         readMuseSettings(this.providerEnv(params.sessionId), this.logger).provider ?? "meta";
       if (
@@ -1654,6 +1672,7 @@ export class MuseAcpAgent {
             "The SDK backend requires a configured Muse provider; use the exec backend for echo",
           );
         }
+        session.builtInModel = false;
         const { providerId, profileId: discoveredProfileId } = resolvedModel(
           session.config,
           session.modelDiscovery,

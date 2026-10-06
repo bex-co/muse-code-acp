@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it, vi } from "vitest";
+import { modelChoice } from "../config-options.js";
 import { MuseModelDiscovery, type ModelDiscoveryResult } from "../model-discovery.js";
 import { createWireFixture } from "./acp-wire-helpers.js";
 import { connectTestClient, fixturesDir } from "./helpers.js";
@@ -339,6 +340,136 @@ it("discards a catalog that completes after its configuration identity changes",
       mcpServers: [],
     });
     expect(JSON.stringify(next.configOptions)).not.toContain("stale-model");
+  } finally {
+    await wire.dispose();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+/** A Muse 1.3+ Meta catalog: every row carries the catalog profile. */
+function profiledCatalog(rows: [modelId: string, isDefault?: boolean][]) {
+  const root = mkdtempSync(join(tmpdir(), "muse-profiled-catalog-"));
+  const catalog = join(root, "catalog.json");
+  const models = rows.map(([modelId, isDefault = false]) => ({
+    modelId,
+    displayLabel: modelId,
+    providerId: "meta",
+    profileId: "tbh",
+    isDefault,
+  }));
+  writeFileSync(catalog, JSON.stringify({ source: "providerCatalog", models }));
+  return { root, catalog };
+}
+
+it("routes a profiled catalog selection through session/setModel with its profile", async () => {
+  const { root, catalog } = profiledCatalog([["muse-spark-1.3"], ["muse-spark-1.2"]]);
+  const wire = await createWireFixture({ env: { FAKE_MSP_MODELS: catalog } });
+  try {
+    const { sessionId } = await wire.ctx.request(methods.agent.session.new, {
+      cwd: wire.workspace,
+      mcpServers: [],
+    });
+    const value = modelChoice({
+      id: "muse-spark-1.2",
+      name: "muse-spark-1.2",
+      providerId: "meta",
+      profileId: "tbh",
+    });
+    // The execution host reports its catalog once a turn has started it.
+    await wire.ctx.request(methods.agent.session.prompt, {
+      sessionId,
+      prompt: [{ type: "text", text: "hello" }],
+    });
+    await expect
+      .poll(() =>
+        wire.updates.some(
+          (n) =>
+            n.update.sessionUpdate === "config_option_update" && JSON.stringify(n).includes(value),
+        ),
+      )
+      .toBe(true);
+    // The first turn pinned the settings model without a profile; the menu shows
+    // it as its catalog row rather than a second, unprofiled entry.
+    const update = wire.updates.findLast((n) => n.update.sessionUpdate === "config_option_update")!;
+    const menu = (
+      update.update as { configOptions: { id: string; options: { value: string }[] }[] }
+    ).configOptions.find((o) => o.id === "model")!;
+    expect(menu.options.filter((o) => o.value.includes("muse-spark-1.2"))).toEqual([
+      expect.objectContaining({ value }),
+    ]);
+    await wire.ctx.request(methods.agent.session.setConfigOption, {
+      sessionId,
+      configId: "model",
+      value,
+    });
+    await wire.ctx.request(methods.agent.session.prompt, {
+      sessionId,
+      prompt: [{ type: "text", text: "again" }],
+    });
+    const requests = wire.getTranscript().mspRequests as { method: string; params: unknown }[];
+    expect(requests.filter((r) => r.method === "session/setModel").at(-1)?.params).toMatchObject({
+      model: { modelId: "muse-spark-1.2", providerId: "meta", profileId: "tbh" },
+    });
+  } finally {
+    await wire.dispose();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+it("follows the catalog default until a turn uses the built-in model", async () => {
+  const { root, catalog } = profiledCatalog([
+    ["muse-spark-1.3"],
+    ["muse-spark-1.3-contributor", true],
+    ["muse-spark-1.2"],
+  ]);
+  const wire = await createWireFixture({ env: { FAKE_MSP_MODELS: catalog } });
+  try {
+    const { sessionId } = await wire.ctx.request(methods.agent.session.new, {
+      cwd: wire.workspace,
+      mcpServers: [],
+    });
+    await wire.ctx.request(methods.agent.session.prompt, {
+      sessionId,
+      prompt: [{ type: "text", text: "/models" }],
+    });
+    const expected = modelChoice({
+      id: "muse-spark-1.3",
+      name: "muse-spark-1.3",
+      providerId: "meta",
+      profileId: "tbh",
+    });
+    await expect
+      .poll(() =>
+        wire.updates.some(
+          (n) =>
+            n.update.sessionUpdate === "config_option_update" &&
+            JSON.stringify(n).includes(`"currentValue":"${expected}"`),
+        ),
+      )
+      .toBe(true);
+    await wire.ctx.request(methods.agent.session.prompt, {
+      sessionId,
+      prompt: [{ type: "text", text: "hello" }],
+    });
+    const requests = wire.getTranscript().mspRequests as { method: string; params: unknown }[];
+    expect(requests.filter((r) => r.method === "session/setModel").at(-1)?.params).toMatchObject({
+      model: { modelId: "muse-spark-1.3", providerId: "meta", profileId: "tbh" },
+    });
+    // Later sessions see the cached catalog at creation; a settings model still wins.
+    const current = async () => {
+      const { configOptions } = await wire.ctx.request(methods.agent.session.new, {
+        cwd: wire.workspace,
+        mcpServers: [],
+      });
+      return configOptions?.find((o) => o.id === "model")?.currentValue;
+    };
+    expect(await current()).toBe(expected);
+    mkdirSync(join(wire.workspace, "config", "muse"), { recursive: true });
+    writeFileSync(
+      join(wire.workspace, "config", "muse", "settings.json"),
+      JSON.stringify({ model: "settings-model" }),
+    );
+    expect(await current()).toBe("settings-model");
   } finally {
     await wire.dispose();
     rmSync(root, { recursive: true, force: true });

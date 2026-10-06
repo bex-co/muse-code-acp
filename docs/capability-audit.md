@@ -58,7 +58,8 @@ Availability decisions distinguish unknown selection, unsupported backend,
 host-version limit, missing guard, temporarily busy and unverified behavior.
 Advertisement and rejection share decisions for modes and native approval policy.
 They never switch backends, authorize extra roots or select broader privilege.
-Unverified named profile routing remains explicit instead of claiming an endpoint.
+Named profile routing is verified on Muse 1.3.0-R3401.1 and 1.4.3; other hosts
+report a profile rejection as an explicit setModel failure.
 
 Rerun both host matrices after an SDK/host upgrade, a capability advertisement
 change or a modified adapter route. For each newly positive host finding, retain

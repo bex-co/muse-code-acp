@@ -90,19 +90,19 @@ client requires terminal-auth support; otherwise authenticate beforehand.
 
 The default SDK backend supports the following on the verified host:
 
-| Surface            | Behavior                                                                                                                        |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| Prompt execution   | Streamed text, tool calls/results, cancellation and multi-turn continuity                                                       |
-| Prompt context     | PNG/JPEG/GIF/WebP images, resource links and embedded text; audio and binary resources unsupported                              |
-| Session navigation | Paginated list, full history load, resume without replay, close, and native fork                                                |
-| Permissions        | Interactive host-offered choices through ACP; cancellation and stale replies fail closed                                        |
-| Modes              | Default, read-only and guarded plan mode; implementation requires an explicit mode change                                       |
-| Model settings     | Provider-qualified catalogs on execution; `/models` refresh before a turn; verified idle model switching and host effort limits |
-| MCP                | Client-provided stdio and HTTP servers; local configuration/last-failure diagnostics, not live connection status                |
-| File changes       | Bounded observed diffs; optional negotiated reports explicitly mark partial coverage                                            |
-| Workflows          | Skills as slash commands, planning and Git reviews                                                                              |
-| Goals              | Goal status; `/goal <task>` executes once with an explicit persistence limitation                                               |
-| Mid-turn steering  | Available only when explicitly negotiated by the client                                                                         |
+| Surface            | Behavior                                                                                                                                                                                  |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Prompt execution   | Streamed text, tool calls/results, cancellation and multi-turn continuity                                                                                                                 |
+| Prompt context     | PNG/JPEG/GIF/WebP images, resource links and embedded text; audio and binary resources unsupported                                                                                        |
+| Session navigation | Paginated list, full history load, resume without replay, close, and native fork                                                                                                          |
+| Permissions        | Interactive host-offered choices through ACP; cancellation and stale replies fail closed                                                                                                  |
+| Modes              | Default, read-only and guarded plan mode; implementation requires an explicit mode change                                                                                                 |
+| Model settings     | Provider- and profile-qualified catalogs on execution; `/models` refresh before a turn; catalog default when settings name no model; verified idle model switching and host effort limits |
+| MCP                | Client-provided stdio and HTTP servers; local configuration/last-failure diagnostics, not live connection status                                                                          |
+| File changes       | Bounded observed diffs; optional negotiated reports explicitly mark partial coverage                                                                                                      |
+| Workflows          | Skills as slash commands, planning and Git reviews                                                                                                                                        |
+| Goals              | Goal status; `/goal <task>` executes once with an explicit persistence limitation                                                                                                         |
+| Mid-turn steering  | Available only when explicitly negotiated by the client                                                                                                                                   |
 
 Delegated workers and token usage are explicitly reported as unavailable.
 Reasoning summaries, editor-side filesystem proxying, multiple authorized

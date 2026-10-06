@@ -6,7 +6,12 @@
 
 - Offer the `max` reasoning effort, which Muse 1.3 and later treat as its own tier between `xhigh` and `ultra`. Previously `max` from Muse settings silently became `high` and a client selection of `max` was rejected, while `ultra` is gated on newer hosts and falls back to `xhigh`, so the strongest effort a user could reach was below `max` ([#13](https://github.com/bex-co/muse-code-acp/issues/13)).
 - Log an unknown `reasoning_effort` in Muse settings before the default applies, instead of silently running at `high` ([#11](https://github.com/bex-co/muse-code-acp/issues/11)).
-- Offer catalog models that carry a named profile. Muse 1.3.0 tags every live `providerCatalog` row with the catalog's profile, so the model menu showed only the current model and no catalog choice could be selected. Profiled rows are now advertised and selectable, and the profile travels with the selection through `session/setModel`.
+- Offer catalog models that carry a named profile. Muse 1.3.0 tags every live `providerCatalog` row with the catalog's profile, so the model menu showed only the current model and no catalog choice could be selected. Profiled rows are now advertised and selectable, and the profile travels with the selection through `session/setModel`. Verified on Muse 1.3.0-R3401.1 and 1.4.3 ([#10](https://github.com/bex-co/muse-code-acp/pull/10), thanks @jean-losi).
+- Show a model selected before the catalog arrived, or saved by an earlier version without a profile, as the one catalog row it names instead of listing it twice.
+
+### Features
+
+- When Muse settings name no model, a new session takes its default from the Muse catalog once one is known before its first turn (after `/models`, or a catalog already discovered in this agent). A contributor catalog default yields to its listed non-contributor model, since contributor models may use content for product improvement. Without a catalog the default stays `muse-spark-1.2`.
 
 ## [0.7.0](https://github.com/bex-co/muse-code-acp/compare/v0.6.1...v0.7.0) (2026-09-25)
 

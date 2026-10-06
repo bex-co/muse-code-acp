@@ -136,3 +136,28 @@ it("advertises and selects catalog models that carry a named profile", () => {
   });
   expect(selectModel(config, "named", catalog)).toMatchObject({ profileId: "team" });
 });
+
+it("shows a selection pinned without a profile as the one catalog row it names", () => {
+  const row = { id: "named", name: "Named", providerId: "meta", profileId: "team" };
+  const values = (models: (typeof row)[]) => {
+    const option = buildConfigOptions(
+      { model: "named", providerId: "meta", profileId: null, reasoningEffort: "high" },
+      "sdk",
+      { status: "available" as const, source: "providerCatalog", models },
+    ).find((o) => o.id === "model")!;
+    if (option.type !== "select") throw Error("wrong type");
+    return {
+      current: option.currentValue,
+      options: option.options.map((o) => ("value" in o ? o.value : undefined)),
+    };
+  };
+  // A turn before the catalog arrived, or a session saved by an older adapter.
+  expect(values([row])).toEqual({ current: modelChoice(row), options: [modelChoice(row)] });
+  // Two profiles for the same model: the pinned selection stays distinct.
+  const other = { ...row, profileId: "other" };
+  const pinned = modelChoice({ ...row, profileId: null });
+  expect(values([row, other])).toEqual({
+    current: pinned,
+    options: [pinned, modelChoice(row), modelChoice(other)],
+  });
+});

@@ -59,12 +59,17 @@ export function buildConfigOptions(
         ? discovery.models
         : []
       : KNOWN_MODELS.map((id) => ({ id, name: id }));
-  const current = discovered.filter(
+  const sameModel = discovered.filter(
     (model) =>
-      model.id === config.model &&
-      (!config.providerId || model.providerId === config.providerId) &&
-      (config.profileId === undefined || model.profileId === config.profileId),
+      model.id === config.model && (!config.providerId || model.providerId === config.providerId),
   );
+  const exact = sameModel.filter(
+    (model) => config.profileId === undefined || (model.profileId ?? null) === config.profileId,
+  );
+  // A selection pinned without a profile (a turn before the catalog arrived, or
+  // a session saved by an older adapter) is the one catalog row it can name.
+  const current =
+    exact.length === 0 && config.profileId === null && sameModel.length === 1 ? sameModel : exact;
   const models =
     current.length === 1
       ? discovered
@@ -160,6 +165,28 @@ export function modelChoice(model: DiscoveredModel): string {
     ? `muse-model:${encodeURIComponent(JSON.stringify([model.providerId, model.profileId ?? null, model.id]))}`
     : model.id;
 }
+/**
+ * The catalog's default model for a session whose settings name none. A
+ * contributor default yields to its listed non-contributor sibling: contributor
+ * models may use content for product improvement, which users opt into.
+ */
+export function catalogDefaultModel(
+  discovery: ModelDiscoveryResult | undefined,
+): DiscoveredModel | undefined {
+  if (discovery?.status !== "available") return undefined;
+  const preferred = discovery.models.find((model) => model.isDefault);
+  if (!preferred?.id.endsWith("-contributor")) return preferred;
+  const id = preferred.id.slice(0, -"-contributor".length);
+  return (
+    discovery.models.find(
+      (model) =>
+        model.id === id &&
+        model.providerId === preferred.providerId &&
+        (model.profileId ?? null) === (preferred.profileId ?? null),
+    ) ?? preferred
+  );
+}
+
 export function selectModel(
   config: SessionConfig,
   value: string,
