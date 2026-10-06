@@ -92,10 +92,13 @@ Legacy echo-provider history requires an explicit selection of a supported provi
 model before SDK continuation; the adapter no longer silently changes that provider.
 
 SDK reasoning-effort choices are `none`, `minimal`, `low`, `medium`, `high`,
-`xhigh`, and `ultra`. Unknown selections are rejected. These are requested tiers:
-main-provider loopback captures show Muse 1.1.1 omits effort for all seven;
+`xhigh`, `max`, and `ultra`. Unknown selections are rejected, and an unknown
+`reasoning_effort` in Muse settings is logged before the default applies. These
+are requested tiers: main-provider loopback captures show Muse 1.1.1 omits effort;
 Muse 1.2.1 maps `none` to `minimal`, `ultra` to `max`, and passes the other
-five unchanged. Reminder requests are separate and do not prove main-turn effort.
+five unchanged. From Muse 1.3, `max` is its own protocol tier and reaches the
+provider as `max`, while `ultra` is gated: with the gate closed, Muse 1.4.3 sends
+`xhigh`. Reminder requests are separate and do not prove main-turn effort.
 Other versions and per-model restrictions remain unverified. The option description
 reports these limits; effort changes preserve the idle host and apply per turn.
 

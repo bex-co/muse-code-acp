@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { isReasoningEffort } from "./config-options.js";
 import { Logger } from "./logger.js";
 
 /**
@@ -36,6 +37,14 @@ export function readMuseSettings(
     return {};
   }
   const settings = raw as Record<string, unknown>;
+  if (
+    typeof settings.reasoning_effort === "string" &&
+    !isReasoningEffort(settings.reasoning_effort)
+  ) {
+    logger.log(
+      `muse settings at ${path}: unknown reasoning_effort "${settings.reasoning_effort}"; using the default`,
+    );
+  }
   return {
     provider: typeof settings.provider === "string" ? settings.provider : undefined,
     model: typeof settings.model === "string" ? settings.model : undefined,

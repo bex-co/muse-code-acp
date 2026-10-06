@@ -17,6 +17,7 @@ export const EFFORT_LEVELS = [
   "medium",
   "high",
   "xhigh",
+  "max",
   "ultra",
 ] as const;
 export type MuseReasoningEffort = (typeof EFFORT_LEVELS)[number];
@@ -207,7 +208,7 @@ export function effortDescription(backend: "sdk" | "exec", hostVersion?: string 
     return "Requested effort only: Muse 1.1.1 omits effort from the main provider request. Saved preference does not imply effective control.";
   if (hostVersion?.startsWith("1.2.1"))
     return "Requested effort; verified Muse 1.2.1 maps none to minimal and ultra to max. Other listed values reach the main request unchanged. Per-model restrictions are unavailable.";
-  return "Requested effort only; effective mapping is unverified for this host. Per-model restrictions are unavailable.";
+  return "Requested effort only; effective mapping is unverified for this host. On Muse 1.3 and later, max is its own tier and ultra may be gated. Per-model restrictions are unavailable.";
 }
 
 export function resolvedModel(

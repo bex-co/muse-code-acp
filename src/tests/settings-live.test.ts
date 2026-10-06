@@ -112,7 +112,12 @@ it("keeps effort changes on the same host and exposes their observed mapping", a
       mcpServers: [],
     });
     let owner: unknown;
-    for (const effort of ["none", "minimal", "low", "medium", "high", "xhigh", "ultra"]) {
+    const version = probeSdkHost().version;
+    const legacy = version === "1.1.1" || version === "1.2.1";
+    // 1.2.1 sent ultra as provider max; from 1.3 max is its own tier and ultra is
+    // gated (closed in this isolated home), so it falls back to xhigh.
+    const efforts = ["none", "minimal", "low", "medium", "high", "xhigh"];
+    for (const effort of [...efforts, ...(legacy ? [] : ["max"]), "ultra"]) {
       await ctx.request(methods.agent.session.setConfigOption, {
         sessionId,
         configId: "reasoningEffort",
@@ -130,12 +135,14 @@ it("keeps effort changes on the same host and exposes their observed mapping", a
       expect(requests.length).toBeGreaterThan(0);
       const observed = requests.at(-1)?.reasoning as { effort?: string } | undefined;
       expect(observed?.effort).toBe(
-        probeSdkHost().version === "1.1.1"
+        version === "1.1.1"
           ? undefined
           : effort === "none"
             ? "minimal"
             : effort === "ultra"
-              ? "max"
+              ? version === "1.2.1"
+                ? "max"
+                : "xhigh"
               : effort,
       );
     }
@@ -215,7 +222,8 @@ it("keeps the selected effort when steering an active model turn", async () => {
     await ctx.request(methods.agent.session.setConfigOption, {
       sessionId,
       configId: "reasoningEffort",
-      value: "ultra",
+      // Both reach the provider as max: ultra on 1.2.1, max itself from 1.3.
+      value: probeSdkHost().version === "1.2.1" ? "ultra" : "max",
     });
     const prompt = ctx.request(methods.agent.session.prompt, {
       sessionId,

@@ -1,4 +1,5 @@
 import { modelChoice } from "../config-options.js";
+import { probeSdkHost } from "../muse-host.js";
 import { startLoopbackProvider } from "./loopback-provider.js";
 import { expectLegacyContinuation, expectLegacyLoad } from "./acp-real-host-helpers.js";
 import { CAT_IMAGE_BASE64 } from "./fixtures/cat-image.js";
@@ -337,7 +338,7 @@ describe.skipIf(!available)("SDK discovered capabilities and embedded context", 
     }
   }, 60_000);
 
-  it("accepts the public seven-tier effort vocabulary through completed real-host turns", async () => {
+  it("accepts the public effort vocabulary through completed real-host turns", async () => {
     const { spawnMspConnection, MuseClient, readSessionDurability } =
       await import("@muse-code/sdk");
     const provider = await startLoopbackProvider({
@@ -387,6 +388,7 @@ describe.skipIf(!available)("SDK discovered capabilities and embedded context", 
         "medium",
         "high",
         "xhigh",
+        ...(["1.1.1", "1.2.1"].includes(probeSdkHost().version ?? "") ? [] : (["max"] as const)),
         "ultra",
       ] as const) {
         const turn = await session.sendUserTurn({

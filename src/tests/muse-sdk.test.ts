@@ -281,6 +281,7 @@ describe("MSP tool translation", () => {
     const { sdkReasoningEffort } = await import("../muse-sdk.js");
     expect(sdkReasoningEffort("none")).toBe("none");
     expect(sdkReasoningEffort("xhigh")).toBe("xhigh");
+    expect(sdkReasoningEffort("max")).toBe("max");
     expect(sdkReasoningEffort("medium")).toBe("medium");
     expect(sdkReasoningEffort("bogus")).toBeUndefined();
   });

@@ -40,6 +40,25 @@ describe("readMuseSettings", () => {
     });
   });
 
+  it("logs an unknown reasoning effort and keeps reading the rest", () => {
+    const lines: string[] = [];
+    const env = settingsEnv(
+      JSON.stringify({ model: "muse-spark-1.3", reasoning_effort: "maximum" }),
+    );
+    expect(readMuseSettings(env, capturingLogger(lines))).toEqual({
+      model: "muse-spark-1.3",
+      reasoningEffort: "maximum",
+    });
+    expect(lines).toEqual([expect.stringContaining('unknown reasoning_effort "maximum"')]);
+  });
+
+  it("accepts max without a warning", () => {
+    const lines: string[] = [];
+    const env = settingsEnv(JSON.stringify({ reasoning_effort: "max" }));
+    expect(readMuseSettings(env, capturingLogger(lines))).toEqual({ reasoningEffort: "max" });
+    expect(lines).toEqual([]);
+  });
+
   it("returns empty settings when the file is absent", () => {
     expect(readMuseSettings(settingsEnv(null), silentLogger())).toEqual({});
   });
@@ -54,6 +73,7 @@ describe("defaultSessionConfig", () => {
     expect(
       defaultSessionConfig({ model: "muse-spark-1.2-contributor", reasoningEffort: "ultra" }),
     ).toEqual({ model: "muse-spark-1.2-contributor", reasoningEffort: "ultra" });
+    expect(defaultSessionConfig({ reasoningEffort: "max" }).reasoningEffort).toBe("max");
     expect(defaultSessionConfig({ reasoningEffort: "bogus" })).toEqual({
       model: "muse-spark-1.2",
       reasoningEffort: "high",
@@ -75,9 +95,11 @@ describe("session config options over ACP", () => {
     });
     expect(configOptions?.find((o) => o.id === "reasoningEffort")).toMatchObject({
       currentValue: "ultra",
-      options: ["none", "minimal", "low", "medium", "high", "xhigh", "ultra"].map((value) => ({
-        value,
-      })),
+      options: ["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"].map(
+        (value) => ({
+          value,
+        }),
+      ),
     });
     await expect(
       ctx.request(methods.agent.session.setConfigOption, {
