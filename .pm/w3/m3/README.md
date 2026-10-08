@@ -1,16 +1,16 @@
 # w3 · m3 — Release 0.8.0
 
-**Worker:** worker1 **Goal:** 0.8.0 is published to npm with the `max` effort fix, profiled catalog selection and Muse 1.4.3 compatibility, and contributors are informed. **Status:** todo
+**Worker:** worker1 **Goal:** 0.8.0 is published to npm with the `max` effort fix, profiled catalog selection and Muse 1.4.3 compatibility, and contributors are informed. **Status:** in progress
 
 ## Tasks (in order)
 
-| id   | title                         | est | depends_on             |
-| ---- | ----------------------------- | --- | ---------------------- |
-| t001 | Verify release readiness      | 30m | w3/m1/t007, w3/m2/t008 |
-| t002 | Release commit and tag v0.8.0 | 15m | w3/m3/t001             |
-| t003 | Publish 0.8.0 and verify npm  | 15m | w3/m3/t002             |
-| t004 | GitHub housekeeping for 0.8.0 | 15m | w3/m3/t003             |
-| t005 | Close out milestone           | 15m | w3/m3/t004             |
+| id   | title                                    | est | depends_on             |
+| ---- | ---------------------------------------- | --- | ---------------------- |
+| t001 | Verify release readiness — **DONE**      | 30m | w3/m1/t007, w3/m2/t008 |
+| t002 | Release commit and tag v0.8.0 — **DONE** | 15m | w3/m3/t001             |
+| t003 | Publish 0.8.0 and verify npm             | 15m | w3/m3/t002             |
+| t004 | GitHub housekeeping for 0.8.0            | 15m | w3/m3/t003             |
+| t005 | Close out milestone                      | 15m | w3/m3/t004             |
 
 ## Definition of done
 

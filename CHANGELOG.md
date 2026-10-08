@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.8.0](https://github.com/bex-co/muse-code-acp/compare/v0.7.0...v0.8.0) (2026-10-08)
+
 ### Fixes
 
 - Offer the `max` reasoning effort, which Muse 1.3 and later treat as its own tier between `xhigh` and `ultra`. Previously `max` from Muse settings silently became `high` and a client selection of `max` was rejected, while `ultra` is gated on newer hosts and falls back to `xhigh`, so the strongest effort a user could reach was below `max` ([#13](https://github.com/bex-co/muse-code-acp/issues/13)).
