@@ -1,16 +1,16 @@
 # w3 · m5 — Release 0.9.0 and report host regressions upstream
 
-**Worker:** worker1 **Goal:** The SDK 1.4.4 catch-up (and any completed m4 work) is published, and the Muse fork-boundary regression is reported to its maintainers. **Status:** in progress — t003 and t004 await user approval
+**Worker:** worker1 **Goal:** The SDK 1.4.4 catch-up (and any completed m4 work) is published, and the Muse fork-boundary regression is reported to its maintainers. **Status:** done
 
 ## Tasks (in order)
 
-| id   | title                                        | est | depends_on             |
-| ---- | -------------------------------------------- | --- | ---------------------- |
-| t001 | Verify release readiness — **DONE**          | 30m | —                      |
-| t002 | Release commit and tag — **DONE**            | 15m | w3/m5/t001             |
-| t003 | Publish and verify npm                       | 15m | w3/m5/t002             |
-| t004 | Report the fork-boundary regression upstream | 30m | —                      |
-| t005 | Close out milestone                          | 15m | w3/m5/t003, w3/m5/t004 |
+| id   | title                                                   | est | depends_on             |
+| ---- | ------------------------------------------------------- | --- | ---------------------- |
+| t001 | Verify release readiness — **DONE**                     | 30m | —                      |
+| t002 | Release commit and tag — **DONE**                       | 15m | w3/m5/t001             |
+| t003 | Publish and verify npm — **DONE**                       | 15m | w3/m5/t002             |
+| t004 | Report the fork-boundary regression upstream — **DONE** | 30m | —                      |
+| t005 | Close out milestone — **DONE**                          | 15m | w3/m5/t003, w3/m5/t004 |
 
 ## Definition of done
 
@@ -40,4 +40,4 @@ Acceptance after enablement: when a fixed host ships, re-verify and remove its b
 
 ## Validation evidence
 
-Pending.
+`v0.9.0` (`3a97f71`) published by Publish and Release run 37885796547; npm `latest` is 0.9.0. Release CI reran Build, Muse loopback integration (1.1.1) and Standalone macOS ARM64 on the tag. Upstream report: [meta-models/muse-code-sdk#97](https://github.com/meta-models/muse-code-sdk/issues/97).
