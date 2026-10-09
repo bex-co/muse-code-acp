@@ -3,6 +3,7 @@ import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { execSupportsPermissionProfile } from "../muse-host.js";
+import { expectLegacyContinuation, expectLegacyLoad } from "./acp-real-host-helpers.js";
 import { connectTestClient, initialized, museAvailable } from "./helpers.js";
 import { startLoopbackProvider } from "./loopback-provider.js";
 
@@ -43,18 +44,19 @@ describe.skipIf(!available)("exec permission profiles", () => {
       await exec.agent.dispose();
       const sdkCtx = await initialized(sdk);
       const load = sdkCtx.request(methods.agent.session.load, { sessionId, cwd, mcpServers: [] });
-      // Hosts without built-in exec profiles still commit :auto-review, which serve refuses.
-      if (!execSupportsPermissionProfile(env)) {
-        await expect(load).rejects.toMatchObject({ code: -32603 });
-        return;
-      }
-      await load;
-      await expect(
+      const continuation = () =>
         sdkCtx.request(methods.agent.session.prompt, {
           sessionId,
           prompt: [{ type: "text", text: "sdk-after-exec" }],
-        }),
-      ).resolves.toEqual({ stopReason: "end_turn" });
+        });
+      // Without built-in exec profiles the session keeps the host's default
+      // profile, so the enumerated legacy expectations apply.
+      if (!execSupportsPermissionProfile(env)) {
+        if (await expectLegacyLoad(load)) await expectLegacyContinuation(continuation());
+        return;
+      }
+      await load;
+      await expect(continuation()).resolves.toEqual({ stopReason: "end_turn" });
       const input = JSON.stringify(
         provider.requests().findLast((r) => JSON.stringify(r.input).includes("sdk-after-exec"))
           ?.input,
