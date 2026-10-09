@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.9.0](https://github.com/bex-co/muse-code-acp/compare/v0.8.0...v0.9.0) (2026-10-08)
+
 ### Fixes
 
 - Exec backend: stop offering the `none` reasoning effort for provider models, which `muse exec` 1.4.x refuses; a `none` from Muse settings falls back to the default with a log line.

@@ -1,13 +1,13 @@
-# w3 · m5 — Release 0.8.1 and report host regressions upstream
+# w3 · m5 — Release 0.9.0 and report host regressions upstream
 
-**Worker:** worker1 **Goal:** The SDK 1.4.4 catch-up (and any completed m4 work) is published, and the Muse fork-boundary regression is reported to its maintainers. **Status:** todo
+**Worker:** worker1 **Goal:** The SDK 1.4.4 catch-up (and any completed m4 work) is published, and the Muse fork-boundary regression is reported to its maintainers. **Status:** in progress — t003 and t004 await user approval
 
 ## Tasks (in order)
 
 | id   | title                                        | est | depends_on             |
 | ---- | -------------------------------------------- | --- | ---------------------- |
-| t001 | Verify release readiness                     | 30m | —                      |
-| t002 | Release commit and tag                       | 15m | w3/m5/t001             |
+| t001 | Verify release readiness — **DONE**          | 30m | —                      |
+| t002 | Release commit and tag — **DONE**            | 15m | w3/m5/t001             |
 | t003 | Publish and verify npm                       | 15m | w3/m5/t002             |
 | t004 | Report the fork-boundary regression upstream | 30m | —                      |
 | t005 | Close out milestone                          | 15m | w3/m5/t003, w3/m5/t004 |
