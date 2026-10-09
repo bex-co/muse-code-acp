@@ -222,7 +222,9 @@ export class MuseSdkTranslator {
           ? title.slice(0, 1024)
           : regular
             ? tool
-            : `${item.kind}: ${item.status}`,
+            : item.kind === "hookRun" && item.label
+              ? `Hook ${item.event ?? "run"}: ${item.label}`.slice(0, 1024)
+              : `${item.kind}: ${item.status}`,
       kind: TOOL_KINDS[tool] ?? (item.kind === "userShell" ? "execute" : "other"),
       status:
         item.status === "inProgress"

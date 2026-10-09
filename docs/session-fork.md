@@ -24,7 +24,7 @@ To select a completed turn boundary, initialize with client capability
 ```
 
 The turn is included. Unknown or unfinished boundaries fail without changing the
-source. Muse 1.4.3-R5018.1 also rejects every completed turn except the latest
+source. Muse 1.4.3-R5018.1 and 1.4.4-R5419.1 also reject every completed turn except the latest
 (`forkBoundaryInvalid`), although its own schema accepts any completed turn; the
 adapter then names the latest turn ID, and forking at it or without a boundary
 still works. Earlier boundaries are not emulated. Turn IDs can be observed through the separately negotiated
@@ -51,6 +51,6 @@ native record may remain discoverable; no deletion or automatic replay is attemp
 
 Acceptance covers real Muse with a local loopback provider, explicit and default
 boundaries, invalid boundaries, model/effort preservation, and independent
-source/fork provider input after restarting the ACP process. On 1.4.3-R5018.1 the
+source/fork provider input after restarting the ACP process. On those builds the
 same test asserts the earlier-boundary rejection and cuts at the latest turn. Other
 compatibility claims still need their own host evidence.

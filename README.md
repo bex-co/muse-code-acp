@@ -23,7 +23,7 @@ and HTTP MCP tool calls and startup failures on **1.2.1-R2847.1**. ACP-provided
 MCP servers explicitly use required startup mode; authentication, malformed
 responses and unreachable endpoints fail the prompt.
 
-One host limitation remains on 1.2.1, 1.3.0 and 1.4.3: legacy `muse exec` sessions saved with
+One host limitation remains on 1.2.1, 1.3.0, 1.4.3 and 1.4.4: legacy `muse exec` sessions saved with
 `:auto-review` cannot be resumed in `muse serve`, whose automated reviewer is
 unavailable. From 1.3.0-R3401.1 the host also refuses to read them, so ACP
 `session/load` fails with the same message instead of replaying history. From 1.4.3
@@ -39,7 +39,7 @@ The launcher updates and removes superseded binaries, so pointing
 URLs and SHA-256 checks are in [CI](.github/workflows/ci.yml). Keep the verified
 binary at a separate path. These fixes are included in **0.5.0**.
 
-The npm adapter and its pinned `@muse-code/sdk@1.3.0` dependency do not include
+The npm adapter and its pinned `@muse-code/sdk@1.4.4` dependency do not include
 the Muse executable. Native execution, model access, persistence and sandboxing
 remain owned by Muse.
 

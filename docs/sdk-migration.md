@@ -496,10 +496,10 @@ The error now names that limitation and suggests a new ACP session or continuing
 in Muse with reviewer support. Approval and sandbox defaults are unchanged.
 
 Three live tests assert this exact actionable failure on 1.2.1-R2847.1,
-1.3.0-R3057.1, 1.3.0-R3401.1 and 1.4.3-R5018.1, and still require successful legacy continuation on 1.1.1. The
+1.3.0-R3057.1, 1.3.0-R3401.1, 1.4.3-R5018.1 and 1.4.4-R5419.1, and still require successful legacy continuation on 1.1.1. The
 affected builds are enumerated, so an unlisted host is expected to continue
 successfully; 1.3.0-R3057.1 and R3401.1 were added after they reproduced the same rejection.
-R3401.1 and 1.4.3-R5018.1 also refuse the lease-free `session/read` (`resume_refused_class_c`), so
+R3401.1, 1.4.3-R5018.1 and 1.4.4-R5419.1 also refuse the lease-free `session/read` (`resume_refused_class_c`), so
 ACP `session/load` itself fails with the same message there. On 1.4.3 `muse exec`
 commits the built-in `:auto-review` profile by default, so new exec-backend sessions
 are affected too. Their SDK-created session paths

@@ -46,6 +46,8 @@ export const IGNORED_VIEW_EVENTS: Readonly<Record<string, string>> = {
     "SDK 1.3.0 addition; effort is adapter-configured per turn. Observed-effort sync not scheduled.",
   "session/modelRouteUnserved":
     "SDK 1.3.0 addition; disclosure only after a provider swap the adapter never issues; not scheduled.",
+  "turn/foregroundCompleted":
+    "SDK 1.4.4 addition; non-terminal by contract, so the ACP prompt still settles on the turn terminal. Early-answer signalling not scheduled.",
 };
 
 /** Every classified method. A method may appear in exactly one table. */
@@ -76,4 +78,8 @@ export const ITEM_KIND_CONSUMERS: Readonly<Record<string, string>> = {
     "Handled by retained worker cards; negotiated 1.2.1/1.3.0 workflow cancellation; 1.1.1 workflow lifecycle/control unverified.",
   reminderChild: "Handled child attribution cards; child history remains w1/005.",
   compaction: "Native durable compaction rejects on 1.1.1/1.2.1; future w1/004.",
+  hookRun:
+    "SDK 1.4.4 addition; muse-sdk-events.ts renders a generic card titled by the hook label and event.",
+  sideChat:
+    "SDK 1.4.4 addition; the adapter never opens side chats, so another client's side chat renders as a generic card.",
 };

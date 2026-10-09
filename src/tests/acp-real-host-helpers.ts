@@ -27,8 +27,9 @@ const LEGACY_PROFILE_LIMITED = [
   "(1.3.0-R3057.1)",
   "(1.3.0-R3401.1)",
   "(1.4.3-R5018.1)",
+  "(1.4.4-R5419.1)",
 ];
-const LEGACY_PROFILE_READ_REFUSED = ["(1.3.0-R3401.1)", "(1.4.3-R5018.1)"];
+const LEGACY_PROFILE_READ_REFUSED = ["(1.3.0-R3401.1)", "(1.4.3-R5018.1)", "(1.4.4-R5419.1)"];
 const LEGACY_PROFILE_ERROR = {
   code: -32603,
   message: expect.stringContaining(
@@ -39,7 +40,7 @@ const LEGACY_PROFILE_ERROR = {
  * w3/m2: these hosts accept only the latest completed turn as a fork boundary,
  * although their schema documents any completed turn. Enumerated like the above.
  */
-const FORK_CUT_LATEST_ONLY = ["(1.4.3-R5018.1)"];
+const FORK_CUT_LATEST_ONLY = ["(1.4.3-R5018.1)", "(1.4.4-R5419.1)"];
 export const forkCutLatestOnly = () =>
   FORK_CUT_LATEST_ONLY.some((build) => museVersion().includes(build));
 const museVersion = () =>

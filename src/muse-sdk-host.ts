@@ -58,7 +58,7 @@ interface HostLease {
 }
 
 /** Hosts whose public workflow/cancel was verified against a real observed run. */
-const WORKFLOW_CANCEL_HOSTS = ["1.2.1", "1.3.0"];
+const WORKFLOW_CANCEL_HOSTS = ["1.2.1", "1.3.0", "1.4.4"];
 
 /** A single ACP session owns this process and its spawn-time configuration. */
 export class MuseSdkHost {

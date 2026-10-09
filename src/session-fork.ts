@@ -81,7 +81,7 @@ export async function forkMuseSession(options: {
       return result;
     } catch (error) {
       if (error instanceof MspError) {
-        // Muse 1.4.3 rejects every completed turn but the latest as a boundary,
+        // Muse 1.4.3 and 1.4.4 reject every completed turn but the latest as a boundary,
         // although its schema accepts any completed turn.
         if (
           error.kind === "forkBoundaryInvalid" &&
@@ -90,7 +90,7 @@ export async function forkMuseSession(options: {
         )
           throw RequestError.invalidParams(
             undefined,
-            `Muse fork rejected: forkBoundaryInvalid. The boundary must be a completed turn of this session, and some Muse hosts (observed on 1.4.3) accept only the latest one (${latestTurnId}); fork at that turn or fork the full session`,
+            `Muse fork rejected: forkBoundaryInvalid. The boundary must be a completed turn of this session, and some Muse hosts (observed on 1.4.3 and 1.4.4) accept only the latest one (${latestTurnId}); fork at that turn or fork the full session`,
           );
         if (["sessionNotFound", "notFound", "forkBoundaryInvalid"].includes(error.kind))
           throw RequestError.invalidParams(undefined, `Muse fork rejected: ${error.kind}`);

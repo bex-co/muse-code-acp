@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Features
+
+- Advertise workflow `cancel` on Muse 1.4.4 as well, after verifying public `workflow/cancel` against a real observed run on 1.4.4-R5419.1. Muse 1.4.3 stays unadvertised (unverified).
+- Title Muse hook-run cards with the hook's event and label instead of a bare `hookRun: completed`.
+
+### Dependencies
+
+- Bump `@muse-code/sdk` from 1.3.0 to 1.4.4. The SDK now versions in lockstep with Muse Code; its protocol changes are additive. The new `turn/foregroundCompleted` view event is classified as ignored (the ACP prompt still settles on the turn terminal), and the new `hookRun` and `sideChat` items render as generic cards. Verified on Muse 1.4.4-R5419.1, which keeps the 1.4.3 fork-boundary and legacy `:auto-review` limitations; Muse 1.4.3 hosts keep working, and the schema fingerprint difference is advisory.
+
 ## [0.8.0](https://github.com/bex-co/muse-code-acp/compare/v0.7.0...v0.8.0) (2026-10-08)
 
 ### Fixes

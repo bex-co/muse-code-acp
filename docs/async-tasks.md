@@ -23,7 +23,7 @@ Task cards then include `_meta["muse/asyncTasks"]` with `kind`, an opaque `targe
 { "method": "_muse/task", "params": { "sessionId": "…", "target": "…", "action": "cancel" } }
 ```
 
-On verified Muse 1.2.1 and 1.3.0, running workflows advertise `cancel`. The adapter calls
+On verified Muse 1.2.1, 1.3.0 and 1.4.4, running workflows advertise `cancel`. The adapter calls
 public `workflow/cancel` with the exact observed workflowRunId, through the SDK
 connection; SDK 1.3.0 declares the method, and Muse's public conformance
 [transcript](https://github.com/meta-models/muse-code-sdk/blob/fbce769ccb75ab971d00e01a00fe076de4c773fc/schema/msp/transcripts/workflow-cancel-round-trip/transcript.ndjson) documents the command and real-host execution verifies it. An

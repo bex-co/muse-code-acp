@@ -92,6 +92,8 @@ it("cancels only an observed workflow and rejects stale host targets", async () 
       return {
         name: "workflow",
         arguments: {
+          // Muse 1.4.4 requires a non-blank Workflow name.
+          name: "control",
           script:
             'export default async function workflow(host) { return await host.agent({input:"slow-child-control-marker"}); }',
         },
@@ -126,9 +128,9 @@ it("cancels only an observed workflow and rejects stale host targets", async () 
           ? [n.update]
           : [],
       );
-    // Workflow cancellation is verified on 1.2.1 and 1.3.0 (WORKFLOW_CANCEL_HOSTS).
+    // Workflow cancellation is verified on 1.2.1, 1.3.0 and 1.4.4 (WORKFLOW_CANCEL_HOSTS).
     if (
-      !/\b1\.(2\.1|3\.0)\b/.test(
+      !/\b1\.(2\.1|3\.0|4\.4)\b/.test(
         spawnSync(museCliPath(), ["--version"], { encoding: "utf8" }).stdout,
       )
     ) {

@@ -184,3 +184,32 @@ it("treats gap catch-up as absolute text for every streamed public surface", () 
   });
   expect(t.fromAccumulated("t", "output", "first second")).toEqual([]);
 });
+
+it("renders SDK 1.4.4 hook runs and side chats as generic cards", () => {
+  const translator = new MuseSdkTranslator("root", { log() {}, error() {} });
+  const [hook] = translator.fromItem({
+    itemId: "hook",
+    kind: "hookRun",
+    turnId: "turn",
+    revision: 1,
+    status: "completed",
+    event: "preToolUse",
+    label: "lint before edits",
+    runStatus: "blocked",
+  });
+  expect(hook.update).toMatchObject({
+    sessionUpdate: "tool_call",
+    title: "Hook preToolUse: lint before edits",
+    kind: "other",
+    status: "completed",
+  });
+  const [side] = translator.fromItem({
+    itemId: "side",
+    kind: "sideChat",
+    turnId: "turn",
+    revision: 1,
+    status: "completed",
+    sideSessionId: "side-session",
+  });
+  expect(side.update).toMatchObject({ title: "sideChat: completed", kind: "other" });
+});
