@@ -25,6 +25,16 @@ export function isReasoningEffort(value: unknown): value is MuseReasoningEffort 
   return typeof value === "string" && (EFFORT_LEVELS as readonly string[]).includes(value);
 }
 
+/** Tiers a backend can carry: `muse exec` 1.4.x refuses `none` for provider models. */
+export function effortLevels(
+  backend: "sdk" | "exec",
+  provider?: "meta" | "echo",
+): readonly MuseReasoningEffort[] {
+  return backend === "exec" && provider !== "echo"
+    ? EFFORT_LEVELS.filter((effort) => effort !== "none")
+    : EFFORT_LEVELS;
+}
+
 const DEFAULT_MODEL = "muse-spark-1.2";
 const DEFAULT_EFFORT = "high";
 
@@ -37,13 +47,17 @@ export interface SessionConfig {
 }
 
 /** Resolution order: user muse settings > built-in defaults. */
-export function defaultSessionConfig(settings: MuseSettings): SessionConfig {
+export function defaultSessionConfig(
+  settings: MuseSettings,
+  efforts: readonly string[] = EFFORT_LEVELS,
+): SessionConfig {
   return {
     model: settings.model ?? DEFAULT_MODEL,
     ...(settings.provider ? { providerId: settings.provider } : {}),
-    reasoningEffort: isReasoningEffort(settings.reasoningEffort)
-      ? settings.reasoningEffort
-      : DEFAULT_EFFORT,
+    reasoningEffort:
+      settings.reasoningEffort && efforts.includes(settings.reasoningEffort)
+        ? settings.reasoningEffort
+        : DEFAULT_EFFORT,
   };
 }
 
@@ -52,6 +66,7 @@ export function buildConfigOptions(
   backend: "sdk" | "exec" = "exec",
   discovery?: ModelDiscoveryResult,
   hostVersion?: string | null,
+  efforts: readonly MuseReasoningEffort[] = EFFORT_LEVELS,
 ): SessionConfigOption[] {
   const discovered: readonly DiscoveredModel[] =
     backend === "sdk"
@@ -116,7 +131,7 @@ export function buildConfigOptions(
       type: "select",
       currentValue: config.reasoningEffort,
       description: effortDescription(backend, hostVersion),
-      options: EFFORT_LEVELS.map((effort) => ({
+      options: efforts.map((effort) => ({
         value: effort,
         name: effort.charAt(0).toUpperCase() + effort.slice(1),
       })),
@@ -130,6 +145,7 @@ export function applyConfigSelection(
   configId: string,
   value: unknown,
   discovery?: ModelDiscoveryResult,
+  efforts: readonly string[] = EFFORT_LEVELS,
 ): SessionConfig {
   if (typeof value !== "string") {
     throw RequestError.invalidParams(undefined, `config ${configId} expects a select value`);
@@ -138,7 +154,7 @@ export function applyConfigSelection(
     case MODEL_CONFIG_ID:
       return selectModel(config, value, discovery);
     case EFFORT_CONFIG_ID:
-      if (!isReasoningEffort(value)) {
+      if (!isReasoningEffort(value) || !efforts.includes(value)) {
         throw RequestError.invalidParams(undefined, `unknown reasoning effort: ${value}`);
       }
       return { ...config, reasoningEffort: value };

@@ -3,7 +3,7 @@ import { methods } from "@agentclientprotocol/sdk";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { catalogDefaultModel, defaultSessionConfig } from "../config-options.js";
+import { catalogDefaultModel, defaultSessionConfig, effortLevels } from "../config-options.js";
 import { readSessionEffort } from "../session-preferences.js";
 import { readMuseSettings } from "../muse-settings.js";
 import {
@@ -239,5 +239,42 @@ describe("session config options over ACP", () => {
         value: "warp-speed",
       }),
     ).rejects.toMatchObject({ code: -32602 });
+  });
+});
+
+describe("exec effort choices", () => {
+  it("omits none for provider models, which muse exec 1.4.x refuses", () => {
+    expect(effortLevels("exec", "meta")).not.toContain("none");
+    expect(effortLevels("exec")).not.toContain("none");
+    expect(effortLevels("exec", "echo")).toContain("none");
+    expect(effortLevels("sdk")).toContain("none");
+  });
+
+  it("rejects none and logs a settings none on exec with the meta provider", async () => {
+    const lines: string[] = [];
+    const env = settingsEnv(JSON.stringify({ reasoning_effort: "none" }));
+    const testClient = connectTestClient(
+      { backend: "exec", provider: "meta", museBinary: fakeMuseBinary(), env },
+      capturingLogger(lines),
+    );
+    const ctx = await initialized(testClient);
+    const { sessionId, configOptions } = await ctx.request(methods.agent.session.new, {
+      cwd: mkdtempSync(join(tmpdir(), "muse-exec-effort-")),
+      mcpServers: [],
+    });
+    const effort = configOptions?.find((o) => o.id === "reasoningEffort");
+    expect(effort).toMatchObject({ currentValue: "high" });
+    expect(JSON.stringify(effort)).not.toContain('"value":"none"');
+    expect(lines).toEqual(
+      expect.arrayContaining([expect.stringContaining('reasoning_effort "none" is not accepted')]),
+    );
+    await expect(
+      ctx.request(methods.agent.session.setConfigOption, {
+        sessionId,
+        configId: "reasoningEffort",
+        value: "none",
+      }),
+    ).rejects.toMatchObject({ code: -32602 });
+    await testClient.agent.dispose();
   });
 });

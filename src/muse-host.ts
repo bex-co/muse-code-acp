@@ -16,6 +16,38 @@ export interface SdkHostCheck {
 }
 
 const probed = new Map<string, SdkHostCheck>();
+const execProfiles = new Map<string, boolean>();
+
+/** Built-in exec permission profiles are verified from Muse 1.4.4. */
+const EXEC_PROFILE_MIN_HOST = [1, 4, 4];
+
+/**
+ * Whether `muse exec` accepts `--permission-profile` with the built-in
+ * profiles: the flag must be in its help and the host at least 1.4.4.
+ */
+export function execSupportsPermissionProfile(
+  env: Record<string, string | undefined> = process.env,
+  museBinary?: string,
+): boolean {
+  const binary = museBinary ?? museCliPath(env);
+  const cached = execProfiles.get(binary);
+  if (cached !== undefined) return cached;
+  const version = probeSdkHost(env, binary).version?.split(".").map(Number);
+  const help = spawnSync(binary, ["exec", "--help"], {
+    encoding: "utf8",
+    env: env as Record<string, string>,
+    timeout: 5_000,
+  });
+  const supported =
+    !!version &&
+    EXEC_PROFILE_MIN_HOST.reduce<number>(
+      (order, part, i) => order || Math.sign((version[i] ?? 0) - part),
+      0,
+    ) >= 0 &&
+    `${help.stdout ?? ""}`.includes("--permission-profile");
+  execProfiles.set(binary, supported);
+  return supported;
+}
 
 /**
  * Probe whether the resolved Muse binary exposes `serve` (MSP host). Used

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fixes
+
+- Exec backend: stop offering the `none` reasoning effort for provider models, which `muse exec` 1.4.x refuses; a `none` from Muse settings falls back to the default with a log line.
+- Exec backend: Read-only and Plan sessions use Muse's built-in `:read-only` permission profile on Muse 1.4.4+, so they can later be loaded through the SDK backend. Default mode keeps `:auto-review`.
+
 ### Features
 
 - Advertise workflow `cancel` on Muse 1.4.4 as well, after verifying public `workflow/cancel` against a real observed run on 1.4.4-R5419.1. Muse 1.4.3 stays unadvertised (unverified).

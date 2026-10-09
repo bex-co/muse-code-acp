@@ -1,18 +1,18 @@
 # w3 · m4 — Exec backend fidelity on Muse 1.4.x
 
-**Worker:** worker1 **Goal:** The opt-in exec backend offers only effort values `muse exec` accepts, and new exec sessions stay loadable through the default SDK backend, without changing approval or sandbox safety the user did not choose. **Status:** todo
+**Worker:** worker1 **Goal:** The opt-in exec backend offers only effort values `muse exec` accepts, and new exec sessions stay loadable through the default SDK backend, without changing approval or sandbox safety the user did not choose. **Status:** done
 
 ## Tasks (in order)
 
-| id   | title                                                  | est | depends_on             |
-| ---- | ------------------------------------------------------ | --- | ---------------------- |
-| t001 | Offer only exec-accepted efforts for the meta provider | 45m | —                      |
-| t002 | Measure exec permission profiles per ACP mode          | 1h  | —                      |
-| t003 | Apply the chosen exec permission profiles              | 1h  | w3/m4/t002             |
-| t004 | Adoption surface                                       | 30m | w3/m4/t001, w3/m4/t003 |
-| t005 | Simplify milestone changes                             | 30m | w3/m4/t004             |
-| t006 | CI and behavior coverage                               | 45m | w3/m4/t005             |
-| t007 | Close out milestone                                    | 15m | w3/m4/t006             |
+| id   | title                                                             | est | depends_on             |
+| ---- | ----------------------------------------------------------------- | --- | ---------------------- |
+| t001 | Offer only exec-accepted efforts for the meta provider — **DONE** | 45m | —                      |
+| t002 | Measure exec permission profiles per ACP mode — **DONE**          | 1h  | —                      |
+| t003 | Apply the chosen exec permission profiles — **DONE**              | 1h  | w3/m4/t002             |
+| t004 | Adoption surface — **DONE**                                       | 30m | w3/m4/t001, w3/m4/t003 |
+| t005 | Simplify milestone changes — **DONE**                             | 30m | w3/m4/t004             |
+| t006 | CI and behavior coverage — **DONE**                               | 45m | w3/m4/t005             |
+| t007 | Close out milestone — **DONE**                                    | 15m | w3/m4/t006             |
 
 ## Definition of done
 
@@ -27,6 +27,7 @@
 - **Expected outcome:** Exec-backend users get no unusable effort choice, and their sessions survive switching to the default backend.
 - **Why now:** Muse 1.4.3+ made new exec sessions unloadable by default; the `none` rejection is a visible failure.
 - **Decision gate:** t003 changes exec approval semantics and needs an explicit user decision on the profile per mode, informed by t002. Loop work must stop at t003 until that decision is recorded here.
+  - **Decision (user, 2026-10-08):** readOnly/plan → `:read-only`; default, bypassApprovals and yolo unchanged.
 - **Adoption surface:** Separate task t004 (README exec section, `docs/sdk-migration.md`, mode descriptions).
 
 ## Preserved notes
@@ -45,4 +46,9 @@ Triage on 1.4.3 (re-confirmed by the enumerated live tests on 1.4.4): `muse exec
 
 ## Validation evidence
 
-Pending.
+Muse host `1.4.4-R5419.1`, `@muse-code/sdk` 1.4.4, macOS arm64, 2026-10-08.
+
+- `npm run check`, `npm run build`: clean.
+- `npm run test:unit`: 497/498; the one failure (`muse-sdk-host` steering) passed 3/3 in isolation — the known load flake.
+- `MUSE_CODE_ACP_REQUIRE_MUSE=1` loopback suite with `--no-file-parallelism`: 19 files, 63/63 passed, including the new exec-profile acceptance.
+- Limitation: Default-mode exec sessions keep `:auto-review` and remain unloadable through serve; a separate Default-mode stall after a refused write is tracked in w3/004.

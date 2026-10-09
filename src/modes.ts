@@ -20,6 +20,12 @@ export interface ModeDef {
   description: string;
   /** Flags appended to every `muse exec` spawn while this mode is active. */
   flags: string[];
+  /**
+   * Built-in permission profile for `muse exec`, where the host supports it.
+   * `muse exec` otherwise commits `:auto-review`, which `muse serve` refuses to
+   * load (Muse 1.3.0-R3401.1+), so the session could not move to the SDK backend.
+   */
+  execProfile?: string;
   /** Gated behind MUSE_CODE_ACP_ALLOW_YOLO=1; never available as root. */
   dangerous?: boolean;
 }
@@ -45,6 +51,7 @@ export const MODES: Record<MuseModeId, ModeDef> = {
     description:
       "Disable workspace file writes and shell execution for the run. Applies from the next prompt.",
     flags: ["--disable-write", "--disable-shell"],
+    execProfile: ":read-only",
   },
   plan: {
     id: "plan",
@@ -52,6 +59,7 @@ export const MODES: Record<MuseModeId, ModeDef> = {
     description:
       "Plan with workspace writes and shell execution disabled. Select another mode explicitly to implement. Applies from the next prompt.",
     flags: ["--disable-write", "--disable-shell"],
+    execProfile: ":read-only",
   },
   bypassApprovals: {
     id: "bypassApprovals",

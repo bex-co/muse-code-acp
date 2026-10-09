@@ -92,7 +92,8 @@ Legacy echo-provider history requires an explicit selection of a supported provi
 model before SDK continuation; the adapter no longer silently changes that provider.
 
 SDK reasoning-effort choices are `none`, `minimal`, `low`, `medium`, `high`,
-`xhigh`, `max`, and `ultra`. Unknown selections are rejected, and an unknown
+`xhigh`, `max`, and `ultra`; the legacy exec backend omits `none` for provider models,
+which `muse exec` 1.4.x refuses. Unknown selections are rejected, and an unknown
 `reasoning_effort` in Muse settings is logged before the default applies. These
 are requested tiers: main-provider loopback captures show Muse 1.1.1 omits effort;
 Muse 1.2.1 maps `none` to `minimal`, `ultra` to `max`, and passes the other
@@ -502,7 +503,11 @@ successfully; 1.3.0-R3057.1 and R3401.1 were added after they reproduced the sam
 R3401.1, 1.4.3-R5018.1 and 1.4.4-R5419.1 also refuse the lease-free `session/read` (`resume_refused_class_c`), so
 ACP `session/load` itself fails with the same message there. On 1.4.3 `muse exec`
 commits the built-in `:auto-review` profile by default, so new exec-backend sessions
-are affected too. Their SDK-created session paths
+are affected too. When `muse exec --help` lists `--permission-profile` and the host is
+1.4.4 or newer, exec Read-only and Plan sessions pass `--permission-profile :read-only`
+(writes and shell are already disabled there) and load through `muse serve`. Default
+mode keeps `:auto-review`; Auto-approve and No-approval modes already load, and Muse
+refuses a profile alongside their flags. Their SDK-created session paths
 always require successful continuation. Passing these tests does not imply that
 the legacy host defect is fixed. See [compatibility](../README.md#requirements-and-compatibility)
 and [MCP diagnostics](mcp-passthrough.md#diagnostics). These changes are included in 0.5.0.

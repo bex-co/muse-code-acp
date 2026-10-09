@@ -28,7 +28,9 @@ One host limitation remains on 1.2.1, 1.3.0, 1.4.3 and 1.4.4: legacy `muse exec`
 unavailable. From 1.3.0-R3401.1 the host also refuses to read them, so ACP
 `session/load` fails with the same message instead of replaying history. From 1.4.3
 `muse exec` saves new sessions with `:auto-review` by default, so new sessions from
-the opt-in exec backend are affected too. This affects the legacy-continuation portion of three live tests;
+the opt-in exec backend are affected too. From 1.4.4, exec-backend Read-only and Plan
+sessions use Muse's built-in `:read-only` profile and stay loadable; Default mode keeps
+`:auto-review`, because the loadable alternative would run tools without approval. This affects the legacy-continuation portion of three live tests;
 SDK-created session continuation passes. The adapter reports an actionable error
 and does not replay the prompt or change the saved permission profile. Start a
 new ACP session or continue the old one in Muse with reviewer support.

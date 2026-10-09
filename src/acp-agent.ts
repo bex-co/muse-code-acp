@@ -87,6 +87,8 @@ import {
   buildConfigOptions,
   catalogDefaultModel,
   defaultSessionConfig,
+  effortLevels,
+  isReasoningEffort,
   resolvedModel,
   SessionConfig,
 } from "./config-options.js";
@@ -103,7 +105,11 @@ import {
   selectSafety,
   safetyConfigOptions,
 } from "./safety-settings.js";
-import { probeSdkHost, assertSdkSafetySupport } from "./muse-host.js";
+import {
+  probeSdkHost,
+  assertSdkSafetySupport,
+  execSupportsPermissionProfile,
+} from "./muse-host.js";
 import { Logger } from "./logger.js";
 import { museHostIdentity } from "./host-identity.js";
 import { sdkDeadline } from "./sdk-operation.js";
@@ -132,7 +138,7 @@ import { SESSION_STATE_EXTENSION } from "./session-state-observer.js";
 import { BUILTIN_COMMANDS, parseSlashCommand } from "./slash-commands.js";
 import { buildReviewPrompt } from "./review-prompt.js";
 import type { GoalObservation } from "./goal-state.js";
-import { readMuseSettings } from "./muse-settings.js";
+import { readMuseSettings, type MuseSettings } from "./muse-settings.js";
 import { compileMusePrompt, type CompiledMusePrompt } from "./prompt-files.js";
 import { convertPromptContent } from "./prompt-content.js";
 import { exportToUpdates, runMuseExport } from "./session-export.js";
@@ -333,7 +339,7 @@ export class MuseAcpAgent {
         undefined,
         "Wait for the active turn before replacing provider credentials",
       );
-    const config = defaultSessionConfig(readMuseSettings(env, this.logger));
+    const config = this.defaultConfig(readMuseSettings(env, this.logger));
     const overlay = createMuseMcpOverlay([], env, config, provider);
     try {
       writeSessionPreferences(sessionId, { providerBinding: providerBinding(provider) }, env);
@@ -427,7 +433,13 @@ export class MuseAcpAgent {
           description,
         })),
       },
-      ...buildConfigOptions(session.config, this.backend, session.modelDiscovery, hostVersion),
+      ...buildConfigOptions(
+        session.config,
+        this.backend,
+        session.modelDiscovery,
+        hostVersion,
+        this.efforts,
+      ),
       ...(this.backend === "sdk"
         ? safetyConfigOptions(session.config.safety, this.safetyGuard(), hostVersion)
         : []),
@@ -681,6 +693,31 @@ export class MuseAcpAgent {
     return true;
   }
 
+  private execArgs(modeId: MuseModeId): string[] {
+    const { flags, execProfile } = MODES[modeId];
+    return execProfile &&
+      execSupportsPermissionProfile(this.options.env ?? process.env, this.options.museBinary)
+      ? [...flags, "--permission-profile", execProfile]
+      : flags;
+  }
+
+  private get efforts() {
+    return effortLevels(this.backend, this.options.provider);
+  }
+
+  /** Settings defaults restricted to the efforts this backend can carry. */
+  private defaultConfig(settings: MuseSettings): SessionConfig {
+    const config = defaultSessionConfig(settings, this.efforts);
+    if (
+      isReasoningEffort(settings.reasoningEffort) &&
+      config.reasoningEffort !== settings.reasoningEffort
+    )
+      this.logger.log(
+        `muse settings reasoning_effort "${settings.reasoningEffort}" is not accepted by muse exec for this provider; using the default`,
+      );
+    return config;
+  }
+
   /** Until a turn or selection uses it, the built-in default follows the catalog. */
   private adoptCatalogDefault(session: SessionState): void {
     const model = session.builtInModel && catalogDefaultModel(session.modelDiscovery);
@@ -704,7 +741,7 @@ export class MuseAcpAgent {
     return this.withSessionBinding(sessionId, async () => {
       await this.prepareProvider(sessionId, params._meta);
       const settings = readMuseSettings(this.providerEnv(sessionId), this.logger);
-      const config = defaultSessionConfig(settings);
+      const config = this.defaultConfig(settings);
       const modelDiscovery =
         this.backend === "sdk"
           ? this.modelDiscovery.peek(cwd, this.providerEnv(sessionId))
@@ -894,7 +931,7 @@ export class MuseAcpAgent {
     });
 
     this.assertRunning();
-    const config = defaultSessionConfig(readMuseSettings(env, this.logger));
+    const config = this.defaultConfig(readMuseSettings(env, this.logger));
     let goal: GoalObservation = { status: "unknown", reason: "No goal state observed" };
     let savedMode: MuseModeId = "default";
     let info: SessionInfo | undefined;
@@ -1031,7 +1068,7 @@ export class MuseAcpAgent {
       this.assertRunning();
       const preferences = readSessionPreferences(params.sessionId, env);
       const config = {
-        ...(source?.config ?? defaultSessionConfig(readMuseSettings(env, this.logger))),
+        ...(source?.config ?? this.defaultConfig(readMuseSettings(env, this.logger))),
       };
       config.safety = undefined;
       config.model = saved.modelId ?? config.model;
@@ -1166,7 +1203,7 @@ export class MuseAcpAgent {
       };
     }
 
-    const config = defaultSessionConfig(
+    const config = this.defaultConfig(
       readMuseSettings(this.options.env ?? process.env, this.logger),
     );
     let goal: GoalObservation = { status: "unknown", reason: "No goal state observed" };
@@ -1293,6 +1330,7 @@ export class MuseAcpAgent {
       params.configId,
       params.value,
       this.backend === "sdk" ? session.modelDiscovery : undefined,
+      this.efforts,
     );
     if (this.backend === "sdk" && params.configId === "model") {
       session.builtInModel = false;
@@ -1871,7 +1909,7 @@ export class MuseAcpAgent {
           ? {}
           : { model: session.config.model, reasoningEffort: session.config.reasoningEffort }),
         env: mcpOverlay?.env ?? this.options.env,
-        extraArgs: MODES[session.modeId].flags,
+        extraArgs: this.execArgs(session.modeId),
         logger: this.logger,
       });
       session.activeTurn = handle;
