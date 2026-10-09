@@ -7,9 +7,9 @@ description: Inspect and maintain muse-code-acp's .pm board, including workstrea
 
 Usage: `$pm [status | new workstream <title> | add <wN> <idea> | promote <wN/NNN> | new milestone <wN> <title> | add-task <wN/mN> <title> | done <wN/mN/tNNN> | drop <wN/mN or wN/NNN> <reason>]`
 
-Treat `/pm` as the same invocation. Default to `status`. These are agent procedures, not shell commands; use file tools to perform them. This skill is the canonical board convention, including when loop-worker needs to update the board.
+Treat `/pm` as the same invocation. Default to `status`. These are agent procedures, not shell commands; use file tools to perform them. This skill is the canonical board convention, including when loopx needs to update the board.
 
-`/pm-brainstorm` proposes work as text; `/pm` materializes it. All board writes, including those made by loop-worker, follow this skill. Canonical skills live in `.agents/skills/`; Claude discovers them through relative directory symlinks in `.claude/skills/`.
+`/pm-brainstorm` proposes work as text; `/pm` materializes it. All board writes, including those made by loopx, follow this skill. Canonical skills live in `.agents/skills/`; Claude discovers them through relative directory symlinks in `.claude/skills/`.
 
 ## Mission and existing conventions
 

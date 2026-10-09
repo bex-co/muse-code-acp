@@ -267,7 +267,7 @@ builds and runs the full local Vitest suite; paid-provider tests are opt-in via
 The work board lives in `.pm/`. Repository skills for
 [release](https://github.com/bex-co/muse-code-acp/blob/main/.agents/skills/release/SKILL.md),
 [PM](https://github.com/bex-co/muse-code-acp/blob/main/.agents/skills/pm/SKILL.md) and
-[workstream execution](https://github.com/bex-co/muse-code-acp/blob/main/.agents/skills/loop-worker/SKILL.md)
+[workstream execution](https://github.com/bex-co/muse-code-acp/blob/main/.agents/skills/loopx/SKILL.md)
 live in `.agents/skills/`. npm publishing runs through GitHub Actions after CI
 validates the exact release commit.
 

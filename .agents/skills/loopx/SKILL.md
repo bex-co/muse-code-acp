@@ -1,11 +1,11 @@
 ---
-name: loop-worker
-description: Autonomously triage and drain a muse-code-acp .pm workstream, verify and archive completion, and ship each resolved milestone. Skip blockers and continue independent milestones. Use for an explicit loop-worker invocation or a request to work through a whole workstream backlog, not a timed poll or a single task.
+name: loopx
+description: Autonomously triage and drain a muse-code-acp .pm workstream, verify and archive completion, and ship each resolved milestone. Skip blockers and continue independent milestones. Use for an explicit loopx invocation or a request to work through a whole workstream backlog, not a timed poll or a single task.
 ---
 
 # Drain a workstream
 
-Usage: `$loop-worker <wN>` (also `/loop-worker <wN>`).
+Usage: `$loopx <wN>` (also `/loopx <wN>`).
 
 Work sequentially through the named queue until no pending milestones remain or all remaining work is blocked or deferred. Read [the PM skill](../pm/SKILL.md) for board operations, templates, dependency resolution and validation, and [the ship skill](../ship/SKILL.md) for delivery. Canonical instructions live under `.agents/skills/`; apply the procedures directly when a slash-command runner is unavailable. Parse the workstream from the request or `$ARGUMENTS`.
 

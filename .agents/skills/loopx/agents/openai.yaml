@@ -1,0 +1,4 @@
+interface:
+  display_name: "Loopx"
+  short_description: "Drain a PM workstream milestone by milestone"
+  default_prompt: "Use $loopx to drain a PM workstream to completion."
