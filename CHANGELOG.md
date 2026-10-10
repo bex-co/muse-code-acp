@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixes
+
+- Exec backend: stop a run whose tool call waits for an approval decision headless `muse exec` can never receive (Muse 1.4.x hangs when its reviewer escalates to a user) and fail the prompt with an actionable error after 120 seconds, configurable with `MUSE_CODE_ACP_EXEC_APPROVAL_STALL_MS`, instead of hanging ([muse-code-sdk#99](https://github.com/meta-models/muse-code-sdk/issues/99)).
+
 ## [0.9.0](https://github.com/bex-co/muse-code-acp/compare/v0.8.0...v0.9.0) (2026-10-08)
 
 ### Fixes

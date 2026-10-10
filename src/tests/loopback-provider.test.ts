@@ -2,7 +2,7 @@ import { rmSync } from "node:fs";
 import { expect, it } from "vitest";
 import { startLoopbackProvider } from "./loopback-provider.js";
 
-it("does not spend a scripted tool call on a reminder that lacks the tool", async () => {
+it("settles reminder and reviewer requests without spending the scripted tool call", async () => {
   const provider = await startLoopbackProvider({
     scriptedToolCallWhen: ["marker"],
     scriptedToolCallCommand: "printf marker",
@@ -19,7 +19,12 @@ it("does not spend a scripted tool call on a reminder that lacks the tool", asyn
           }),
         })
       ).text();
-    expect(await post("submit_reminder_decision")).not.toContain("function_call_arguments.done");
+    const reminder = await post("submit_reminder_decision");
+    expect(reminder).toContain('"name":"submit_reminder_decision"');
+    expect(reminder).toContain('\\"decision\\":\\"none\\"');
+    const review = await post("submit_approval_assessment");
+    expect(review).toContain('"name":"submit_approval_assessment"');
+    expect(review).toContain('\\"outcome\\":\\"approve\\"');
     expect(provider.scriptedToolCalls()).toBe(0);
     expect(await post("bash")).toContain("function_call_arguments.done");
     expect(provider.scriptedToolCalls()).toBe(1);

@@ -27,6 +27,11 @@ export interface LoopbackProviderOptions {
     | undefined
     | Promise<{ name: string; arguments: Record<string, unknown> } | undefined>;
   replyText?: string;
+  /**
+   * What Muse's approval reviewer submits. A real reviewer either approves or
+   * escalates to a user; replying with text instead never settles the review.
+   */
+  reviewerOutcome?: "approve" | "escalate";
   /** Hold SSE open so cancel races stay deterministic. */
   holdMs?: number;
 }
@@ -119,6 +124,46 @@ function textHead(text: string, summary?: string): string {
   );
 }
 
+function offeredTools(request: Record<string, unknown>): Set<string> {
+  const tools = (request.tools ?? []) as { name: string; tools?: { name: string }[] }[];
+  return new Set(tools.flatMap((tool) => (tool.tools ?? [tool]).map(({ name }) => name)));
+}
+
+/**
+ * Muse's reminder observer and approval reviewer must settle through their
+ * submit tools; answering them with text leaves the main turn waiting.
+ */
+function hostAgentReply(
+  request: Record<string, unknown>,
+  reviewerOutcome: "approve" | "escalate",
+): NonNullable<LoopbackProviderOptions["scriptedToolCall"]> | undefined {
+  const offered = offeredTools(request);
+  if (offered.has("submit_reminder_decision"))
+    return {
+      name: "submit_reminder_decision",
+      arguments: {
+        decision: "none",
+        advisory_text: null,
+        confidence: "high",
+        priority: null,
+        reason: "loopback provider never reminds",
+        skill_id: null,
+        visible_for_steps: null,
+      },
+    };
+  if (offered.has("submit_approval_assessment"))
+    return {
+      name: "submit_approval_assessment",
+      arguments: {
+        risk_level: "low",
+        user_authorization: "high",
+        outcome: reviewerOutcome,
+        rationale: "loopback provider review",
+      },
+    };
+  return undefined;
+}
+
 function toolCallHead(
   callId: string,
   tool: NonNullable<LoopbackProviderOptions["scriptedToolCall"]>,
@@ -200,6 +245,14 @@ export async function startLoopbackProvider(
               message: "isolated gateway rejection",
             },
           }),
+        );
+        return;
+      }
+      const hostAgent = hostAgentReply(parsed, options.reviewerOutcome ?? "approve");
+      if (hostAgent) {
+        response.writeHead(200, { "content-type": "text/event-stream" });
+        response.end(
+          toolCallHead(`host_${requests.length}`, hostAgent) + completionTail("resp_tool"),
         );
         return;
       }

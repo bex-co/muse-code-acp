@@ -22,6 +22,11 @@ export interface MuseExecOptions {
   extraArgs?: string[];
   env?: Record<string, string | undefined>;
   logger?: Logger;
+  /**
+   * How long a proposed tool may wait for its approval decision before the
+   * run is stopped. Defaults to `MUSE_CODE_ACP_EXEC_APPROVAL_STALL_MS` or 120 s.
+   */
+  approvalStallMs?: number;
 }
 
 export type MuseExitOutcome =
@@ -37,6 +42,12 @@ export interface MuseExecHandle {
   kill(signal?: "SIGINT" | "SIGTERM"): void;
   /** Settles when the child exits; never rejects. */
   done: Promise<MuseExitOutcome>;
+  /**
+   * Set when the run was stopped because a proposed tool never received an
+   * approval decision: headless `muse exec` (1.4.x) waits forever when its
+   * reviewer escalates to a user, and publishes nothing the adapter can answer.
+   */
+  approvalStall(): { taskKind: string } | null;
   pid: number | undefined;
   /** The exact command line spawned — for usage-error diagnostics. */
   argv: string[];
@@ -81,8 +92,31 @@ export function spawnMuseExec(options: MuseExecOptions): MuseExecHandle {
   });
 
   const events = new Pushable<MuseEnvelope>();
+  const stallMs =
+    options.approvalStallMs ??
+    (Number((options.env ?? process.env).MUSE_CODE_ACP_EXEC_APPROVAL_STALL_MS) || 120_000);
+  let stallTimer: ReturnType<typeof setTimeout> | undefined;
+  let stalled: { taskKind: string } | null = null;
+  // Any later event (decision, start, rejection) clears the watch, so this can
+  // miss a stall hidden behind unrelated events but never fires on progress.
+  const watchApproval = (envelope: MuseEnvelope) => {
+    clearTimeout(stallTimer);
+    const event = envelope.payload.event as { kind?: unknown; task_kind?: unknown } | undefined;
+    const taskKind = typeof event?.task_kind === "string" ? event.task_kind : "";
+    if (envelope.payload_type !== "task.lifecycle.proposed" || !taskKind.startsWith("tool."))
+      return;
+    stallTimer = setTimeout(() => {
+      stalled = { taskKind };
+      logger.log(`muse-exec[${child.pid}] ${taskKind} had no approval decision after ${stallMs}ms`);
+      killedByUs = true;
+      if (child.exitCode === null && child.signalCode === null) child.kill("SIGTERM");
+    }, stallMs);
+  };
   const parser = new MuseLineParser(
-    (envelope) => events.push(envelope),
+    (envelope) => {
+      watchApproval(envelope);
+      events.push(envelope);
+    },
     (line, reason) => logger.log(`muse-exec[${child.pid}] skipped line (${reason}): ${line}`),
   );
 
@@ -100,11 +134,13 @@ export function spawnMuseExec(options: MuseExecOptions): MuseExecHandle {
   let killedByUs = false;
   const done = new Promise<MuseExitOutcome>((resolve) => {
     child.on("close", (code, signal) => {
+      clearTimeout(stallTimer);
       parser.end();
       events.end();
       resolve(resolveOutcome(code, signal, killedByUs));
     });
     child.on("error", (err) => {
+      clearTimeout(stallTimer);
       logger.error(`muse-exec spawn failed: ${err.message}`);
       parser.end();
       events.end();
@@ -121,6 +157,7 @@ export function spawnMuseExec(options: MuseExecOptions): MuseExecHandle {
       }
     },
     done,
+    approvalStall: () => stalled,
     pid: child.pid,
     argv: [binary, ...args],
   };

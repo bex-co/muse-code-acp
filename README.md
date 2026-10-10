@@ -30,7 +30,13 @@ unavailable. From 1.3.0-R3401.1 the host also refuses to read them, so ACP
 `muse exec` saves new sessions with `:auto-review` by default, so new sessions from
 the opt-in exec backend are affected too. From 1.4.4, exec-backend Read-only and Plan
 sessions use Muse's built-in `:read-only` profile and stay loadable; Default mode keeps
-`:auto-review`, because the loadable alternative would run tools without approval. This affects the legacy-continuation portion of three live tests;
+`:auto-review`, because the loadable alternative would run tools without approval
+(upstream: [muse-code-sdk#80](https://github.com/meta-models/muse-code-sdk/issues/80)).
+**Keep the default SDK backend when sessions must stay resumable.** In exec Default
+mode, a tool call that Muse's reviewer escalates to a user cannot be answered headlessly;
+the adapter stops the run after 120 seconds (`MUSE_CODE_ACP_EXEC_APPROVAL_STALL_MS`) and
+fails the prompt with that reason instead of hanging
+([muse-code-sdk#99](https://github.com/meta-models/muse-code-sdk/issues/99)). This affects the legacy-continuation portion of three live tests;
 SDK-created session continuation passes. The adapter reports an actionable error
 and does not replay the prompt or change the saved permission profile. Start a
 new ACP session or continue the old one in Muse with reviewer support.

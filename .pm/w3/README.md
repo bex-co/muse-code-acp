@@ -9,7 +9,7 @@
 - [x] [**m3** — Release 0.8.0](done/m3/README.md) (5 tasks) ← release-readiness triage (2026-10-06)
 - [x] [**m4** — Exec backend fidelity on Muse 1.4.x](done/m4/README.md) (7 tasks) ← promoted from w3/001 and w3/002 (2026-10-08)
 - [x] [**m5** — Release 0.9.0 and report host regressions upstream](done/m5/README.md) (5 tasks) ← SDK 1.4.4 bump and w3/003 (2026-10-08)
-- [ ] [**m6** — Exec default-mode continuity and stall triage](m6/README.md) (9 tasks) ← promoted from w3/004 and the 2026-10-09 resolution plan
+- [x] [**m6** — Exec default-mode continuity and stall triage](done/m6/README.md) (9 tasks) ← promoted from w3/004 and the 2026-10-09 resolution plan
 
 ## Inbox
 

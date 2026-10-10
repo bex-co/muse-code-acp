@@ -1923,6 +1923,12 @@ export class MuseAcpAgent {
         }
       }
       const outcome = await handle.done;
+      const stall = handle.approvalStall();
+      if (stall)
+        throw RequestError.internalError(
+          undefined,
+          `muse exec stopped: its ${stall.taskKind} call waited for an approval decision that headless exec cannot receive (Muse's reviewer likely escalated to a user). Use the SDK backend for interactive approvals, or choose Read-only or Auto-approve mode`,
+        );
       if (translator.approvalWait !== null) {
         throw RequestError.internalError(
           undefined,

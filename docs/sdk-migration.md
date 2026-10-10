@@ -507,7 +507,14 @@ are affected too. When `muse exec --help` lists `--permission-profile` and the h
 1.4.4 or newer, exec Read-only and Plan sessions pass `--permission-profile :read-only`
 (writes and shell are already disabled there) and load through `muse serve`. Default
 mode keeps `:auto-review`; Auto-approve and No-approval modes already load, and Muse
-refuses a profile alongside their flags. Their SDK-created session paths
+refuses a profile alongside their flags. Use the SDK backend when sessions must stay
+resumable; serve support for `:auto-review` is requested upstream in
+[muse-code-sdk#80](https://github.com/meta-models/muse-code-sdk/issues/80). Headless exec
+also never resolves a tool call its reviewer escalates: the run stops emitting events after
+`task.lifecycle.proposed`, so the adapter stops it after `MUSE_CODE_ACP_EXEC_APPROVAL_STALL_MS`
+(default 120 s) and fails the prompt with an actionable error. This host path is
+reproduced with schema-valid reviewer output; two real-provider reviews on 1.4.4 did not
+escalate. Reported upstream as [muse-code-sdk#99](https://github.com/meta-models/muse-code-sdk/issues/99). Their SDK-created session paths
 always require successful continuation. Passing these tests does not imply that
 the legacy host defect is fixed. See [compatibility](../README.md#requirements-and-compatibility)
 and [MCP diagnostics](mcp-passthrough.md#diagnostics). These changes are included in 0.5.0.
