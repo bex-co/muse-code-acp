@@ -2,7 +2,7 @@ import { methods } from "@agentclientprotocol/sdk";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { execSupportsPermissionProfile } from "../muse-host.js";
+import { execSupportsPermissionProfile, probeSdkHost } from "../muse-host.js";
 import { expectLegacyContinuation, expectLegacyLoad } from "./acp-real-host-helpers.js";
 import { connectTestClient, initialized, museAvailable } from "./helpers.js";
 import { startLoopbackProvider } from "./loopback-provider.js";
@@ -71,7 +71,14 @@ describe.skipIf(!available)("exec permission profiles", () => {
   }, 90_000);
 });
 
-describe.skipIf(!available)("exec Default-mode approval review", () => {
+// Muse's automated approval reviewer is verified from 1.4.4; Muse 1.1.1 (CI)
+// has none, so a reviewed tool call there can never be decided headlessly.
+const reviewerHost = () => {
+  const [major = 0, minor = 0, patch = 0] = (probeSdkHost().version ?? "0").split(".").map(Number);
+  return major > 1 || (major === 1 && (minor > 4 || (minor === 4 && patch >= 4)));
+};
+
+describe.skipIf(!available || !reviewerHost())("exec Default-mode approval review", () => {
   it.each(["approve", "escalate"] as const)(
     "settles a reviewed tool call when the reviewer answers %s",
     async (reviewerOutcome) => {
