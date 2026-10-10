@@ -78,3 +78,4 @@ Muse host `1.4.4-R5419.1`, `@muse-code/sdk` 1.4.4, macOS arm64.
 - Real provider: two approved turns (t003), neither escalated.
 - Upstream: [#99](https://github.com/meta-models/muse-code-sdk/issues/99) (escalation hang, evidence scope stated) and a [#80 comment](https://github.com/meta-models/muse-code-sdk/issues/80#issuecomment-6094816450) (serve reviewer / profile override).
 - Remaining limitation: Default-mode exec sessions keep `:auto-review` and stay unloadable through serve until upstream #80 lands.
+- GitHub CI: `6024959` failed on Muse 1.1.1 — the new Default-mode reviewer live cases cannot be decided headlessly on a host without the automated reviewer, plus a one-off `mcp-http-live` "session already in use" race. `3135148` gates the reviewer cases to 1.4.4+; CI succeeded (Build, Muse loopback integration, Standalone macOS ARM64).
