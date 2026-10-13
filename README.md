@@ -127,7 +127,10 @@ feature or every feature of Muse's terminal UI.
 Slash commands can appear in any top-level text block alongside editor context.
 On Muse 1.4.7 or newer, `/recap` asks Muse for a short recap of the session (a
 model side-call that adds nothing to history) and `/rename` also sets Muse's own
-session name.
+session name. `/skills enable|disable <skill>` changes a skill's activation in the
+scope it comes from, `/skills import claude|codex` previews importing foreign skills
+(`--apply` imports), and `/feedback bug|bad|good|other <note>` sends feedback to Muse
+with no files attached (the session record only with `--with-session`).
 Planning and review preserve attachments. `/plan` alone enables plan mode without
 starting work; add a task to start planning. `/review` accepts focus instructions.
 `/goal <task>` runs the task once without creating a goal; `/goal set <objective>`,

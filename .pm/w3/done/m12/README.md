@@ -1,17 +1,17 @@
 # w3 · m12 — Skill activation, skill import and feedback
 
-**Worker:** worker1 **Goal:** `/skills` can enable, disable and import skills, and `/feedback` submits feedback to Muse. **Status:** todo
+**Worker:** worker1 **Goal:** `/skills` can enable, disable and import skills, and `/feedback` submits feedback to Muse. **Status:** done
 
 ## Tasks (in order)
 
-| id   | title                                                                    | est | depends_on               |
-| ---- | ------------------------------------------------------------------------ | --- | ------------------------ |
-| t001 | Verify skill activation, skill import and feedback on the installed host | 1h  | w3/m7/t006               |
-| t002 | Implement skill activation, skill import and feedback                    | 2h  | w3/m12/t001              |
-| t003 | Adoption surface                                                         | 30m | w3/m12/t001, w3/m12/t002 |
-| t004 | Simplify milestone changes                                               | 30m | w3/m12/t003              |
-| t005 | CI and behavior coverage                                                 | 45m | w3/m12/t004              |
-| t006 | Close out milestone                                                      | 15m | w3/m12/t005              |
+| id   | title                                                                               | est | depends_on               |
+| ---- | ----------------------------------------------------------------------------------- | --- | ------------------------ |
+| t001 | Verify skill activation, skill import and feedback on the installed host — **DONE** | 1h  | w3/m7/t006               |
+| t002 | Implement skill activation, skill import and feedback — **DONE**                    | 2h  | w3/m12/t001              |
+| t003 | Adoption surface — **DONE**                                                         | 30m | w3/m12/t001, w3/m12/t002 |
+| t004 | Simplify milestone changes — **DONE**                                               | 30m | w3/m12/t003              |
+| t005 | CI and behavior coverage — **DONE**                                                 | 45m | w3/m12/t004              |
+| t006 | Close out milestone — **DONE**                                                      | 15m | w3/m12/t005              |
 
 ## Definition of done
 
@@ -30,4 +30,8 @@
 
 ## Validation evidence
 
-Pending.
+Muse `1.4.7-R6101.1`, `@muse-code/sdk` 1.4.7, macOS arm64, 2026-10-12.
+
+- `npm run check`: clean. `npm run test:unit`: 503/504 (discovery-deadline load flake, passes in isolation).
+- Loopback suite `--no-file-parallelism`: 21 files, 68/68.
+- No feedback left the machine during testing (dead proxy); upload success is reported verbatim but was not exercised.

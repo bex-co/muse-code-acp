@@ -141,6 +141,29 @@ import { BUILTIN_COMMANDS, parseSlashCommand } from "./slash-commands.js";
 import { buildReviewPrompt } from "./review-prompt.js";
 import type { GoalObservation } from "./goal-state.js";
 import { readMuseSettings, type MuseSettings } from "./muse-settings.js";
+import {
+  feedbackCommand,
+  recapCommand,
+  skillActivationCommand,
+  skillImportCommand,
+  type HostCommand,
+} from "./host-commands.js";
+import type { NativeCommand } from "./slash-commands.js";
+
+function hostCommandFor(native: NativeCommand): HostCommand {
+  switch (native.kind) {
+    case "recap":
+      return recapCommand;
+    case "skill":
+      return skillActivationCommand(native.verb, native.selector);
+    case "skillImport":
+      return skillImportCommand(native.source, native.apply);
+    case "feedback":
+      return feedbackCommand(native.classification, native.note, native.withSession);
+    default:
+      throw new Error(`unknown native command ${JSON.stringify(native satisfies never)}`);
+  }
+}
 import { compileMusePrompt, type CompiledMusePrompt } from "./prompt-files.js";
 import { convertPromptContent } from "./prompt-content.js";
 import { exportToUpdates, runMuseExport } from "./session-export.js";
@@ -1720,11 +1743,11 @@ export class MuseAcpAgent {
         if (!command.stop)
           parts.unshift({ type: "text", text: `Observed ${command.status} status:\n${status}` });
       }
-      if (command?.recap && !this.sessionCommandsAvailable()) {
+      if (command?.native && !this.sessionCommandsAvailable()) {
         await say(
           this.backend === "sdk"
-            ? "Native recaps are verified from Muse 1.4.7; this host is not supported."
-            : "Native recaps require the SDK backend.",
+            ? "This Muse command is verified from Muse 1.4.7; this host is not supported. Nothing was changed or sent."
+            : "This Muse command requires the SDK backend. Nothing was changed or sent.",
         );
         return { stopReason: "end_turn" };
       }
@@ -1929,7 +1952,7 @@ export class MuseAcpAgent {
             : undefined,
           isCancelled: () => session.cancelRequested,
           goal: command?.goal,
-          recap: command?.recap,
+          hostCommand: command?.native && hostCommandFor(command.native),
           nativeName: session.pendingNativeName,
           onNativeName: () => {
             session.pendingNativeName = undefined;

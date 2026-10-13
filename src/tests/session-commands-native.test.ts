@@ -34,6 +34,18 @@ it("requests native recaps and syncs /rename to Muse's session name", async () =
   expect(client.agent.sessions.get(sessionId)?.pendingNativeName).toBeUndefined();
   await expect(prompt("/recap")).resolves.toEqual({ stopReason: "end_turn" });
   expect(said()).toContain("fake recap of the session");
+  await prompt("/skills disable lint");
+  expect(said()).toContain("Skill lint (user): on → off");
+  await prompt("/skills enable missing");
+  expect(said()).toContain("No Muse skill named missing");
+  await prompt("/skills import claude");
+  expect(said()).toContain("nothing written");
+  expect(said()).toContain("Would install: imported-skill");
+  await prompt("/skills import claude --apply");
+  expect(said()).toContain("Installed: imported-skill");
+  await prompt("/feedback good nice work");
+  expect(said()).toContain("Feedback outcome: recorded");
+  expect(said()).toContain("No files or session record were attached");
   // The host is open now: the rename applies immediately, normalized by Muse.
   await prompt("/rename Live Name");
   expect(said()).toContain('Muse session name set to \\"live name\\"');

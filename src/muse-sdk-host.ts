@@ -148,6 +148,20 @@ export class MuseSdkHost {
     return result.name ?? name;
   }
 
+  /** A public session-scoped MSP call on the open host (`command` mints the id). */
+  async call(
+    kind: "command" | "request",
+    method: string,
+    params: Record<string, unknown> = {},
+  ): Promise<Record<string, unknown>> {
+    if (!this.lease || this.stopped) throw new Error("Muse SDK host is not open");
+    const connection = this.lease.host.connection;
+    const scoped = { sessionId: this.options.sessionId, ...params };
+    return kind === "command"
+      ? connection.command(method, scoped)
+      : connection.request(method, scoped);
+  }
+
   get isOpen(): boolean {
     return !!this.lease && !this.stopped;
   }
@@ -432,6 +446,8 @@ export class MuseSdkHost {
     });
     const host = await handshake.initialize({
       clientInfo: { name: "muse_code_acp", version: packageJson.version },
+      // `/feedback` needs it; an unknown capability is simply not granted.
+      capabilities: { requestedCapabilities: ["feedback"] },
     });
     this.ensureOpen();
     preparing();

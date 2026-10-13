@@ -695,6 +695,22 @@ rl.on("line", async (line) => {
       reply({ status: "accepted", turnId });
       terminal("cancelled");
       break;
+    case "skill/list":
+      reply({ skills: [{ selector: "lint", source: "user", displayName: "lint", description: "Lint" }] });
+      break;
+    case "skill/setActivation":
+      if (params.selector !== "lint" || params.scope !== "user") {
+        write({ id, error: { code: -32041, message: "skill not found", data: { kind: "skillNotFound", retryable: false } } });
+        break;
+      }
+      reply({ commandId: params.commandId, status: "accepted", selector: "lint", scope: "user", activation: params.activation, previous: params.activation === "on" ? "off" : "on" });
+      break;
+    case "skill/import":
+      reply({ commandId: params.commandId, status: "accepted", source: params.source, dryRun: !!params.dryRun, installed: ["imported-skill"], skipped: [], quarantined: [], failed: [], counts: { installed: 1, quarantined: 0, skipped: 0, failed: 0 } });
+      break;
+    case "feedback/submit":
+      reply({ outcome: "recorded", bundlePath: "/tmp/fake-feedback.md", sessionRecordAttached: !!params.attachSessionRecord, sessionRecordTruncated: false });
+      break;
     case "recap/request":
       reply({ commandId: params.commandId, status: "accepted" });
       setTimeout(() => write({ method: "recap/completed", params: { sessionId, commandId: params.commandId, outcome: "completed", text: "fake recap of the session" } }), 50);

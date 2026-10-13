@@ -69,8 +69,27 @@ describe("slash command selection", () => {
       objective: "details",
     });
     expect(parseSlashCommand([text("/goal set")])?.stop).toBe(true);
-    expect(parseSlashCommand([text("/recap")])?.recap).toBe(true);
+    expect(parseSlashCommand([text("/recap")])?.native).toEqual({ kind: "recap" });
     expect(parseSlashCommand([text("/recap please")])?.stop).toBe(true);
+    expect(parseSlashCommand([text("/skills")])?.local).toEqual({ kind: "skills", argument: "" });
+    expect(parseSlashCommand([text("/skills disable lint")])?.native).toEqual({
+      kind: "skill",
+      verb: "disable",
+      selector: "lint",
+    });
+    expect(parseSlashCommand([text("/skills import codex --apply")])?.native).toEqual({
+      kind: "skillImport",
+      source: "codex",
+      apply: true,
+    });
+    expect(parseSlashCommand([text("/skills wipe all")])?.stop).toBe(true);
+    expect(parseSlashCommand([text("/feedback bad wrong answer --with-session")])?.native).toEqual({
+      kind: "feedback",
+      classification: "bad",
+      note: "wrong answer",
+      withSession: true,
+    });
+    expect(parseSlashCommand([text("/feedback")])?.stop).toBe(true);
     expect(parseSlashCommand([text("/goal set x"), text("more")])?.stop).toBe(true);
     expect(parseSlashCommand([context, text("/goal status")])?.stop).toBe(true);
     expect(parseSlashCommand([text("/goal status"), text("do work")])?.stop).toBe(false);

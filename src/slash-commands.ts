@@ -3,9 +3,18 @@ import type { WorkflowCommand } from "./review-prompt.js";
 
 export const BUILTIN_COMMANDS: AvailableCommand[] = [
   { name: "models", description: "Refresh model choices without a model request" },
-  { name: "skills", description: "List available Muse skills without a model request" },
+  {
+    name: "skills",
+    description: "List Muse skills, enable or disable one, or import Claude/Codex skills",
+    input: { hint: "[enable <skill> | disable <skill> | import claude|codex [--apply]]" },
+  },
   { name: "tasks", description: "List running Muse background tasks without a model request" },
   { name: "recap", description: "Ask Muse for a short recap of this session" },
+  {
+    name: "feedback",
+    description: "Send feedback to Muse (no files; the session record only with --with-session)",
+    input: { hint: "bug|bad|good|other <note> [--with-session]" },
+  },
   {
     name: "logout",
     description:
@@ -56,6 +65,16 @@ export const BUILTIN_COMMANDS: AvailableCommand[] = [
 ];
 const names = new Set(BUILTIN_COMMANDS.map((command) => command.name));
 export type GoalVerb = "set" | "edit" | "pause" | "resume" | "clear";
+export type NativeCommand =
+  | { kind: "recap" }
+  | { kind: "skill"; verb: "enable" | "disable"; selector: string }
+  | { kind: "skillImport"; source: "claude" | "codex"; apply: boolean }
+  | {
+      kind: "feedback";
+      classification: "bug" | "bad" | "good" | "other";
+      note: string;
+      withSession: boolean;
+    };
 type Blocks = PromptRequest["prompt"];
 export interface SlashCommand {
   local?: { kind: "models" | "skills" | "tasks" | "logout" | "rename"; argument: string };
@@ -63,8 +82,8 @@ export interface SlashCommand {
   index: number;
   workflow?: WorkflowCommand;
   status?: "goal" | "mcp" | "status";
-  /** A native recap request; the agent checks backend and host support. */
-  recap?: boolean;
+  /** A native host command; the agent checks backend and host support. */
+  native?: NativeCommand;
   /** A native goal control; the agent checks backend and host support. */
   goal?: { verb: GoalVerb; objective?: string };
   notice?: string;
@@ -109,7 +128,7 @@ export function parseSlashCommand(prompt: Blocks): SlashCommand | undefined {
   const args = selected.args;
   if (
     selected.name === "models" ||
-    selected.name === "skills" ||
+    (selected.name === "skills" && !args) ||
     selected.name === "tasks" ||
     selected.name === "logout" ||
     selected.name === "rename"
@@ -123,15 +142,19 @@ export function parseSlashCommand(prompt: Blocks): SlashCommand | undefined {
       };
     return { ...result, stop: true, local: { kind: selected.name, argument: args } };
   }
-  if (selected.name === "recap") {
-    if (args || extraText || attachments)
+  const native = nativeCommand(selected.name, args);
+  if (native !== undefined) {
+    if (typeof native === "string" || extraText || attachments)
       return {
         ...result,
         stop: true,
-        notice: "Send /recap alone; accompanying instructions and attachments were not executed.",
+        notice:
+          typeof native === "string"
+            ? native
+            : `Send /${selected.name} alone; accompanying instructions and attachments were not executed.`,
       };
     blocks[selected.index] = { type: "text", text: "" };
-    return { ...result, recap: true };
+    return { ...result, native };
   }
   if (selected.name === "status")
     return {
@@ -217,4 +240,41 @@ export function parseSlashCommand(prompt: Blocks): SlashCommand | undefined {
   blocks[selected.index] = { type: "text", text: focus };
   if (!ref) result.notice = `Review target: ${result.workflow.ref}.`;
   return result;
+}
+
+/** Parse native host commands: a command, a usage notice, or undefined when not one. */
+function nativeCommand(name: string, args: string): NativeCommand | string | undefined {
+  if (name === "recap") return args ? "Send /recap without arguments." : { kind: "recap" };
+  if (name === "skills" && args) {
+    const control = /^(enable|disable)\s+(\S+)$/i.exec(args);
+    if (control)
+      return {
+        kind: "skill",
+        verb: control[1].toLowerCase() as "enable" | "disable",
+        selector: control[2],
+      };
+    const imported = /^import\s+(claude|codex)(\s+--apply)?$/i.exec(args);
+    if (imported)
+      return {
+        kind: "skillImport",
+        source: imported[1].toLowerCase() as "claude" | "codex",
+        apply: !!imported[2],
+      };
+    return "Use /skills, /skills enable <skill>, /skills disable <skill>, or /skills import claude|codex [--apply]. Nothing changed.";
+  }
+  if (name === "feedback") {
+    const withSession = /(^|\s)--with-session(\s|$)/.test(args);
+    const match = /^(bug|bad|good|other)\s+([\s\S]+)$/i.exec(
+      args.replace(/(^|\s)--with-session(?=\s|$)/, " ").trim(),
+    );
+    if (!match)
+      return "Use /feedback bug|bad|good|other <note> [--with-session]. Nothing was sent.";
+    return {
+      kind: "feedback",
+      classification: match[1].toLowerCase() as "bug" | "bad" | "good" | "other",
+      note: match[2].trim(),
+      withSession,
+    };
+  }
+  return undefined;
 }

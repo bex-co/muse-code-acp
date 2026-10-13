@@ -85,8 +85,11 @@ export interface MuseSdkOptions {
    * verbs that start no turn settle `end_turn` once Muse accepts them.
    */
   goal?: { verb: "set" | "edit" | "pause" | "resume" | "clear"; objective?: string };
-  /** Request a native recap instead of submitting `input`; the recap text is streamed. */
-  recap?: boolean;
+  /**
+   * Run a native host command instead of submitting `input`; its text is
+   * streamed as the reply. Resolving undefined means it was cancelled.
+   */
+  hostCommand?: (owner: MuseSdkHost, isCancelled: () => boolean) => Promise<string | undefined>;
   /** A rename recorded while no host was open, applied once this turn acquires one. */
   nativeName?: string;
   /** Called with Muse's canonical name after `nativeName` is applied. */
@@ -331,21 +334,12 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
             options.logger.log("Native session rename failed; the adapter title stands"),
           );
       operation.enter("submitting", submitMs);
-      if (options.recap) {
-        const recap = await owner.requestRecap(() => cancelled || !!options.isCancelled?.());
-        if (recap.outcome === "cancelled") return { stopReason: "cancelled" };
+      if (options.hostCommand) {
+        const text = await options.hostCommand(owner, () => cancelled || !!options.isCancelled?.());
+        if (text === undefined) return { stopReason: "cancelled" };
         updates.push({
           sessionId: options.sessionId,
-          update: {
-            sessionUpdate: "agent_message_chunk",
-            content: {
-              type: "text",
-              text:
-                recap.outcome === "completed"
-                  ? `${recap.title ? `${recap.title}\n` : ""}${recap.text ?? ""}`
-                  : `Muse could not produce a recap (${recap.outcome}${recap.reason ? `: ${recap.reason}` : ""}).`,
-            },
-          },
+          update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text } },
         });
         successful = true;
         return { stopReason: "end_turn" };

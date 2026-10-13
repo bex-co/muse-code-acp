@@ -1,5 +1,5 @@
 import { methods } from "@agentclientprotocol/sdk";
-import { rmSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { probeSdkHost, supportsSessionCommands } from "../muse-host.js";
@@ -28,7 +28,17 @@ describe.skipIf(!available || !supportsSessionCommands(probeSdkHost().version))(
         XDG_DATA_HOME: join(provider.root, "data"),
         TBH_CREDENTIAL_BACKEND: "file",
         TBH_DISABLE_TELEMETRY: "1",
+        // /feedback must not reach Meta from a test: dead proxy for anything remote.
+        HTTPS_PROXY: "http://127.0.0.1:9",
+        HTTP_PROXY: "http://127.0.0.1:9",
+        NO_PROXY: "127.0.0.1,localhost",
       };
+      const foreign = join(provider.home, ".claude", "skills", "live-probe-skill");
+      mkdirSync(foreign, { recursive: true });
+      writeFileSync(
+        join(foreign, "SKILL.md"),
+        "---\nname: live-probe-skill\ndescription: Live import probe\n---\n\nSay hello.\n",
+      );
       const client = connectTestClient({ backend: "sdk", env });
       try {
         const ctx = await initialized(client);
@@ -50,6 +60,17 @@ describe.skipIf(!available || !supportsSessionCommands(probeSdkHost().version))(
         expect(said()).toContain("live-recap-marker");
         await prompt("/rename Live Native Name");
         expect(said()).toContain('Muse session name set to \\"live native name\\"');
+        await prompt("/skills import claude");
+        expect(said()).toContain("Would install: live-probe-skill");
+        await prompt("/skills import claude --apply");
+        expect(said()).toContain("Installed: live-probe-skill");
+        await prompt("/skills disable live-probe-skill");
+        expect(said()).toContain("Skill live-probe-skill (user): on → off");
+        await prompt("/skills enable live-probe-skill");
+        expect(said()).toContain("off → on");
+        await prompt("/feedback other adapter live test; ignore");
+        expect(said()).toContain("Feedback outcome: failed");
+        expect(said()).toContain("No files or session record were attached");
         await expect
           .poll(
             () =>
