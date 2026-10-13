@@ -68,6 +68,10 @@ describe.skipIf(!available || !supportsSessionCommands(probeSdkHost().version))(
         expect(said()).toContain("Skill live-probe-skill (user): on → off");
         await prompt("/skills enable live-probe-skill");
         expect(said()).toContain("off → on");
+        await prompt("/status");
+        expect(JSON.stringify(client.updates)).toContain(
+          "Subscription usage: not reported by Muse",
+        );
         await prompt("/feedback other adapter live test; ignore");
         expect(said()).toContain("Feedback outcome: failed");
         expect(said()).toContain("No files or session record were attached");

@@ -695,6 +695,9 @@ rl.on("line", async (line) => {
       reply({ status: "accepted", turnId });
       terminal("cancelled");
       break;
+    case "usage/read":
+      reply(process.env.FAKE_MSP_USAGE === "1" ? { usage: { observedAtMs: 0, tier: "pro", window: { usedPercent: 42, resetsAtMs: 3600000 }, weekly: { usedPercent: 7, resetsAtMs: 86400000 } } } : {});
+      break;
     case "skill/list":
       reply({ skills: [{ selector: "lint", source: "user", displayName: "lint", description: "Lint" }] });
       break;

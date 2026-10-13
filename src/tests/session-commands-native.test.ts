@@ -15,6 +15,7 @@ it("requests native recaps and syncs /rename to Muse's session name", async () =
     env: {
       ...process.env,
       FAKE_MSP_MODE: "complete",
+      FAKE_MSP_USAGE: "1",
       XDG_DATA_HOME: mkdtempSync(join(tmpdir(), "native-commands-")),
     },
   });
@@ -34,6 +35,9 @@ it("requests native recaps and syncs /rename to Muse's session name", async () =
   expect(client.agent.sessions.get(sessionId)?.pendingNativeName).toBeUndefined();
   await expect(prompt("/recap")).resolves.toEqual({ stopReason: "end_turn" });
   expect(said()).toContain("fake recap of the session");
+  await prompt("/status");
+  expect(said()).toContain("tier pro; current window 42%");
+  expect(said()).toContain("weekly 7%");
   await prompt("/skills disable lint");
   expect(said()).toContain("Skill lint (user): on → off");
   await prompt("/skills enable missing");

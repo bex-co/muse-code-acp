@@ -4,6 +4,8 @@
 
 ### Features
 
+- `/status` adds Muse's subscription usage from `usage/read` (tier, current window and weekly percentages with reset times) on Muse 1.4.7 or newer, or says it is not reported. `turn/interrupt`, `userInput/interrupt` and `turn/unqueue` stay unadvertised: on Muse 1.4.7 the interrupts behave exactly like ACP cancel, and the adapter never queues turns.
+
 - `/skills enable|disable <skill>` sets a skill's activation in the scope it comes from; `/skills import claude|codex` previews importing foreign skills, and `--apply` imports them. `/feedback bug|bad|good|other <note>` submits feedback to Muse without files (the session record only with `--with-session`) and reports the outcome and local copy. Muse 1.4.7 or newer; refusals are reported verbatim.
 
 - `/recap` asks Muse for a short native recap of the session (Muse 1.4.7 or newer), streamed as the command's reply; ACP cancel cancels it. `/rename` also sets Muse's own session name through `session/rename`, immediately when the session's host is open or when it next starts, while the adapter title keeps the user's casing.

@@ -65,6 +65,13 @@ interface HostLease {
 /** Hosts whose public workflow/cancel was verified against a real observed run. */
 const WORKFLOW_CANCEL_HOSTS = ["1.2.1", "1.3.0", "1.4.4", "1.4.6", "1.4.7"];
 
+export interface SubscriptionUsageView {
+  observedAtMs: number;
+  tier: string;
+  window: { usedPercent: number; resetsAtMs: number };
+  weekly: { usedPercent: number; resetsAtMs: number };
+}
+
 export interface RecapSettlement {
   outcome: "completed" | "failed" | "cancelled" | "timedOut" | (string & {});
   text?: string;
@@ -160,6 +167,16 @@ export class MuseSdkHost {
     return kind === "command"
       ? connection.command(method, scoped)
       : connection.request(method, scoped);
+  }
+
+  /**
+   * Muse's last-observed subscription usage (`usage/read`): undefined when no
+   * host is open, null when Muse has observed none.
+   */
+  async readUsage(): Promise<SubscriptionUsageView | null | undefined> {
+    if (!this.lease || this.stopped) return undefined;
+    const result = (await this.call("request", "usage/read")) as { usage?: SubscriptionUsageView };
+    return result.usage ?? null;
   }
 
   get isOpen(): boolean {

@@ -130,7 +130,8 @@ model side-call that adds nothing to history) and `/rename` also sets Muse's own
 session name. `/skills enable|disable <skill>` changes a skill's activation in the
 scope it comes from, `/skills import claude|codex` previews importing foreign skills
 (`--apply` imports), and `/feedback bug|bad|good|other <note>` sends feedback to Muse
-with no files attached (the session record only with `--with-session`).
+with no files attached (the session record only with `--with-session`). `/status`
+also shows Muse's own subscription usage when Muse reports it.
 Planning and review preserve attachments. `/plan` alone enables plan mode without
 starting work; add a task to start planning. `/review` accepts focus instructions.
 `/goal <task>` runs the task once without creating a goal; `/goal set <objective>`,

@@ -1,17 +1,17 @@
 # w3 · m13 — Turn interrupt, unqueue and native usage
 
-**Worker:** worker1 **Goal:** Finer turn controls (interrupt, unqueue, user-input interrupt) and native usage numbers are offered where verified. **Status:** todo
+**Worker:** worker1 **Goal:** Finer turn controls (interrupt, unqueue, user-input interrupt) and native usage numbers are offered where verified. **Status:** done
 
 ## Tasks (in order)
 
-| id   | title                                                                 | est | depends_on               |
-| ---- | --------------------------------------------------------------------- | --- | ------------------------ |
-| t001 | Verify turn interrupt, unqueue and native usage on the installed host | 1h  | w3/m7/t006               |
-| t002 | Implement turn interrupt, unqueue and native usage                    | 2h  | w3/m13/t001              |
-| t003 | Adoption surface                                                      | 30m | w3/m13/t001, w3/m13/t002 |
-| t004 | Simplify milestone changes                                            | 30m | w3/m13/t003              |
-| t005 | CI and behavior coverage                                              | 45m | w3/m13/t004              |
-| t006 | Close out milestone                                                   | 15m | w3/m13/t005              |
+| id   | title                                                                            | est | depends_on               |
+| ---- | -------------------------------------------------------------------------------- | --- | ------------------------ |
+| t001 | Verify turn interrupt, unqueue and native usage on the installed host — **DONE** | 1h  | w3/m7/t006               |
+| t002 | Implement turn interrupt, unqueue and native usage — **DONE**                    | 2h  | w3/m13/t001              |
+| t003 | Adoption surface — **DONE**                                                      | 30m | w3/m13/t001, w3/m13/t002 |
+| t004 | Simplify milestone changes — **DONE**                                            | 30m | w3/m13/t003              |
+| t005 | CI and behavior coverage — **DONE**                                              | 45m | w3/m13/t004              |
+| t006 | Close out milestone — **DONE**                                                   | 15m | w3/m13/t005              |
 
 ## Definition of done
 
@@ -30,4 +30,8 @@
 
 ## Validation evidence
 
-Pending.
+Muse `1.4.7-R6101.1`, `@muse-code/sdk` 1.4.7, macOS arm64, 2026-10-12.
+
+- `npm run check`: clean. `npm run test:unit`: 503/504 (discovery-deadline load flake).
+- Loopback suite `--no-file-parallelism`: 21 files, 68/68.
+- Real subscription values are forwarded from `usage/read` but only appear after Muse has observed real usage; loopback shows the absent case.

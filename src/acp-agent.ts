@@ -658,6 +658,24 @@ export class MuseAcpAgent {
       });
   }
 
+  /** Muse's own subscription usage for `/status`, labeled with its source. */
+  private async subscriptionUsageLine(session: SessionState): Promise<string> {
+    if (this.backend !== "sdk") return "Subscription usage: not available on the exec backend.";
+    if (!this.sessionCommandsAvailable())
+      return "Subscription usage: unavailable (verified from Muse 1.4.7).";
+    let usage;
+    try {
+      usage = await session.sdkHost?.owner.readUsage();
+    } catch {
+      return "Subscription usage: Muse usage/read failed.";
+    }
+    if (usage === undefined)
+      return "Subscription usage: unavailable until this session's host is running.";
+    if (usage === null) return "Subscription usage: not reported by Muse (usage/read).";
+    const at = (ms: number) => new Date(ms).toISOString();
+    return `Subscription usage (Muse usage/read, observed ${at(usage.observedAtMs)}): tier ${usage.tier}; current window ${usage.window.usedPercent}% (resets ${at(usage.window.resetsAtMs)}); weekly ${usage.weekly.usedPercent}% (resets ${at(usage.weekly.resetsAtMs)}).`;
+  }
+
   /** Native recap and rename sync: SDK backend on a host verified for them. */
   private sessionCommandsAvailable(): boolean {
     return (
@@ -1735,7 +1753,7 @@ export class MuseAcpAgent {
       if (command?.status) {
         const status =
           command.status === "status"
-            ? `Requested model: ${session.config.model}; provider: ${session.config.providerId ?? "configured default"}; effort: ${session.config.reasoningEffort}; mode: ${session.modeId}.\n${this.progressFor(params.sessionId, session).status()}\nCredentials: ${this.authStatus(params.sessionId).configured ? "configured" : "not configured"}; verification: ${this.authStatus(params.sessionId).verification}; identity: unknown.\nLatest failure: ${session.latestFailure?.kind ?? "none observed"}.`
+            ? `${await this.subscriptionUsageLine(session)}\nRequested model: ${session.config.model}; provider: ${session.config.providerId ?? "configured default"}; effort: ${session.config.reasoningEffort}; mode: ${session.modeId}.\n${this.progressFor(params.sessionId, session).status()}\nCredentials: ${this.authStatus(params.sessionId).configured ? "configured" : "not configured"}; verification: ${this.authStatus(params.sessionId).verification}; identity: unknown.\nLatest failure: ${session.latestFailure?.kind ?? "none observed"}.`
             : command.status === "goal"
               ? await this.inspectGoal(params.sessionId, session)
               : mcpStatus(session.mcpServers, this.options.env ?? process.env, session.mcpFailure);
