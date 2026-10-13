@@ -377,7 +377,8 @@ the `mcp` skill name. Legacy exec retains stdio only. See
 SDK sessions retain observed public goal state after prompts, restore it from
 history, and expose local `/goal` inspection without a provider call. Opted-in
 clients receive session-info metadata; baseline clients can use the command.
-Goal controls are unadvertised because public MSP support is unavailable.
+Native goal controls (`/goal set|edit|pause|resume|clear`) are advertised and run on
+Muse 1.4.6 or newer, verified against a real host.
 Host-owned turns, retention bounds and foreground prompt controls remain distinct;
 see the [goal contract and acceptance evidence](goal-extension.md). Exec is unchanged.
 

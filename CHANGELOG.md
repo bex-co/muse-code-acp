@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Features
+
+- Native goal controls: on Muse 1.4.6 or newer, `/goal set <objective>`, `/goal edit <objective>`, `/goal pause`, `/goal resume` and `/goal clear` drive Muse's persistent goal through the public `goal/*` methods. `set` and `resume` stream the goal turn Muse starts; refusals such as `invalid_goal_state` and `missing_goal` are reported verbatim. The `muse/goal` extension advertises the controls on supported hosts.
+
+### Fixes
+
+- Keep the SDK host open while a host-owned turn is still running after a foreground release, instead of closing it mid-write, which could leave a truncated session log (`MalformedJsonl` on the next open).
+
 ### Dependencies
 
 - Bump `@muse-code/sdk` from 1.4.4 to 1.4.6 and verify Muse 1.4.6-R6000.1. The new `webSearch` item renders as a generic Web search card (the model's `web_search` tool still arrives as a tool call). Workflow `cancel` is advertised on 1.4.6.

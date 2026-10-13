@@ -9,7 +9,9 @@ These are Muse model tools, not adapter goal-control commands.
 ## Negotiation and state
 
 Clients opt in with `clientCapabilities._meta["muse/goal"] = 1`. Initialize responds
-with `_meta["muse/goal"] = {"version":1,"observation":true,"controls":[]}`. The
+with `_meta["muse/goal"] = {"version":1,"observation":true,"controls":[...]}`, where
+`controls` is `["set","edit","pause","resume","clear"]` on Muse 1.4.6 or newer and `[]`
+elsewhere. The
 adapter sends `session/update` with `sessionUpdate: "session_info_update"` and
 `_meta["muse/goal"]` containing one of:
 
@@ -51,15 +53,24 @@ goal establishes absence. Read-only recovery does not take a session writer leas
 
 `/goal` and `/goal status` display the last observed state without a model turn.
 They work for SDK clients with or without metadata negotiation. Unknown state
-triggers a bounded history read. `/goal <task>` explains that persistence is
-unavailable and executes the task once in the current mode, with its attached
-context. It does not create a goal, background loop or automatic retry. Explicit
-pause, resume, clear and edit requests receive local guidance without executing a
-model turn. `/goal status` with separate task text returns status then executes
-that task; attachments alone do not trigger a turn. The public MSP exposes no
-verified goal-control API;
-controls remain an upstream dependency and none are advertised. The legacy exec
-backend has no goal extension or local goal command.
+triggers a bounded history read. `/goal <task>` executes the task once in the current
+mode, with its attached context, and creates no goal. `/goal status` with separate
+task text returns status then executes that task; attachments alone do not trigger a
+turn. The legacy exec backend has no goal extension or local goal command.
+
+## Native goal controls
+
+On Muse 1.4.6 or newer, `/goal set <objective>`, `/goal edit <objective>`, `/goal pause`,
+`/goal resume` and `/goal clear` call public `goal/set|edit|pause|resume|clear`.
+Each must be sent alone. `set` and `resume` on an idle session make Muse start a goal
+turn, which the `/goal` prompt streams like any turn (approvals included); later goal
+turns run host-owned as before. `edit`, `pause` and `clear` start no turn. After each
+control the adapter reports the observed goal. Muse's refusals are reported verbatim,
+for example `invalid_goal_state` (pausing a paused goal) or `missing_goal` (editing
+after a clear). Controls also work while a host-owned goal turn runs, which is how a
+running goal is paused or cleared; the host stays open until that turn finishes, so
+its session log is never cut mid-write. Older hosts keep the controls unadvertised and
+answer with a no-change notice.
 
 A retained session host observes folded goal state at 100 ms intervals, with one
 update delivery in flight. Intermediate progress can be coalesced. Observation

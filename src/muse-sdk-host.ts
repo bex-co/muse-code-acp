@@ -212,6 +212,9 @@ export class MuseSdkHost {
     if (this.stopped) throw new Error("Muse SDK host closed during startup");
     if (reusing) {
       preparing();
+      // A goal control is meant to act on host-owned goal work, and leaves the
+      // already applied policy alone.
+      if (options.goal) return lease;
       if (
         lease.session.fold.activeTurnId ||
         lease.session.fold.pendingApprovals().length ||
@@ -248,6 +251,9 @@ export class MuseSdkHost {
         fold.pendingApprovals().length === 0 &&
         fold.pendingUserInputs().length === 0) ||
         (!!this.options.onGoal && goal?.status === "known" && goal.goal?.status === "active") ||
+        // A host-owned turn still writing (e.g. the last goal turn after a
+        // clear) must finish; closing mid-write truncates the session log.
+        (!!this.options.onGoal && !!fold.activeTurnId) ||
         (!!this.options.onTaskUpdate &&
           fold.items
             .list()
@@ -471,6 +477,14 @@ export class MuseSdkHost {
             : {}),
         },
       });
+  }
+
+  /** Deliver the folded goal now, e.g. before a goal control releases the host. */
+  async flushGoal(): Promise<void> {
+    if (!this.options.onGoal) return;
+    await this.goalDelivery;
+    this.observeGoal();
+    await this.goalDelivery;
   }
 
   private observeGoal(): void {

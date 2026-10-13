@@ -20,8 +20,11 @@ export const BUILTIN_COMMANDS: AvailableCommand[] = [
   },
   {
     name: "goal",
-    description: "Inspect goal status, or execute a task once (persistent controls unavailable)",
-    input: { hint: "[status | task]" },
+    description:
+      "Inspect or control Muse's persistent goal (set, edit, pause, resume, clear), or execute a task once",
+    input: {
+      hint: "[status | set <objective> | edit <objective> | pause | resume | clear | task]",
+    },
   },
   {
     name: "mcp",
@@ -50,6 +53,7 @@ export const BUILTIN_COMMANDS: AvailableCommand[] = [
   },
 ];
 const names = new Set(BUILTIN_COMMANDS.map((command) => command.name));
+export type GoalVerb = "set" | "edit" | "pause" | "resume" | "clear";
 type Blocks = PromptRequest["prompt"];
 export interface SlashCommand {
   local?: { kind: "models" | "skills" | "logout" | "rename"; argument: string };
@@ -57,6 +61,8 @@ export interface SlashCommand {
   index: number;
   workflow?: WorkflowCommand;
   status?: "goal" | "mcp" | "status";
+  /** A native goal control; the agent checks backend and host support. */
+  goal?: { verb: GoalVerb; objective?: string };
   notice?: string;
   stop?: boolean;
   barePlan?: boolean;
@@ -141,13 +147,23 @@ export function parseSlashCommand(prompt: Blocks): SlashCommand | undefined {
   }
   if (selected.name === "goal" || selected.name === "mcp") {
     const isGoal = selected.name === "goal";
-    if (isGoal && matches.some((match) => /^(pause|resume|clear|edit)(?:\s|$)/i.test(match.args)))
-      return {
-        ...result,
-        stop: true,
-        notice:
-          "Persistent goal controls are unavailable on this Muse integration. No goal was changed. Use /goal status to inspect the observed state, or send a task to execute once.",
-      };
+    const control = isGoal ? /^(set|edit|pause|resume|clear)(?:\s+([\s\S]*))?$/i.exec(args) : null;
+    if (control) {
+      const verb = control[1].toLowerCase() as GoalVerb;
+      const objective = control[2]?.trim() ?? "";
+      const needsObjective = verb === "set" || verb === "edit";
+      const problem =
+        extraText || attachments
+          ? "Send goal controls alone; accompanying instructions and attachments were not executed."
+          : needsObjective && !objective
+            ? `Use /goal ${verb} <objective>. No goal was changed.`
+            : !needsObjective && objective
+              ? `/goal ${verb} takes no arguments. No goal was changed.`
+              : undefined;
+      if (problem) return { ...result, stop: true, notice: problem };
+      blocks[selected.index] = { type: "text", text: "" };
+      return { ...result, goal: { verb, ...(needsObjective ? { objective } : {}) } };
+    }
     const status = /^status$/i.test(args) || (!args && !extraText);
     if (status) {
       blocks[selected.index] = { type: "text", text: "" };
@@ -157,7 +173,7 @@ export function parseSlashCommand(prompt: Blocks): SlashCommand | undefined {
         result.notice = "Attached context was not processed by this local status query.";
     } else if (isGoal) {
       result.notice =
-        "Persistent goal creation is unavailable. I will execute this task once in the current mode; no persistent goal or background loop will be created.";
+        "I will execute this task once in the current mode; no persistent goal is created. Use /goal set <objective> for a persistent Muse goal.";
     } else {
       result.status = "mcp";
       result.notice =

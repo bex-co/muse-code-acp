@@ -11,7 +11,7 @@
 - [x] [**m5** — Release 0.9.0 and report host regressions upstream](done/m5/README.md) (5 tasks) ← SDK 1.4.4 bump and w3/003 (2026-10-08)
 - [x] [**m6** — Exec default-mode continuity and stall triage](done/m6/README.md) (9 tasks) ← promoted from w3/004 and the 2026-10-09 resolution plan
 - [x] [**m7** — Catch up to SDK and Muse 1.4.6](done/m7/README.md) (6 tasks) ← 2026-10-12 Muse feature research
-- [ ] [**m8** — Native goal controls](m8/README.md) (6 tasks) ← 2026-10-12 Muse feature research
+- [x] [**m8** — Native goal controls](done/m8/README.md) (6 tasks) ← 2026-10-12 Muse feature research
 - [ ] [**m9** — Native session compaction](m9/README.md) (6 tasks) ← 2026-10-12 Muse feature research
 - [ ] [**m10** — Background task and workflow controls](m10/README.md) (6 tasks) ← 2026-10-12 Muse feature research
 - [ ] [**m11** — Recap and native session rename](m11/README.md) (6 tasks) ← 2026-10-12 Muse feature research

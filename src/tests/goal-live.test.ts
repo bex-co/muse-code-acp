@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { methods } from "@agentclientprotocol/sdk";
 import { startLoopbackProvider } from "./loopback-provider.js";
 import { connectTestClient, museAvailable, capturingLogger } from "./helpers.js";
+import { probeSdkHost, supportsGoalControls } from "../muse-host.js";
 const available = museAvailable();
 if (!available && process.env.MUSE_CODE_ACP_REQUIRE_MUSE === "1")
   throw new Error("Muse required for goal acceptance");
@@ -48,7 +49,13 @@ describe.skipIf(!available)("real Muse goal observation", () => {
         protocolVersion: 1,
         clientCapabilities: { _meta: { "muse/goal": 1 } },
       });
-      expect(init._meta?.["muse/goal"]).toEqual({ version: 1, observation: true, controls: [] });
+      expect(init._meta?.["muse/goal"]).toEqual({
+        version: 1,
+        observation: true,
+        controls: supportsGoalControls(probeSdkHost().version)
+          ? ["set", "edit", "pause", "resume", "clear"]
+          : [],
+      });
       const { sessionId } = await ctx.request(methods.agent.session.new, {
         cwd: provider.root,
         mcpServers: [],

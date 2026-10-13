@@ -16,7 +16,7 @@ import {
   RequestError,
   SessionNotification,
 } from "@agentclientprotocol/sdk";
-import { Connection, MspError, type FoldedItem } from "@muse-code/sdk";
+import { Connection, MspError, createUuidV7Mint, type FoldedItem } from "@muse-code/sdk";
 import { realpathSync } from "node:fs";
 import type { AcpClient } from "./acp-agent.js";
 import { sessionInfo, sessionInfoNotification } from "./session-discovery.js";
@@ -79,7 +79,15 @@ export interface MuseSdkOptions {
   hostOwner?: MuseSdkHost;
   /** Negotiated active-turn metadata for the namespaced steering request. */
   steering?: boolean;
+  /**
+   * Run a native goal control instead of submitting `input`. `set`/`resume`
+   * on an idle session start a host goal turn, which this handle then streams;
+   * verbs that start no turn settle `end_turn` once Muse accepts them.
+   */
+  goal?: { verb: "set" | "edit" | "pause" | "resume" | "clear"; objective?: string };
 }
+
+const mintCommandId = createUuidV7Mint();
 
 export interface MuseSdkHandle {
   updates: AsyncIterable<SessionNotification>;
@@ -312,14 +320,48 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
       }
 
       operation.enter("submitting", submitMs);
-      const turn = await operation.wait(
-        session.sendUserTurn({
-          input: options.input,
-          ...(sdkReasoningEffort(options.reasoningEffort)
-            ? { reasoningEffort: sdkReasoningEffort(options.reasoningEffort)! }
-            : {}),
-        }),
-      );
+      let turn: ReturnType<typeof session.turn>;
+      if (options.goal) {
+        const { verb, objective } = options.goal;
+        const goalState = () =>
+          JSON.stringify(session.fold.sessionState.get("session/goalChanged"));
+        const goalBefore = goalState();
+        let ack: { turnId?: string };
+        // Not through operation.wait: a refusal is an answer to report, not a
+        // host failure to record as the turn's initiating cause.
+        try {
+          ack = (await connection.command(`goal/${verb}`, {
+            commandId: mintCommandId(),
+            sessionId: options.sessionId,
+            ...(objective !== undefined ? { objective } : {}),
+          })) as { turnId?: string };
+        } catch (error) {
+          if (!(error instanceof MspError)) throw error;
+          const reason = (error.data as { reason?: unknown }).reason;
+          throw RequestError.invalidRequest(
+            undefined,
+            `Muse did not ${verb} the goal: ${typeof reason === "string" ? reason : error.kind}. No goal turn was started.`,
+          );
+        }
+        if (!ack.turnId) {
+          // Admission precedes the goal change; keep the lease until it folds.
+          for (let i = 0; i < 120 && goalState() === goalBefore; i++)
+            await new Promise((resolve) => setTimeout(resolve, 25));
+          await owner.flushGoal();
+          successful = true;
+          return { stopReason: "end_turn" };
+        }
+        turn = session.turn(ack.turnId);
+      } else {
+        turn = await operation.wait(
+          session.sendUserTurn({
+            input: options.input,
+            ...(sdkReasoningEffort(options.reasoningEffort)
+              ? { reasoningEffort: sdkReasoningEffort(options.reasoningEffort)! }
+              : {}),
+          }),
+        );
+      }
       adoptTurn(turn.turnId);
       acceptedTurn = true;
       if (options.steering)
@@ -761,6 +803,7 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
       }
       return response;
     } catch (error) {
+      if (options.goal && error instanceof RequestError) throw error;
       if (
         (cancelled || options.isCancelled?.()) &&
         (cancellationWon || !operation.failure || operation.failure instanceof SdkCancelled)

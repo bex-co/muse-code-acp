@@ -314,6 +314,9 @@ const stagedApprovals = new Map();
 const pendingUserInputs = new Map();
 let gapFillCursor = null;
 let goalEmitted = false;
+// Persist per session like Muse does, across fake host processes.
+const goalFile = () => require("node:path").join(require("node:os").tmpdir(), `fake-msp-goal-${sessionId}.json`);
+const loadGoal = () => { try { return JSON.parse(readFileSync(goalFile(), "utf8")); } catch { return null; } };
 
 const rl = createInterface({ input: process.stdin });
 rl.on("close", () => process.exit(0));
@@ -692,6 +695,27 @@ rl.on("line", async (line) => {
       reply({ status: "accepted", turnId });
       terminal("cancelled");
       break;
+    case "goal/set":
+    case "goal/edit":
+    case "goal/pause":
+    case "goal/resume":
+    case "goal/clear": {
+      const verb = method.slice("goal/".length);
+      let fakeGoal = loadGoal();
+      const reject = (reason) =>
+        write({ id, error: { code: -32040, message: `${method} rejected: ${reason}`, data: { kind: "commandRejected", reason, retryable: false } } });
+      if (verb !== "set" && !fakeGoal) { reject("missing_goal"); break; }
+      if ((verb === "pause" && fakeGoal.status === "paused") || (verb === "resume" && fakeGoal.status !== "paused")) { reject("invalid_goal_state"); break; }
+      fakeGoal =
+        verb === "clear" ? null
+        : verb === "set" ? { objective: params.objective, status: "active", percentComplete: 0 }
+        : verb === "edit" ? { ...fakeGoal, objective: params.objective }
+        : { ...fakeGoal, status: verb === "pause" ? "paused" : "active" };
+      writeFileSync(goalFile(), JSON.stringify(fakeGoal));
+      notify("session/goalChanged", { goal: fakeGoal });
+      reply({ commandId: params.commandId, status: "accepted" });
+      break;
+    }
     default:
       write({ id, error: { code: -32601, message: `unexpected method: ${method}` } });
   }

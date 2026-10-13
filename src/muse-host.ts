@@ -20,6 +20,23 @@ const execProfiles = new Map<string, boolean>();
 
 /** Built-in exec permission profiles are verified from Muse 1.4.4. */
 const EXEC_PROFILE_MIN_HOST = [1, 4, 4];
+/** Native goal set/edit/pause/resume/clear are verified from Muse 1.4.6. */
+const GOAL_CONTROL_MIN_HOST = [1, 4, 6];
+
+/** Whether a probed `x.y.z` host version is at least `minimum`. */
+function atLeast(version: string | null | undefined, minimum: number[]): boolean {
+  const parts = version?.split(".").map(Number);
+  if (!parts) return false;
+  for (const [i, part] of minimum.entries()) {
+    const actual = parts[i] ?? 0;
+    if (actual !== part) return actual > part;
+  }
+  return true;
+}
+
+export function supportsGoalControls(version: string | null | undefined): boolean {
+  return atLeast(version, GOAL_CONTROL_MIN_HOST);
+}
 
 /**
  * Whether `muse exec` accepts `--permission-profile` with the built-in
@@ -32,18 +49,14 @@ export function execSupportsPermissionProfile(
   const binary = museBinary ?? museCliPath(env);
   const cached = execProfiles.get(binary);
   if (cached !== undefined) return cached;
-  const version = probeSdkHost(env, binary).version?.split(".").map(Number);
+  const version = probeSdkHost(env, binary).version;
   const help = spawnSync(binary, ["exec", "--help"], {
     encoding: "utf8",
     env: env as Record<string, string>,
     timeout: 5_000,
   });
   const supported =
-    !!version &&
-    EXEC_PROFILE_MIN_HOST.reduce<number>(
-      (order, part, i) => order || Math.sign((version[i] ?? 0) - part),
-      0,
-    ) >= 0 &&
+    atLeast(version, EXEC_PROFILE_MIN_HOST) &&
     `${help.stdout ?? ""}`.includes("--permission-profile");
   execProfiles.set(binary, supported);
   return supported;

@@ -60,8 +60,16 @@ describe("slash command selection", () => {
     expect(parseSlashCommand([text("/goal"), text("do work")])?.notice).toContain(
       "execute this task once",
     );
-    for (const verb of ["pause", "resume", "clear", "edit"])
+    for (const verb of ["pause", "resume", "clear"]) {
       expect(parseSlashCommand([text(`/goal ${verb} details`)])?.stop).toBe(true);
+      expect(parseSlashCommand([text(`/goal ${verb}`)])?.goal).toEqual({ verb });
+    }
+    expect(parseSlashCommand([text("/goal edit details")])?.goal).toEqual({
+      verb: "edit",
+      objective: "details",
+    });
+    expect(parseSlashCommand([text("/goal set")])?.stop).toBe(true);
+    expect(parseSlashCommand([text("/goal set x"), text("more")])?.stop).toBe(true);
     expect(parseSlashCommand([context, text("/goal status")])?.stop).toBe(true);
     expect(parseSlashCommand([text("/goal status"), text("do work")])?.stop).toBe(false);
   });

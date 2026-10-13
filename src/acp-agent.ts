@@ -109,6 +109,7 @@ import {
   probeSdkHost,
   assertSdkSafetySupport,
   execSupportsPermissionProfile,
+  supportsGoalControls,
 } from "./muse-host.js";
 import { Logger } from "./logger.js";
 import { museHostIdentity } from "./host-identity.js";
@@ -546,7 +547,15 @@ export class MuseAcpAgent {
           ? { "muse/approval": { version: 1 } }
           : {}),
         ...(this.backend === "sdk" && this.clientCapabilities._meta?.["muse/goal"] === 1
-          ? { "muse/goal": { version: 1, observation: true, controls: [] } }
+          ? {
+              "muse/goal": {
+                version: 1,
+                observation: true,
+                controls: this.goalControlsAvailable()
+                  ? ["set", "edit", "pause", "resume", "clear"]
+                  : [],
+              },
+            }
           : {}),
         ...(this.backend === "sdk" && supportsSteering(this.clientCapabilities)
           ? { [STEERING_CAPABILITY]: { version: 1, method: STEER_METHOD } }
@@ -623,6 +632,15 @@ export class MuseAcpAgent {
       });
   }
 
+  /** Native goal controls: SDK backend on a host verified for them. */
+  private goalControlsAvailable(): boolean {
+    return (
+      this.backend === "sdk" &&
+      (this.options.skipSdkHostCheck ||
+        supportsGoalControls(probeSdkHost(this.options.env, this.options.museBinary).version))
+    );
+  }
+
   private async inspectGoal(sessionId: string, session: SessionState): Promise<string> {
     if (!session.goal || session.goal.status === "unknown") {
       let goal: GoalObservation;
@@ -654,7 +672,9 @@ export class MuseAcpAgent {
       `Reported progress: ${goal.percentComplete}%`,
       ...(goal.currentWork !== undefined ? [`Current work: ${goal.currentWork}`] : []),
       ...(goal.nextWork !== undefined ? [`Next work: ${goal.nextWork}`] : []),
-      "Last observed Muse state. Goal controls are unavailable through this adapter.",
+      this.goalControlsAvailable()
+        ? "Last observed Muse state. Change it with /goal set, edit, pause, resume or clear."
+        : "Last observed Muse state. Goal controls need the SDK backend on Muse 1.4.6 or newer.",
     ].join("\n");
   }
 
@@ -1662,6 +1682,14 @@ export class MuseAcpAgent {
         if (!command.stop)
           parts.unshift({ type: "text", text: `Observed ${command.status} status:\n${status}` });
       }
+      if (command?.goal && !this.goalControlsAvailable()) {
+        await say(
+          this.backend === "sdk"
+            ? "Native goal controls are verified from Muse 1.4.6; this host is not supported. No goal was changed."
+            : "Native goal controls require the SDK backend. No goal was changed.",
+        );
+        return { stopReason: "end_turn" };
+      }
       if (command?.stop || session.cancelRequested || this.disposed)
         return { stopReason: session.cancelRequested || this.disposed ? "cancelled" : "end_turn" };
       session.mcpFailure = undefined;
@@ -1741,7 +1769,8 @@ export class MuseAcpAgent {
           session.sdkHost = undefined;
         }
         if (session.cancelRequested || this.disposed) return { stopReason: "cancelled" };
-        if (session.sdkHost?.owner.hasActiveTurn)
+        // Goal controls are how a user pauses or clears host-owned goal work.
+        if (session.sdkHost?.owner.hasActiveTurn && !command?.goal)
           throw RequestError.invalidRequest(
             undefined,
             "Muse is executing a host-owned turn; retry after it finishes or close the session to stop the host",
@@ -1853,7 +1882,9 @@ export class MuseAcpAgent {
             ? fileReportRequest(params._meta)
             : undefined,
           isCancelled: () => session.cancelRequested,
+          goal: command?.goal,
         });
+        const goalBefore = JSON.stringify(session.goal);
         session.activeTurn = handle;
         try {
           for await (const notification of handle.updates) {
@@ -1876,6 +1907,14 @@ export class MuseAcpAgent {
               ? "cancelled"
               : "completed",
           );
+          if (command?.goal && !session.cancelRequested) {
+            // The host publishes goal changes on its 100 ms observation tick.
+            for (let i = 0; i < 20 && JSON.stringify(session.goal) === goalBefore; i++)
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            await say(
+              `Goal ${command.goal.verb} accepted.\n${await this.inspectGoal(params.sessionId, session)}`,
+            );
+          }
           return session.cancelRequested ? { stopReason: "cancelled" } : response;
         } catch (error) {
           if (!session.cancelRequested) {

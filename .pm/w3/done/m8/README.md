@@ -1,17 +1,17 @@
 # w3 · m8 — Native goal controls
 
-**Worker:** worker1 **Goal:** `/goal` sets, edits, pauses, resumes and clears the native Muse goal instead of reporting persistent controls as unavailable. **Status:** todo
+**Worker:** worker1 **Goal:** `/goal` sets, edits, pauses, resumes and clears the native Muse goal instead of reporting persistent controls as unavailable. **Status:** done
 
 ## Tasks (in order)
 
-| id   | title                                             | est | depends_on             |
-| ---- | ------------------------------------------------- | --- | ---------------------- |
-| t001 | Verify native goal controls on the installed host | 1h  | w3/m7/t006             |
-| t002 | Implement native goal controls                    | 2h  | w3/m8/t001             |
-| t003 | Adoption surface                                  | 30m | w3/m8/t001, w3/m8/t002 |
-| t004 | Simplify milestone changes                        | 30m | w3/m8/t003             |
-| t005 | CI and behavior coverage                          | 45m | w3/m8/t004             |
-| t006 | Close out milestone                               | 15m | w3/m8/t005             |
+| id   | title                                                        | est | depends_on             |
+| ---- | ------------------------------------------------------------ | --- | ---------------------- |
+| t001 | Verify native goal controls on the installed host — **DONE** | 1h  | w3/m7/t006             |
+| t002 | Implement native goal controls — **DONE**                    | 2h  | w3/m8/t001             |
+| t003 | Adoption surface — **DONE**                                  | 30m | w3/m8/t001, w3/m8/t002 |
+| t004 | Simplify milestone changes — **DONE**                        | 30m | w3/m8/t003             |
+| t005 | CI and behavior coverage — **DONE**                          | 45m | w3/m8/t004             |
+| t006 | Close out milestone — **DONE**                               | 15m | w3/m8/t005             |
 
 ## Definition of done
 
@@ -30,4 +30,8 @@
 
 ## Validation evidence
 
-Pending.
+Muse `1.4.6-R6000.1`, `@muse-code/sdk` 1.4.6, macOS arm64, 2026-10-12.
+
+- `npm run check`: clean. `npm run test:unit`: 502/502.
+- `MUSE_CODE_ACP_REQUIRE_MUSE=1` loopback suite, `--no-file-parallelism`: 20 files, 66/66 (includes `goal-controls-live`).
+- Hosts older than 1.4.6 keep the controls unadvertised and answer with a no-change notice; GitHub CI (Muse 1.1.1) skips the live control test.
