@@ -17,7 +17,7 @@
 - [x] [**m11** — Recap and native session rename](done/m11/README.md) (6 tasks) ← 2026-10-12 Muse feature research
 - [x] [**m12** — Skill activation, skill import and feedback](done/m12/README.md) (6 tasks) ← 2026-10-12 Muse feature research
 - [x] [**m13** — Turn interrupt, unqueue and native usage](done/m13/README.md) (6 tasks) ← 2026-10-12 Muse feature research
-- [ ] [**m14** — Plugin and hook visibility](m14/README.md) (6 tasks) ← 2026-10-12 Muse feature research
+- [x] [**m14** — Plugin and hook visibility](done/m14/README.md) (6 tasks) ← 2026-10-12 Muse feature research
 
 ## Inbox
 

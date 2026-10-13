@@ -11,6 +11,12 @@ export const BUILTIN_COMMANDS: AvailableCommand[] = [
   { name: "tasks", description: "List running Muse background tasks without a model request" },
   { name: "recap", description: "Ask Muse for a short recap of this session" },
   {
+    name: "plugins",
+    description: "List installed Muse plugins, or install one from a local folder",
+    input: { hint: "[install <path>]" },
+  },
+  { name: "hooks", description: "List installed Muse hooks" },
+  {
     name: "feedback",
     description: "Send feedback to Muse (no files; the session record only with --with-session)",
     input: { hint: "bug|bad|good|other <note> [--with-session]" },
@@ -67,6 +73,9 @@ const names = new Set(BUILTIN_COMMANDS.map((command) => command.name));
 export type GoalVerb = "set" | "edit" | "pause" | "resume" | "clear";
 export type NativeCommand =
   | { kind: "recap" }
+  | { kind: "pluginList" }
+  | { kind: "pluginInstall"; path: string }
+  | { kind: "hookList" }
   | { kind: "skill"; verb: "enable" | "disable"; selector: string }
   | { kind: "skillImport"; source: "claude" | "codex"; apply: boolean }
   | {
@@ -245,6 +254,14 @@ export function parseSlashCommand(prompt: Blocks): SlashCommand | undefined {
 /** Parse native host commands: a command, a usage notice, or undefined when not one. */
 function nativeCommand(name: string, args: string): NativeCommand | string | undefined {
   if (name === "recap") return args ? "Send /recap without arguments." : { kind: "recap" };
+  if (name === "hooks") return args ? "Send /hooks without arguments." : { kind: "hookList" };
+  if (name === "plugins") {
+    if (!args) return { kind: "pluginList" };
+    const install = /^install\s+(\S[\s\S]*)$/i.exec(args);
+    return install
+      ? { kind: "pluginInstall", path: install[1].trim() }
+      : "Use /plugins or /plugins install <local folder>. Nothing changed.";
+  }
   if (name === "skills" && args) {
     const control = /^(enable|disable)\s+(\S+)$/i.exec(args);
     if (control)

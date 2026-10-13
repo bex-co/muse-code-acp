@@ -47,6 +47,14 @@ it("requests native recaps and syncs /rename to Muse's session name", async () =
   expect(said()).toContain("Would install: imported-skill");
   await prompt("/skills import claude --apply");
   expect(said()).toContain("Installed: imported-skill");
+  await prompt("/plugins");
+  expect(said()).toContain("fake-plugin 1.0.0 [enabled, nativeLocal]");
+  await prompt("/plugins install /tmp/some-plugin");
+  expect(said()).toContain("Installed Muse plugin fake-plugin 1.0.0 from /tmp/some-plugin");
+  await prompt("/plugins install relative/path");
+  expect(said()).toContain("Muse rejected installing the plugin at relative/path: internal");
+  await prompt("/hooks");
+  expect(said()).toContain("preToolUse: lint [user, enabled]");
   await prompt("/feedback good nice work");
   expect(said()).toContain("Feedback outcome: recorded");
   expect(said()).toContain("No files or session record were attached");

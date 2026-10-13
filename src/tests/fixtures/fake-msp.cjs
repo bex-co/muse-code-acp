@@ -695,6 +695,19 @@ rl.on("line", async (line) => {
       reply({ status: "accepted", turnId });
       terminal("cancelled");
       break;
+    case "plugin/list":
+      reply({ plugins: [{ id: "fake-plugin", version: "1.0.0", enabled: true, source: "nativeLocal" }] });
+      break;
+    case "plugin/install":
+      if (!String(params.target?.localPath?.path ?? "").startsWith("/")) {
+        write({ id, error: { code: -32603, message: "plugin path must be absolute", data: { kind: "internal", retryable: false } } });
+        break;
+      }
+      reply({ commandId: params.commandId, status: "accepted", id: "fake-plugin", version: "1.0.0", enabled: true, source: "nativeLocal" });
+      break;
+    case "hook/list":
+      reply({ hooks: [{ event: "preToolUse", key: "lint", handlerKind: "user", enabled: true }] });
+      break;
     case "usage/read":
       reply(process.env.FAKE_MSP_USAGE === "1" ? { usage: { observedAtMs: 0, tier: "pro", window: { usedPercent: 42, resetsAtMs: 3600000 }, weekly: { usedPercent: 7, resetsAtMs: 86400000 } } } : {});
       break;

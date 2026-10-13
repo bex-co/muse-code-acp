@@ -90,6 +90,13 @@ describe("slash command selection", () => {
       withSession: true,
     });
     expect(parseSlashCommand([text("/feedback")])?.stop).toBe(true);
+    expect(parseSlashCommand([text("/plugins")])?.native).toEqual({ kind: "pluginList" });
+    expect(parseSlashCommand([text("/plugins install /tmp/p")])?.native).toEqual({
+      kind: "pluginInstall",
+      path: "/tmp/p",
+    });
+    expect(parseSlashCommand([text("/plugins remove x")])?.stop).toBe(true);
+    expect(parseSlashCommand([text("/hooks")])?.native).toEqual({ kind: "hookList" });
     expect(parseSlashCommand([text("/goal set x"), text("more")])?.stop).toBe(true);
     expect(parseSlashCommand([context, text("/goal status")])?.stop).toBe(true);
     expect(parseSlashCommand([text("/goal status"), text("do work")])?.stop).toBe(false);

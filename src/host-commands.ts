@@ -112,3 +112,44 @@ export function feedbackCommand(
       ].join("\n");
     });
 }
+
+/** Installed plugins (`plugin/list`). */
+export const pluginListCommand: HostCommand = (owner) =>
+  answer("the plugin listing", async () => {
+    const { plugins } = (await owner.call("request", "plugin/list")) as {
+      plugins?: { id: string; version: string; enabled: boolean; source: string }[];
+    };
+    return plugins?.length
+      ? plugins
+          .slice(0, 200)
+          .map((p) => `${p.id} ${p.version} [${p.enabled ? "enabled" : "disabled"}, ${p.source}]`)
+          .join("\n")
+      : "No Muse plugins are installed.";
+  });
+
+/** Install a plugin from a local folder; only on this explicit command. */
+export function pluginInstallCommand(path: string): HostCommand {
+  return (owner) =>
+    answer(`installing the plugin at ${path}`, async () => {
+      const result = (await owner.call("command", "plugin/install", {
+        target: { localPath: { path } },
+      })) as { id?: string; version?: string; enabled?: boolean; source?: string };
+      return `Installed Muse plugin ${result.id ?? "?"} ${result.version ?? ""} from ${path} (${result.enabled ? "enabled" : "disabled"}, ${result.source ?? "unknown source"}).`;
+    });
+}
+
+/** Installed hook handlers (`hook/list`). */
+export const hookListCommand: HostCommand = (owner) =>
+  answer("the hook listing", async () => {
+    const { hooks } = (await owner.call("request", "hook/list")) as {
+      hooks?: { event: string; key: string; handlerKind: string; enabled: boolean }[];
+    };
+    return hooks?.length
+      ? hooks
+          .slice(0, 200)
+          .map(
+            (h) => `${h.event}: ${h.key} [${h.handlerKind}, ${h.enabled ? "enabled" : "disabled"}]`,
+          )
+          .join("\n")
+      : "No Muse hooks are installed.";
+  });

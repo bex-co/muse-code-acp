@@ -143,6 +143,9 @@ import type { GoalObservation } from "./goal-state.js";
 import { readMuseSettings, type MuseSettings } from "./muse-settings.js";
 import {
   feedbackCommand,
+  hookListCommand,
+  pluginInstallCommand,
+  pluginListCommand,
   recapCommand,
   skillActivationCommand,
   skillImportCommand,
@@ -154,6 +157,12 @@ function hostCommandFor(native: NativeCommand): HostCommand {
   switch (native.kind) {
     case "recap":
       return recapCommand;
+    case "pluginList":
+      return pluginListCommand;
+    case "pluginInstall":
+      return pluginInstallCommand(native.path);
+    case "hookList":
+      return hookListCommand;
     case "skill":
       return skillActivationCommand(native.verb, native.selector);
     case "skillImport":
