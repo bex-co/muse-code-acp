@@ -110,6 +110,7 @@ import {
   assertSdkSafetySupport,
   execSupportsPermissionProfile,
   supportsGoalControls,
+  supportsSessionCommands,
 } from "./muse-host.js";
 import { Logger } from "./logger.js";
 import { museHostIdentity } from "./host-identity.js";
@@ -210,6 +211,8 @@ export interface SessionState {
   /** Model + reasoning effort applied to every spawn for this session. */
   config: SessionConfig;
   modelDiscovery?: ModelDiscoveryResult;
+  /** A `/rename` made while no host was open; applied when the next turn opens one. */
+  pendingNativeName?: string;
   /** The model is the built-in default: no settings named one and no turn or selection used it. */
   builtInModel?: boolean;
   modelRefresh?: { dispose(): Promise<void> };
@@ -630,6 +633,15 @@ export class MuseAcpAgent {
         sessionId,
         update: { sessionUpdate: "session_info_update", _meta: { "muse/goal": goal } },
       });
+  }
+
+  /** Native recap and rename sync: SDK backend on a host verified for them. */
+  private sessionCommandsAvailable(): boolean {
+    return (
+      this.backend === "sdk" &&
+      (this.options.skipSdkHostCheck ||
+        supportsSessionCommands(probeSdkHost(this.options.env, this.options.museBinary).version))
+    );
   }
 
   /** Native goal controls: SDK backend on a host verified for them. */
@@ -1551,6 +1563,20 @@ export class MuseAcpAgent {
             },
           });
           text = `Session title saved by this adapter: ${title.text}`;
+          if (this.sessionCommandsAvailable()) {
+            const owner = session.sdkHost?.owner;
+            if (owner?.isOpen) {
+              try {
+                const name = await owner.renameNative(title.text);
+                text += `\nMuse session name set to "${name}" (Muse normalizes names).`;
+              } catch (error) {
+                text += `\nMuse kept its own session name: ${error instanceof Error ? error.message : String(error)}`;
+              }
+            } else {
+              session.pendingNativeName = title.text;
+              text += "\nMuse's own session name will be set when this session's host next starts.";
+            }
+          }
         } else if (command.local.kind === "models") {
           session.cancelRequested = false;
           const env = this.providerEnv(params.sessionId);
@@ -1693,6 +1719,14 @@ export class MuseAcpAgent {
         await say(status);
         if (!command.stop)
           parts.unshift({ type: "text", text: `Observed ${command.status} status:\n${status}` });
+      }
+      if (command?.recap && !this.sessionCommandsAvailable()) {
+        await say(
+          this.backend === "sdk"
+            ? "Native recaps are verified from Muse 1.4.7; this host is not supported."
+            : "Native recaps require the SDK backend.",
+        );
+        return { stopReason: "end_turn" };
       }
       if (command?.goal && !this.goalControlsAvailable()) {
         await say(
@@ -1895,6 +1929,11 @@ export class MuseAcpAgent {
             : undefined,
           isCancelled: () => session.cancelRequested,
           goal: command?.goal,
+          recap: command?.recap,
+          nativeName: session.pendingNativeName,
+          onNativeName: () => {
+            session.pendingNativeName = undefined;
+          },
         });
         const goalBefore = JSON.stringify(session.goal);
         session.activeTurn = handle;

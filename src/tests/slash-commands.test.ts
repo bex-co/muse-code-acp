@@ -69,6 +69,8 @@ describe("slash command selection", () => {
       objective: "details",
     });
     expect(parseSlashCommand([text("/goal set")])?.stop).toBe(true);
+    expect(parseSlashCommand([text("/recap")])?.recap).toBe(true);
+    expect(parseSlashCommand([text("/recap please")])?.stop).toBe(true);
     expect(parseSlashCommand([text("/goal set x"), text("more")])?.stop).toBe(true);
     expect(parseSlashCommand([context, text("/goal status")])?.stop).toBe(true);
     expect(parseSlashCommand([text("/goal status"), text("do work")])?.stop).toBe(false);

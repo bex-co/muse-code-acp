@@ -14,7 +14,7 @@
 - [x] [**m8** — Native goal controls](done/m8/README.md) (6 tasks) ← 2026-10-12 Muse feature research
 - [ ] [**m9** — Native session compaction](m9/README.md) (6 tasks) ← 2026-10-12 Muse feature research
 - [x] [**m10** — Background task and workflow controls](done/m10/README.md) (6 tasks) ← 2026-10-12 Muse feature research
-- [ ] [**m11** — Recap and native session rename](m11/README.md) (6 tasks) ← 2026-10-12 Muse feature research
+- [x] [**m11** — Recap and native session rename](done/m11/README.md) (6 tasks) ← 2026-10-12 Muse feature research
 - [ ] [**m12** — Skill activation, skill import and feedback](m12/README.md) (6 tasks) ← 2026-10-12 Muse feature research
 - [ ] [**m13** — Turn interrupt, unqueue and native usage](m13/README.md) (6 tasks) ← 2026-10-12 Muse feature research
 - [ ] [**m14** — Plugin and hook visibility](m14/README.md) (6 tasks) ← 2026-10-12 Muse feature research

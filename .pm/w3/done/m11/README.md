@@ -1,17 +1,17 @@
 # w3 · m11 — Recap and native session rename
 
-**Worker:** worker1 **Goal:** `/recap` requests a native session recap, and `/rename` also sets Muse's own session name. **Status:** todo
+**Worker:** worker1 **Goal:** `/recap` requests a native session recap, and `/rename` also sets Muse's own session name. **Status:** done
 
 ## Tasks (in order)
 
-| id   | title                                                        | est | depends_on               |
-| ---- | ------------------------------------------------------------ | --- | ------------------------ |
-| t001 | Verify recap and native session rename on the installed host | 1h  | w3/m7/t006               |
-| t002 | Implement recap and native session rename                    | 2h  | w3/m11/t001              |
-| t003 | Adoption surface                                             | 30m | w3/m11/t001, w3/m11/t002 |
-| t004 | Simplify milestone changes                                   | 30m | w3/m11/t003              |
-| t005 | CI and behavior coverage                                     | 45m | w3/m11/t004              |
-| t006 | Close out milestone                                          | 15m | w3/m11/t005              |
+| id   | title                                                                   | est | depends_on               |
+| ---- | ----------------------------------------------------------------------- | --- | ------------------------ |
+| t001 | Verify recap and native session rename on the installed host — **DONE** | 1h  | w3/m7/t006               |
+| t002 | Implement recap and native session rename — **DONE**                    | 2h  | w3/m11/t001              |
+| t003 | Adoption surface — **DONE**                                             | 30m | w3/m11/t001, w3/m11/t002 |
+| t004 | Simplify milestone changes — **DONE**                                   | 30m | w3/m11/t003              |
+| t005 | CI and behavior coverage — **DONE**                                     | 45m | w3/m11/t004              |
+| t006 | Close out milestone — **DONE**                                          | 15m | w3/m11/t005              |
 
 ## Definition of done
 
@@ -30,4 +30,7 @@
 
 ## Validation evidence
 
-Pending.
+Muse `1.4.7-R6101.1`, `@muse-code/sdk` 1.4.7, macOS arm64, 2026-10-12.
+
+- `npm run check`: clean. `npm run test:unit`: 502–503/504 across two runs; the failures differed per run (steering-wire close, report-on-close, discovery deadline) and each passed 3/3 in isolation — load flakes.
+- Loopback suite `--no-file-parallelism`: 21 files, 68/68 (includes `native-commands-live`).

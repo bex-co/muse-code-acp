@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Features
+
+- `/recap` asks Muse for a short native recap of the session (Muse 1.4.7 or newer), streamed as the command's reply; ACP cancel cancels it. `/rename` also sets Muse's own session name through `session/rename`, immediately when the session's host is open or when it next starts, while the adapter title keeps the user's casing.
+
 ### Dependencies
 
 - Bump `@muse-code/sdk` from 1.4.6 to 1.4.7 (adds computer-use setup checks only) and verify Muse 1.4.7-R6101.1: the full real-host suite passes, workflow `cancel` is advertised, and earlier fork boundaries still fail (#97). Goal controls now use the connection's own command-id minter.

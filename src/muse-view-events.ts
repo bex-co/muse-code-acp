@@ -41,7 +41,7 @@ export const IGNORED_VIEW_EVENTS: Readonly<Record<string, string>> = {
     "Native scheduling unobserved on 1.1.1/1.2.1; future w1/006. Error rendering: w2/m8.",
   "session/branchChanged": "No ACP field carries the workspace branch; not scheduled.",
   "session/nameChanged":
-    "SDK 1.3.0 addition; ACP titles come from session-title.ts. Host-name sync not scheduled.",
+    "SDK 1.3.0 addition; the adapter title (session-title.ts) stays authoritative for display. /rename writes Muse's name (w3/m11); host-originated names are not adopted: not scheduled.",
   "session/reasoningEffortChanged":
     "SDK 1.3.0 addition; effort is adapter-configured per turn. Observed-effort sync not scheduled.",
   "session/modelRouteUnserved":

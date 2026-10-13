@@ -65,6 +65,13 @@ interface HostLease {
 /** Hosts whose public workflow/cancel was verified against a real observed run. */
 const WORKFLOW_CANCEL_HOSTS = ["1.2.1", "1.3.0", "1.4.4", "1.4.6", "1.4.7"];
 
+export interface RecapSettlement {
+  outcome: "completed" | "failed" | "cancelled" | "timedOut" | (string & {});
+  text?: string;
+  title?: string;
+  reason?: string;
+}
+
 /** A single ACP session owns this process and its spawn-time configuration. */
 export class MuseSdkHost {
   readonly generation = randomUUID();
@@ -95,6 +102,54 @@ export class MuseSdkHost {
       sessionId: this.options.sessionId,
     })) as { tasks?: unknown };
     return Array.isArray(result.tasks) ? result.tasks : [];
+  }
+
+  private recapWaiters = new Map<string, (settled: RecapSettlement) => void>();
+  private recapSettled = new Map<string, RecapSettlement>();
+  private settleRecap(params: unknown) {
+    const settled = params as RecapSettlement & { commandId?: unknown };
+    if (typeof settled?.commandId !== "string") return;
+    const waiter = this.recapWaiters.get(settled.commandId);
+    if (waiter) waiter(settled);
+    else this.recapSettled.set(settled.commandId, settled);
+  }
+
+  /** Public recap side-call: admission, then the `recap/completed` settlement. */
+  async requestRecap(isCancelled: () => boolean, timeoutMs = 120_000): Promise<RecapSettlement> {
+    if (!this.lease) throw new Error("Muse SDK host is not open");
+    const connection = this.lease.host.connection;
+    const sessionId = this.options.sessionId;
+    const ack = (await connection.command("recap/request", { sessionId })) as { commandId: string };
+    const early = this.recapSettled.get(ack.commandId);
+    if (early) return (this.recapSettled.delete(ack.commandId), early);
+    return new Promise<RecapSettlement>((resolve) => {
+      const finish = (settled: RecapSettlement) => {
+        clearInterval(watch);
+        this.recapWaiters.delete(ack.commandId);
+        resolve(settled);
+      };
+      const started = Date.now();
+      const watch = setInterval(() => {
+        if (!isCancelled() && Date.now() - started < timeoutMs && !this.stopped) return;
+        void connection.command("recap/cancel", { sessionId }).catch(() => {});
+        finish({ outcome: isCancelled() ? "cancelled" : "timedOut" });
+      }, 100);
+      this.recapWaiters.set(ack.commandId, finish);
+    });
+  }
+
+  /** Public `session/rename`; returns the canonical name Muse settled. */
+  async renameNative(name: string): Promise<string | undefined> {
+    if (!this.lease || this.stopped) return undefined;
+    const result = (await this.lease.host.connection.command("session/rename", {
+      sessionId: this.options.sessionId,
+      name,
+    })) as { name?: string };
+    return result.name ?? name;
+  }
+
+  get isOpen(): boolean {
+    return !!this.lease && !this.stopped;
   }
 
   get taskControls(): ReadonlySet<TaskAction> {
@@ -389,6 +444,15 @@ export class MuseSdkHost {
         : { served: servedFingerprint(host.initializeResult)! }),
       ...(host.fingerprintWarning ? { fingerprintWarning: host.fingerprintWarning } : {}),
     });
+    // recap/completed reaches only this connection and no session fold, and the
+    // connection keeps a single notification handler: tee it before the client
+    // installs its router.
+    const subscribe = host.connection.onNotification.bind(host.connection);
+    host.connection.onNotification = (handler) =>
+      subscribe((notification) => {
+        if (notification.method === "recap/completed") this.settleRecap(notification.params);
+        handler(notification);
+      });
     const client = new MuseClient(host.connection, {
       durability: readSessionDurability(host.initializeResult),
       host,

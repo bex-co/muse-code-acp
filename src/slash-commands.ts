@@ -5,6 +5,7 @@ export const BUILTIN_COMMANDS: AvailableCommand[] = [
   { name: "models", description: "Refresh model choices without a model request" },
   { name: "skills", description: "List available Muse skills without a model request" },
   { name: "tasks", description: "List running Muse background tasks without a model request" },
+  { name: "recap", description: "Ask Muse for a short recap of this session" },
   {
     name: "logout",
     description:
@@ -62,6 +63,8 @@ export interface SlashCommand {
   index: number;
   workflow?: WorkflowCommand;
   status?: "goal" | "mcp" | "status";
+  /** A native recap request; the agent checks backend and host support. */
+  recap?: boolean;
   /** A native goal control; the agent checks backend and host support. */
   goal?: { verb: GoalVerb; objective?: string };
   notice?: string;
@@ -119,6 +122,16 @@ export function parseSlashCommand(prompt: Blocks): SlashCommand | undefined {
           "Send this local command alone; accompanying instructions and attachments were not executed.",
       };
     return { ...result, stop: true, local: { kind: selected.name, argument: args } };
+  }
+  if (selected.name === "recap") {
+    if (args || extraText || attachments)
+      return {
+        ...result,
+        stop: true,
+        notice: "Send /recap alone; accompanying instructions and attachments were not executed.",
+      };
+    blocks[selected.index] = { type: "text", text: "" };
+    return { ...result, recap: true };
   }
   if (selected.name === "status")
     return {

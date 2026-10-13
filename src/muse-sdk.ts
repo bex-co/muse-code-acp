@@ -85,6 +85,12 @@ export interface MuseSdkOptions {
    * verbs that start no turn settle `end_turn` once Muse accepts them.
    */
   goal?: { verb: "set" | "edit" | "pause" | "resume" | "clear"; objective?: string };
+  /** Request a native recap instead of submitting `input`; the recap text is streamed. */
+  recap?: boolean;
+  /** A rename recorded while no host was open, applied once this turn acquires one. */
+  nativeName?: string;
+  /** Called with Muse's canonical name after `nativeName` is applied. */
+  onNativeName?: (name: string) => void;
 }
 
 export interface MuseSdkHandle {
@@ -317,7 +323,33 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
         return { stopReason: "cancelled" };
       }
 
+      if (options.nativeName)
+        await owner
+          .renameNative(options.nativeName)
+          .then((name) => name && options.onNativeName?.(name))
+          .catch(() =>
+            options.logger.log("Native session rename failed; the adapter title stands"),
+          );
       operation.enter("submitting", submitMs);
+      if (options.recap) {
+        const recap = await owner.requestRecap(() => cancelled || !!options.isCancelled?.());
+        if (recap.outcome === "cancelled") return { stopReason: "cancelled" };
+        updates.push({
+          sessionId: options.sessionId,
+          update: {
+            sessionUpdate: "agent_message_chunk",
+            content: {
+              type: "text",
+              text:
+                recap.outcome === "completed"
+                  ? `${recap.title ? `${recap.title}\n` : ""}${recap.text ?? ""}`
+                  : `Muse could not produce a recap (${recap.outcome}${recap.reason ? `: ${recap.reason}` : ""}).`,
+            },
+          },
+        });
+        successful = true;
+        return { stopReason: "end_turn" };
+      }
       let turn: ReturnType<typeof session.turn>;
       if (options.goal) {
         const { verb, objective } = options.goal;

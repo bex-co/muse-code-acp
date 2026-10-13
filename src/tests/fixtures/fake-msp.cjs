@@ -695,6 +695,16 @@ rl.on("line", async (line) => {
       reply({ status: "accepted", turnId });
       terminal("cancelled");
       break;
+    case "recap/request":
+      reply({ commandId: params.commandId, status: "accepted" });
+      setTimeout(() => write({ method: "recap/completed", params: { sessionId, commandId: params.commandId, outcome: "completed", text: "fake recap of the session" } }), 50);
+      break;
+    case "session/rename": {
+      const name = String(params.name).toLowerCase();
+      reply({ commandId: params.commandId, status: "accepted", name });
+      notify("session/nameChanged", { name, nameOrigin: "custom", sourceRange: { start: 0, end: 0 } });
+      break;
+    }
     case "goal/set":
     case "goal/edit":
     case "goal/pause":

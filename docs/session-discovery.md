@@ -19,7 +19,10 @@ no title field or rename event, so the compatibility fallback reads at most 64 K
 from each listed session's log head to find its first prompt, truncated to 80
 characters. It never enumerates the store to render a public page. Missing or
 unreadable prompt evidence displays `(no prompt)`. There is no model-generated
-title request and no claim of native rename support.
+title request. On Muse 1.4.7 or newer, `/rename` also sets Muse's own session name
+through `session/rename` (immediately when the session's host is open, otherwise
+when it next starts); Muse normalizes names (for example to lower case), so the
+adapter title keeps the user's text for display.
 
 Load and cold resume publish `session_info_update` from the public metadata read.
 Successful native turns with no active goal or subsequent native turn make a bounded, optional metadata read using the same

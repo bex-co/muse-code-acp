@@ -38,6 +38,11 @@ export function supportsGoalControls(version: string | null | undefined): boolea
   return atLeast(version, GOAL_CONTROL_MIN_HOST);
 }
 
+/** Native `/recap` and `session/rename` sync are verified from Muse 1.4.7. */
+export function supportsSessionCommands(version: string | null | undefined): boolean {
+  return atLeast(version, [1, 4, 7]);
+}
+
 /** Workflow pause and task background/stop are verified from Muse 1.4.6. */
 export function supportsTaskControls(version: string | null | undefined): boolean {
   return atLeast(version, [1, 4, 6]);
