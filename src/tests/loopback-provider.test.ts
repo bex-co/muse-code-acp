@@ -24,7 +24,7 @@ it("settles reminder and reviewer requests without spending the scripted tool ca
     expect(reminder).toContain('\\"decision\\":\\"none\\"');
     const review = await post("submit_approval_assessment");
     expect(review).toContain('"name":"submit_approval_assessment"');
-    expect(review).toContain('\\"outcome\\":\\"approve\\"');
+    expect(review).toContain('\\"outcome\\":\\"escalate\\"');
     expect(provider.scriptedToolCalls()).toBe(0);
     expect(await post("bash")).toContain("function_call_arguments.done");
     expect(provider.scriptedToolCalls()).toBe(1);

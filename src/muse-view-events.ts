@@ -82,4 +82,6 @@ export const ITEM_KIND_CONSUMERS: Readonly<Record<string, string>> = {
     "SDK 1.4.4 addition; muse-sdk-events.ts renders a generic card titled by the hook label and event.",
   sideChat:
     "SDK 1.4.4 addition; the adapter never opens side chats, so another client's side chat renders as a generic card.",
+  webSearch:
+    "SDK 1.4.6 addition with no documented fields; muse-sdk-events.ts renders a generic Web search card. The model's web_search tool still arrives as a toolCall (Muse 1.4.6 probe).",
 };

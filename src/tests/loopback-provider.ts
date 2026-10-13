@@ -30,6 +30,8 @@ export interface LoopbackProviderOptions {
   /**
    * What Muse's approval reviewer submits. A real reviewer either approves or
    * escalates to a user; replying with text instead never settles the review.
+   * Defaults to `escalate`, so approvals still reach the client: `muse serve`
+   * runs the reviewer from Muse 1.4.6, and earlier hosts never ask it.
    */
   reviewerOutcome?: "approve" | "escalate";
   /** Hold SSE open so cancel races stay deterministic. */
@@ -248,7 +250,7 @@ export async function startLoopbackProvider(
         );
         return;
       }
-      const hostAgent = hostAgentReply(parsed, options.reviewerOutcome ?? "approve");
+      const hostAgent = hostAgentReply(parsed, options.reviewerOutcome ?? "escalate");
       if (hostAgent) {
         response.writeHead(200, { "content-type": "text/event-stream" });
         response.end(

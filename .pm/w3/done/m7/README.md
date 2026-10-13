@@ -1,17 +1,17 @@
 # w3 · m7 — Catch up to SDK and Muse 1.4.6
 
-**Worker:** worker1 **Goal:** The adapter pins `@muse-code/sdk` 1.4.6 and is verified on Muse 1.4.6, with every new folded item classified and rendered. **Status:** todo
+**Worker:** worker1 **Goal:** The adapter pins `@muse-code/sdk` 1.4.6 and is verified on Muse 1.4.6, with every new folded item classified and rendered. **Status:** done
 
 ## Tasks (in order)
 
-| id   | title                                        | est | depends_on             |
-| ---- | -------------------------------------------- | --- | ---------------------- |
-| t001 | Bump the SDK to 1.4.6 and classify new items | 1h  | —                      |
-| t002 | Verify Muse 1.4.6 and update host lists      | 1h  | w3/m7/t001             |
-| t003 | Adoption surface                             | 30m | w3/m7/t001, w3/m7/t002 |
-| t004 | Simplify milestone changes                   | 30m | w3/m7/t003             |
-| t005 | CI and behavior coverage                     | 45m | w3/m7/t004             |
-| t006 | Close out milestone                          | 15m | w3/m7/t005             |
+| id   | title                                                   | est | depends_on             |
+| ---- | ------------------------------------------------------- | --- | ---------------------- |
+| t001 | Bump the SDK to 1.4.6 and classify new items — **DONE** | 1h  | —                      |
+| t002 | Verify Muse 1.4.6 and update host lists — **DONE**      | 1h  | w3/m7/t001             |
+| t003 | Adoption surface — **DONE**                             | 30m | w3/m7/t001, w3/m7/t002 |
+| t004 | Simplify milestone changes — **DONE**                   | 30m | w3/m7/t003             |
+| t005 | CI and behavior coverage — **DONE**                     | 45m | w3/m7/t004             |
+| t006 | Close out milestone — **DONE**                          | 15m | w3/m7/t005             |
 
 ## Definition of done
 
@@ -29,4 +29,8 @@
 
 ## Validation evidence
 
-Pending.
+Muse `1.4.6-R6000.1`, `@muse-code/sdk` 1.4.6, macOS arm64, 2026-10-12.
+
+- `npm run check`: clean. `npm run test:unit`: 500/500.
+- `MUSE_CODE_ACP_REQUIRE_MUSE=1` loopback suite, `--no-file-parallelism`: 19 files, 65/65.
+- New host facts: `muse serve` runs the automated reviewer (w3/008); exec-created `:auto-review` sessions load; workflow cancel works; earlier fork boundaries still fail (#97); workflow children refuse effort `none`.

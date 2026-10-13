@@ -507,7 +507,7 @@ are affected too. When `muse exec --help` lists `--permission-profile` and the h
 1.4.4 or newer, exec Read-only and Plan sessions pass `--permission-profile :read-only`
 (writes and shell are already disabled there) and load through `muse serve`. Default
 mode keeps `:auto-review`; Auto-approve and No-approval modes already load, and Muse
-refuses a profile alongside their flags. Use the SDK backend when sessions must stay
+refuses a profile alongside their flags. Muse 1.4.6 loads and continues these sessions because `muse serve` now runs the automated reviewer (the legacy refusal lists stop at 1.4.4-R5419.1); on earlier hosts, use the SDK backend when sessions must stay
 resumable; serve support for `:auto-review` is requested upstream in
 [muse-code-sdk#80](https://github.com/meta-models/muse-code-sdk/issues/80). Headless exec
 also never resolves a tool call its reviewer escalates: the run stops emitting events after

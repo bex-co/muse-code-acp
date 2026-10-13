@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Dependencies
+
+- Bump `@muse-code/sdk` from 1.4.4 to 1.4.6 and verify Muse 1.4.6-R6000.1. The new `webSearch` item renders as a generic Web search card (the model's `web_search` tool still arrives as a tool call). Workflow `cancel` is advertised on 1.4.6.
+
+### Compatibility
+
+- Muse 1.4.6 runs its automated approval reviewer in `muse serve`: SDK-backend tool calls the reviewer approves run without an ACP permission prompt, and only escalations reach the client. It also loads and continues exec-created `:auto-review` sessions. Forking at an earlier turn still fails on 1.4.6 ([muse-code-sdk#97](https://github.com/meta-models/muse-code-sdk/issues/97)), and workflow children refuse the `none` effort.
+
 ## [0.9.1](https://github.com/bex-co/muse-code-acp/compare/v0.9.0...v0.9.1) (2026-10-11)
 
 ### Fixes

@@ -99,13 +99,14 @@ it("cancels only an observed workflow and rejects stale host targets", async () 
         },
       };
     },
+    // Hold the workflow child's model request so the workflow stays running.
+    // Muse 1.4.6 no longer sends the child prompt as the last plain-string user
+    // message, and reminder/reviewer side requests must not be held.
     holdMsForRequest: (r) => {
-      const last = (r.input as { role?: string; content?: unknown }[])
-        ?.filter((i) => i.role === "user")
-        .at(-1)?.content;
-      return typeof last === "string" &&
-        last.includes("slow-child-control-marker") &&
-        !last.startsWith("You are a reminder observer")
+      const tools = JSON.stringify(r.tools ?? []);
+      return JSON.stringify(r.input).includes("slow-child-control-marker") &&
+        !tools.includes("submit_reminder_decision") &&
+        !tools.includes("submit_approval_assessment")
         ? 12000
         : 20;
     },
@@ -116,6 +117,13 @@ it("cancels only an observed workflow and rejects stale host targets", async () 
     const { sessionId } = await ctx.request(methods.agent.session.new, {
       cwd: p.root,
       mcpServers: [],
+    });
+    // Muse 1.4.6 refuses workflow children on the loopback default effort
+    // (`none`): workflow_child_route_effort_unsupported.
+    await ctx.request(methods.agent.session.setConfigOption, {
+      sessionId,
+      configId: "reasoningEffort",
+      value: "medium",
     });
     await ctx.request(methods.agent.session.prompt, {
       sessionId,
@@ -128,9 +136,9 @@ it("cancels only an observed workflow and rejects stale host targets", async () 
           ? [n.update]
           : [],
       );
-    // Workflow cancellation is verified on 1.2.1, 1.3.0 and 1.4.4 (WORKFLOW_CANCEL_HOSTS).
+    // Workflow cancellation is verified on 1.2.1, 1.3.0, 1.4.4 and 1.4.6 (WORKFLOW_CANCEL_HOSTS).
     if (
-      !/\b1\.(2\.1|3\.0|4\.4)\b/.test(
+      !/\b1\.(2\.1|3\.0|4\.4|4\.6)\b/.test(
         spawnSync(museCliPath(), ["--version"], { encoding: "utf8" }).stdout,
       )
     ) {

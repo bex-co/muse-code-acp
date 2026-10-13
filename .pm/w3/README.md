@@ -10,7 +10,7 @@
 - [x] [**m4** — Exec backend fidelity on Muse 1.4.x](done/m4/README.md) (7 tasks) ← promoted from w3/001 and w3/002 (2026-10-08)
 - [x] [**m5** — Release 0.9.0 and report host regressions upstream](done/m5/README.md) (5 tasks) ← SDK 1.4.4 bump and w3/003 (2026-10-08)
 - [x] [**m6** — Exec default-mode continuity and stall triage](done/m6/README.md) (9 tasks) ← promoted from w3/004 and the 2026-10-09 resolution plan
-- [ ] [**m7** — Catch up to SDK and Muse 1.4.6](m7/README.md) (6 tasks) ← 2026-10-12 Muse feature research
+- [x] [**m7** — Catch up to SDK and Muse 1.4.6](done/m7/README.md) (6 tasks) ← 2026-10-12 Muse feature research
 - [ ] [**m8** — Native goal controls](m8/README.md) (6 tasks) ← 2026-10-12 Muse feature research
 - [ ] [**m9** — Native session compaction](m9/README.md) (6 tasks) ← 2026-10-12 Muse feature research
 - [ ] [**m10** — Background task and workflow controls](m10/README.md) (6 tasks) ← 2026-10-12 Muse feature research
@@ -24,5 +24,6 @@
 - [005](005.md) — Side chats over ACP (deferred)
 - [006](006.md) — Computer-use settings and setup (deferred)
 - [007](007.md) — Media upload and video prompt input (deferred)
+- [008](008.md) — Surface Muse reviewer decisions and decide on reviewer control (needs user decision)
 
 001 and 002 were promoted to m4, 003 to m5 (2026-10-08) and 004 to m6 (2026-10-09).

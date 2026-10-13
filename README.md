@@ -32,7 +32,11 @@ the opt-in exec backend are affected too. From 1.4.4, exec-backend Read-only and
 sessions use Muse's built-in `:read-only` profile and stay loadable; Default mode keeps
 `:auto-review`, because the loadable alternative would run tools without approval
 (upstream: [muse-code-sdk#80](https://github.com/meta-models/muse-code-sdk/issues/80)).
-**Keep the default SDK backend when sessions must stay resumable.** In exec Default
+Muse 1.4.6 runs its automated reviewer in `muse serve` too, and loads and continues
+these sessions; on earlier hosts, **keep the default SDK backend when sessions must stay
+resumable.** On 1.4.6 the reviewer also decides SDK-backend approval requests first:
+low-risk calls it approves run without an ACP permission prompt, and only escalations
+reach the client. In exec Default
 mode, a tool call that Muse's reviewer escalates to a user cannot be answered headlessly;
 the adapter stops the run after 120 seconds (`MUSE_CODE_ACP_EXEC_APPROVAL_STALL_MS`) and
 fails the prompt with that reason instead of hanging
@@ -47,7 +51,7 @@ The launcher updates and removes superseded binaries, so pointing
 URLs and SHA-256 checks are in [CI](.github/workflows/ci.yml). Keep the verified
 binary at a separate path. These fixes are included in **0.5.0**.
 
-The npm adapter and its pinned `@muse-code/sdk@1.4.4` dependency do not include
+The npm adapter and its pinned `@muse-code/sdk@1.4.6` dependency do not include
 the Muse executable. Native execution, model access, persistence and sandboxing
 remain owned by Muse.
 

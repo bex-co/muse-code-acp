@@ -185,7 +185,7 @@ it("treats gap catch-up as absolute text for every streamed public surface", () 
   expect(t.fromAccumulated("t", "output", "first second")).toEqual([]);
 });
 
-it("renders SDK 1.4.4 hook runs and side chats as generic cards", () => {
+it("renders SDK 1.4.4–1.4.6 hook runs, side chats and web searches as generic cards", () => {
   const translator = new MuseSdkTranslator("root", { log() {}, error() {} });
   const [hook] = translator.fromItem({
     itemId: "hook",
@@ -212,4 +212,12 @@ it("renders SDK 1.4.4 hook runs and side chats as generic cards", () => {
     sideSessionId: "side-session",
   });
   expect(side.update).toMatchObject({ title: "sideChat: completed", kind: "other" });
+  const [search] = translator.fromItem({
+    itemId: "search",
+    kind: "webSearch",
+    turnId: "turn",
+    revision: 1,
+    status: "completed",
+  });
+  expect(search.update).toMatchObject({ title: "Web search: completed", kind: "other" });
 });
