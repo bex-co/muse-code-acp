@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.10.0](https://github.com/bex-co/muse-code-acp/compare/v0.9.1...v0.10.0) (2026-10-12)
+
 ### Features
 
 - `/plugins` lists installed Muse plugins, `/plugins install <folder>` installs a local plugin (explicit command only; Muse errors reported verbatim), and `/hooks` lists installed hooks (Muse 1.4.7 or newer). Marketplace management is not offered yet: only its refusal paths were observed.
