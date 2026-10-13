@@ -38,6 +38,11 @@ export function supportsGoalControls(version: string | null | undefined): boolea
   return atLeast(version, GOAL_CONTROL_MIN_HOST);
 }
 
+/** Workflow pause and task background/stop are verified from Muse 1.4.6. */
+export function supportsTaskControls(version: string | null | undefined): boolean {
+  return atLeast(version, [1, 4, 6]);
+}
+
 /**
  * Whether `muse exec` accepts `--permission-profile` with the built-in
  * profiles: the flag must be in its help and the host at least 1.4.4.

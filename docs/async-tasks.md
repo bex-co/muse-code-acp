@@ -31,6 +31,22 @@ connection; SDK 1.3.0 declares the method, and Muse's public conformance
 outcome. Generation-bound targets cannot operate on replacement hosts or another
 ACP session. No provider prompt, process signal or guessed child ID is used.
 
+On Muse 1.4.6 or newer, verified against a real host, cards also offer:
+
+- `pause` on a running, unpaused workflow (`workflow/pause`; the item then reports
+  `paused`). A paused workflow offers no actions: Muse 1.4.6 refuses to cancel it
+  (`missing_run`), and `workflow/resume` was accepted but never observed to unpause
+  the run, so resume is not offered.
+- `background` on a running foreground tool call (`task/background`): the prompt ends
+  while the tool keeps running, and the card switches to `stop`.
+- `stop` on a backgrounded tool call (`task/stop`); the item then ends cancelled.
+  When a background task ends, Muse starts its own turn to report it; ordinary
+  prompts wait for that host-owned turn.
+
+`/tasks` lists the session's running tasks through `task/list` without a model
+request. `task/stopAll` is not exposed (only observed over an empty set). Muse's
+refusals are reported as `Muse rejected <method>: <reason>`.
+
 Other hosts show observed workflow cards without `cancel`. Muse 1.1.1 has no
 verified workflow lifecycle/control delivery; public shell and
 reminder cards still work. A workflow tool result alone is not proof of an

@@ -1608,6 +1608,18 @@ export class MuseAcpAgent {
               .slice(0, 200)
               .map((s) => `${s.id} [${s.activation}, ${s.scope}] — ${s.description.slice(0, 300)}`)
               .join("\n") || "No Muse skills were reported.";
+        } else if (command.local.kind === "tasks") {
+          const tasks = await session.sdkHost?.owner.listTasks();
+          text =
+            tasks === undefined
+              ? "No live Muse host reports background tasks for this session (task listing needs a running host on Muse 1.4.6 or newer)."
+              : tasks
+                  .slice(0, 200)
+                  .map(
+                    (t) =>
+                      `${t.tool ?? t.kind} ${t.taskId} [${t.status}${t.backgroundInitiator ? `, backgrounded by ${t.backgroundInitiator}` : ""}]${t.startedAt ? ` since ${t.startedAt}` : ""}`,
+                  )
+                  .join("\n") || "No background tasks are running.";
         } else {
           await this.logout({});
           text = `Stored Muse logout completed. ${this.authStatus().configured ? "Credentials remain configured (including any exported META_API_KEY); verification is unknown." : "No credentials are configured."} Adapter sessions were closed.`;
@@ -2076,13 +2088,13 @@ export class MuseAcpAgent {
     return saved.output!;
   }
 
-  async controlTask({ sessionId, target }: ReturnType<typeof parseTaskRequest>) {
+  async controlTask({ sessionId, target, action }: ReturnType<typeof parseTaskRequest>) {
     this.assertRunning();
     if (this.backend !== "sdk" || this.clientCapabilities._meta?.[ASYNC_TASKS] !== 1)
       throw RequestError.invalidRequest(undefined, "muse/asyncTasks must be negotiated");
     const owner = this.sessions.get(sessionId)?.sdkHost?.owner;
     if (!owner) throw RequestError.invalidRequest(undefined, "Task host is no longer available");
-    return owner.controlTask(target);
+    return owner.controlTask(target, action);
   }
 
   async cancel(params: CancelNotification): Promise<void> {

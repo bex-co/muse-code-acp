@@ -4,6 +4,7 @@ import type { WorkflowCommand } from "./review-prompt.js";
 export const BUILTIN_COMMANDS: AvailableCommand[] = [
   { name: "models", description: "Refresh model choices without a model request" },
   { name: "skills", description: "List available Muse skills without a model request" },
+  { name: "tasks", description: "List running Muse background tasks without a model request" },
   {
     name: "logout",
     description:
@@ -56,7 +57,7 @@ const names = new Set(BUILTIN_COMMANDS.map((command) => command.name));
 export type GoalVerb = "set" | "edit" | "pause" | "resume" | "clear";
 type Blocks = PromptRequest["prompt"];
 export interface SlashCommand {
-  local?: { kind: "models" | "skills" | "logout" | "rename"; argument: string };
+  local?: { kind: "models" | "skills" | "tasks" | "logout" | "rename"; argument: string };
   blocks: Blocks;
   index: number;
   workflow?: WorkflowCommand;
@@ -106,6 +107,7 @@ export function parseSlashCommand(prompt: Blocks): SlashCommand | undefined {
   if (
     selected.name === "models" ||
     selected.name === "skills" ||
+    selected.name === "tasks" ||
     selected.name === "logout" ||
     selected.name === "rename"
   ) {

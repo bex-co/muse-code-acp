@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { RequestError, type SessionNotification } from "@agentclientprotocol/sdk";
-import { cancelWorkflow } from "./async-tasks.js";
+import { sendTaskControl, taskActions, type TaskAction } from "./async-tasks.js";
 import { isLegacyAutoReviewRefusal, LEGACY_AUTO_REVIEW_MESSAGE } from "./legacy-profile.js";
 import type { MuseSdkTranslator } from "./muse-sdk-events.js";
 import { foldedProgress, type ProgressFacts } from "./session-progress.js";
@@ -17,7 +17,12 @@ import { realpathSync } from "node:fs";
 import packageJson from "../package.json" with { type: "json" };
 import type { MuseSdkOptions } from "./muse-sdk.js";
 import { museCliPath } from "./muse-cli.js";
-import { assertSdkHostSupport, assertSdkSafetySupport, sdkHostExitMessage } from "./muse-host.js";
+import {
+  assertSdkHostSupport,
+  assertSdkSafetySupport,
+  sdkHostExitMessage,
+  supportsTaskControls,
+} from "./muse-host.js";
 import { parseGoalObservation, type GoalObservation } from "./goal-state.js";
 import { SessionStateObserver, type SessionStateObservation } from "./session-state-observer.js";
 import {
@@ -58,7 +63,7 @@ interface HostLease {
 }
 
 /** Hosts whose public workflow/cancel was verified against a real observed run. */
-const WORKFLOW_CANCEL_HOSTS = ["1.2.1", "1.3.0", "1.4.4", "1.4.6"];
+const WORKFLOW_CANCEL_HOSTS = ["1.2.1", "1.3.0", "1.4.4", "1.4.6", "1.4.7"];
 
 /** A single ACP session owns this process and its spawn-time configuration. */
 export class MuseSdkHost {
@@ -72,26 +77,54 @@ export class MuseSdkHost {
   retainProgress(turnId: string, translator: MuseSdkTranslator) {
     this.retained.set(turnId, translator);
   }
-  async controlTask(target: string) {
-    if (
-      this.stopped ||
-      !target.startsWith(`${this.generation}:`) ||
-      !this.lease ||
-      !this.workflowCancellationSupported
-    )
-      throw RequestError.invalidRequest(
-        undefined,
-        "Task target is stale or workflow cancellation is unavailable on this host",
-      );
+  /** Public `task/list` on the live host; undefined when no host is open or it lacks the method. */
+  async listTasks(): Promise<
+    | {
+        taskId: string;
+        kind: string;
+        status: string;
+        tool?: string;
+        backgroundInitiator?: string;
+        startedAt?: string;
+      }[]
+    | undefined
+  > {
+    const version = this.lease?.host.initializeResult.serverInfo?.version;
+    if (this.stopped || !this.lease || !supportsTaskControls(version)) return undefined;
+    const result = (await this.lease.host.connection.request("task/list", {
+      sessionId: this.options.sessionId,
+    })) as { tasks?: unknown };
+    return Array.isArray(result.tasks) ? result.tasks : [];
+  }
+
+  get taskControls(): ReadonlySet<TaskAction> {
+    const version = this.lease?.host.initializeResult.serverInfo?.version;
+    return new Set<TaskAction>([
+      ...(this.workflowCancellationSupported ? (["cancel"] as const) : []),
+      ...(supportsTaskControls(version) ? (["pause", "background", "stop"] as const) : []),
+    ]);
+  }
+  async controlTask(target: string, action: TaskAction) {
+    if (this.stopped || !target.startsWith(`${this.generation}:`) || !this.lease)
+      throw RequestError.invalidRequest(undefined, "Task target is stale");
     const item = this.lease.session.fold.items.get(target.slice(this.generation.length + 1));
     if (
       !this.lease.session.fold.current ||
-      item?.kind !== "workflow" ||
-      item.status !== "inProgress" ||
-      !item.workflowRunId
+      !item ||
+      !taskActions(item, this.taskControls).includes(action)
     )
-      throw RequestError.invalidRequest(undefined, "Task is not a current running workflow");
-    return cancelWorkflow(this.lease.host.connection, this.options.sessionId, item.workflowRunId);
+      throw RequestError.invalidRequest(
+        undefined,
+        `Task does not offer ${action} now (not running, already in that state, or unverified on this host)`,
+      );
+    const sessionId = this.options.sessionId;
+    const connection = this.lease.host.connection;
+    if (action === "cancel" || action === "pause")
+      return sendTaskControl(connection, `workflow/${action}`, {
+        sessionId,
+        workflowRunId: item.workflowRunId,
+      });
+    return sendTaskControl(connection, `task/${action}`, { sessionId, taskId: item.itemId });
   }
   private observeTasks() {
     if (!this.lease?.session.fold.current || this.stopped) return;

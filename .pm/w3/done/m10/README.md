@@ -1,17 +1,17 @@
 # w3 · m10 — Background task and workflow controls
 
-**Worker:** worker1 **Goal:** Task and workflow cards offer verified stop, background, pause and resume actions, and running tasks can be listed. **Status:** todo
+**Worker:** worker1 **Goal:** Task and workflow cards offer verified stop, background, pause and resume actions, and running tasks can be listed. **Status:** done
 
 ## Tasks (in order)
 
-| id   | title                                                              | est | depends_on               |
-| ---- | ------------------------------------------------------------------ | --- | ------------------------ |
-| t001 | Verify background task and workflow controls on the installed host | 1h  | w3/m7/t006               |
-| t002 | Implement background task and workflow controls                    | 2h  | w3/m10/t001              |
-| t003 | Adoption surface                                                   | 30m | w3/m10/t001, w3/m10/t002 |
-| t004 | Simplify milestone changes                                         | 30m | w3/m10/t003              |
-| t005 | CI and behavior coverage                                           | 45m | w3/m10/t004              |
-| t006 | Close out milestone                                                | 15m | w3/m10/t005              |
+| id   | title                                                                         | est | depends_on               |
+| ---- | ----------------------------------------------------------------------------- | --- | ------------------------ |
+| t001 | Verify background task and workflow controls on the installed host — **DONE** | 1h  | w3/m7/t006               |
+| t002 | Implement background task and workflow controls — **DONE**                    | 2h  | w3/m10/t001              |
+| t003 | Adoption surface — **DONE**                                                   | 30m | w3/m10/t001, w3/m10/t002 |
+| t004 | Simplify milestone changes — **DONE**                                         | 30m | w3/m10/t003              |
+| t005 | CI and behavior coverage — **DONE**                                           | 45m | w3/m10/t004              |
+| t006 | Close out milestone — **DONE**                                                | 15m | w3/m10/t005              |
 
 ## Definition of done
 
@@ -30,4 +30,8 @@
 
 ## Validation evidence
 
-Pending.
+Muse `1.4.6-R6000.1` then `1.4.7-R6101.1` (auto-updated mid-run), `@muse-code/sdk` 1.4.6, macOS arm64, 2026-10-12.
+
+- `npm run check`: clean. `npm run test:unit`: 503/503.
+- Loopback suite `--no-file-parallelism` on 1.4.7: 20 files, 67/67.
+- Unverified and unadvertised: `workflow/resume` (never observed to unpause), `task/stopAll` (only over an empty set), cancel of a paused workflow (`missing_run`).

@@ -248,7 +248,8 @@ See [failure and authentication observations](docs/failures.md) for structured S
 errors, credential configuration and session-scoped recovery state.
 
 See [workflow and background tasks](docs/async-tasks.md) for retained progress
-and negotiated targeted workflow cancellation.
+and negotiated targeted workflow cancellation; on Muse 1.4.6+, workflow pause, tool
+background/stop and `/tasks` listing.
 
 See [embedded input and local session commands](docs/session-commands.md) for
 byte handling, persistent titles, logout and compatible active-turn steering.

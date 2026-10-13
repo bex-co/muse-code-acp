@@ -15,7 +15,7 @@ const item = {
 } as const;
 it("correlates worker revisions, terminals, nested attempts and negotiated controls", () => {
   const translator = new MuseSdkTranslator("root", { log() {}, error() {} });
-  translator.configureWorkers("generation", true, true);
+  translator.configureWorkers("generation", new Set(["cancel"] as const), true);
   const first = translator.fromItem(item)[0].update;
   expect(first).toMatchObject({
     sessionUpdate: "tool_call",
@@ -48,4 +48,28 @@ it("host loss and read-only restoration cannot imply active work or available co
   expect(() =>
     parseTaskRequest({ sessionId: "root", target: "generation:worker", action: "delete" }),
   ).toThrow();
+});
+
+it("offers only verified actions for the task's current state", async () => {
+  const { taskActions } = await import("../async-tasks.js");
+  const all = new Set(["cancel", "pause", "background", "stop"] as const);
+  const workflow = {
+    itemId: "w",
+    kind: "workflow",
+    turnId: "t",
+    revision: 1,
+    workflowRunId: "run",
+  };
+  expect(taskActions({ ...workflow, status: "inProgress" }, all)).toEqual(["cancel", "pause"]);
+  expect(taskActions({ ...workflow, status: "inProgress", paused: true }, all)).toEqual([]);
+  expect(taskActions({ ...workflow, status: "inProgress" }, new Set(["cancel"] as const))).toEqual([
+    "cancel",
+  ]);
+  expect(taskActions({ ...workflow, status: "completed" }, all)).toEqual([]);
+  const tool = { itemId: "c", kind: "toolCall", turnId: "t", revision: 1, status: "inProgress" };
+  expect(taskActions(tool, all)).toEqual(["background"]);
+  expect(taskActions({ ...tool, backgroundInitiator: "user" }, all)).toEqual(["stop"]);
+  expect(taskActions(tool, new Set(["cancel"] as const))).toEqual([]);
+  for (const action of ["cancel", "pause", "background", "stop"])
+    expect(parseTaskRequest({ sessionId: "s", target: "g:i", action })).toMatchObject({ action });
 });

@@ -1,5 +1,11 @@
 import { OUTPUT_EXTENSION, outputMetadata } from "./stored-output.js";
-import { ASYNC_TASKS, workerKinds, workerText } from "./async-tasks.js";
+import {
+  ASYNC_TASKS,
+  taskActions,
+  workerKinds,
+  workerText,
+  type TaskAction,
+} from "./async-tasks.js";
 import { SessionNotification, ToolCall } from "@agentclientprotocol/sdk";
 import type { FoldedItem } from "@muse-code/sdk";
 import type { FileChangeEvidence } from "./file-change-evidence.js";
@@ -27,9 +33,13 @@ export class MuseSdkTranslator {
   configureOutput(enabled: boolean) {
     this.outputNegotiated = enabled;
   }
-  private workerContext?: { generation: string; cancel: boolean; negotiated: boolean };
-  configureWorkers(generation: string, cancel: boolean, negotiated: boolean) {
-    this.workerContext = { generation, cancel, negotiated };
+  private workerContext?: {
+    generation: string;
+    controls: ReadonlySet<TaskAction>;
+    negotiated: boolean;
+  };
+  configureWorkers(generation: string, controls: ReadonlySet<TaskAction>, negotiated: boolean) {
+    this.workerContext = { generation, controls, negotiated };
   }
   lostWork(): SessionNotification[] {
     return [...this.items.values()]
@@ -202,13 +212,7 @@ export class MuseSdkTranslator {
               [ASYNC_TASKS]: {
                 kind: item.kind,
                 target: `${this.workerContext.generation}:${item.itemId}`,
-                actions:
-                  item.kind === "workflow" &&
-                  item.status === "inProgress" &&
-                  item.workflowRunId &&
-                  this.workerContext.cancel
-                    ? ["cancel"]
-                    : [],
+                actions: taskActions(item, this.workerContext.controls),
                 observedStatus: item.status,
                 ...(item.childSessionId
                   ? { childSessionId: item.childSessionId, childHistory: "unavailable" }

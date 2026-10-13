@@ -1,40 +1,77 @@
 import { RequestError } from "@agentclientprotocol/sdk";
-import type { Connection, FoldedItem } from "@muse-code/sdk";
+import { MspError, type Connection, type FoldedItem } from "@muse-code/sdk";
 
 export const ASYNC_TASKS = "muse/asyncTasks";
 export const TASK_METHOD = "_muse/task";
 export const workerKinds = new Set(["workflow", "subagent", "reminderChild"]);
+export type TaskAction = "cancel" | "pause" | "background" | "stop";
+const TASK_ACTIONS: readonly TaskAction[] = ["cancel", "pause", "background", "stop"];
+
 export function parseTaskRequest(raw: unknown) {
   const value = raw as Record<string, unknown> | null;
   if (
     !value ||
     typeof value.sessionId !== "string" ||
     typeof value.target !== "string" ||
-    value.action !== "cancel"
+    !TASK_ACTIONS.includes(value.action as TaskAction)
   )
     throw RequestError.invalidParams(
       undefined,
-      "task control requires sessionId, target and action cancel",
+      `task control requires sessionId, target and action ${TASK_ACTIONS.join(" | ")}`,
     );
-  return { sessionId: value.sessionId, target: value.target };
+  return { sessionId: value.sessionId, target: value.target, action: value.action as TaskAction };
 }
 
-/** Public MSP workflow/cancel (declared in SDK 1.3.0; Connection.command stays untyped). */
-export async function cancelWorkflow(
+/**
+ * The verified actions a task card offers. Running workflows: cancel and pause.
+ * A paused workflow offers none on Muse 1.4.6: cancel is refused (`missing_run`)
+ * and resume was accepted but never observed to unpause the run. Tool calls:
+ * background while foreground, stop once backgrounded.
+ */
+export function taskActions(item: FoldedItem, controls: ReadonlySet<TaskAction>): TaskAction[] {
+  if (item.status !== "inProgress") return [];
+  if (item.kind === "workflow" && item.workflowRunId && !item.paused)
+    return [
+      ...(controls.has("cancel") ? (["cancel"] as const) : []),
+      ...(controls.has("pause") ? (["pause"] as const) : []),
+    ];
+  if (item.kind === "toolCall")
+    return item.backgroundInitiator
+      ? controls.has("stop")
+        ? ["stop"]
+        : []
+      : controls.has("background")
+        ? ["background"]
+        : [];
+  return [];
+}
+
+/** One public task/workflow control command (Connection.command stays untyped). */
+export async function sendTaskControl(
   connection: Connection,
-  sessionId: string,
-  workflowRunId: string,
+  method: "workflow/cancel" | "workflow/pause" | "task/background" | "task/stop",
+  params: Record<string, unknown>,
 ) {
   const command = connection.command.bind(connection) as unknown as (
     method: string,
     params: Record<string, unknown>,
     options: { maxAttempts: number },
   ) => Promise<{ status: string }>;
-  const result = await command("workflow/cancel", { sessionId, workflowRunId }, { maxAttempts: 1 });
+  let result: { status: string };
+  try {
+    result = await command(method, params, { maxAttempts: 1 });
+  } catch (error) {
+    if (!(error instanceof MspError)) throw error;
+    const reason = (error.data as { reason?: unknown }).reason;
+    throw RequestError.invalidRequest(
+      undefined,
+      `Muse rejected ${method}: ${typeof reason === "string" ? reason : error.kind}`,
+    );
+  }
   if (result.status !== "accepted" && result.status !== "completed")
     throw RequestError.internalError(
       undefined,
-      "Muse returned an unknown workflow cancellation acknowledgement",
+      `Muse returned an unknown ${method} acknowledgement`,
     );
   return { status: result.status }; // An acknowledgement never substitutes for an item terminal.
 }

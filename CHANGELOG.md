@@ -4,6 +4,8 @@
 
 ### Features
 
+- Task and workflow controls on Muse 1.4.6 or newer (negotiated `muse/asyncTasks`): running workflows offer `pause`, running foreground tool calls offer `background` (the prompt ends while the tool keeps running), backgrounded tools offer `stop`, and `/tasks` lists running tasks. Paused workflows offer no actions, since Muse 1.4.6 refuses to cancel them and resume was not observed to work. Muse's refusals are reported as `Muse rejected <method>: <reason>`.
+
 - Native goal controls: on Muse 1.4.6 or newer, `/goal set <objective>`, `/goal edit <objective>`, `/goal pause`, `/goal resume` and `/goal clear` drive Muse's persistent goal through the public `goal/*` methods. `set` and `resume` stream the goal turn Muse starts; refusals such as `invalid_goal_state` and `missing_goal` are reported verbatim. The `muse/goal` extension advertises the controls on supported hosts.
 
 ### Fixes

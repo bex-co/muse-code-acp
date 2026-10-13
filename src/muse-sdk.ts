@@ -282,7 +282,7 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
       );
       translator.configureWorkers(
         owner.generation,
-        owner.workflowCancellationSupported,
+        owner.taskControls,
         options.clientCapabilities?._meta?.[ASYNC_TASKS] === 1,
       );
       translator.configureOutput(

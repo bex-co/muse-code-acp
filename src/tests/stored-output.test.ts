@@ -85,7 +85,7 @@ it("keeps baseline output and merges read metadata with asynchronous task identi
   const baseline = new MuseSdkTranslator("session", console).fromItem(item)[0];
   expect(baseline.update._meta?.[OUTPUT_EXTENSION]).toBeUndefined();
   const translator = new MuseSdkTranslator("session", console);
-  translator.configureWorkers("generation", true, true);
+  translator.configureWorkers("generation", new Set(["cancel"] as const), true);
   translator.configureOutput(true);
   const notification = translator.fromItem(item)[0];
   expect(notification.update).toMatchObject({

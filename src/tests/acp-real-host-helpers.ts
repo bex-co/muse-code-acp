@@ -41,7 +41,12 @@ const LEGACY_PROFILE_ERROR = {
  * although their schema documents any completed turn. Enumerated like the above.
  * Upstream: https://github.com/meta-models/muse-code-sdk/issues/97
  */
-const FORK_CUT_LATEST_ONLY = ["(1.4.3-R5018.1)", "(1.4.4-R5419.1)", "(1.4.6-R6000.1)"];
+const FORK_CUT_LATEST_ONLY = [
+  "(1.4.3-R5018.1)",
+  "(1.4.4-R5419.1)",
+  "(1.4.6-R6000.1)",
+  "(1.4.7-R6101.1)",
+];
 export const forkCutLatestOnly = () =>
   FORK_CUT_LATEST_ONLY.some((build) => museVersion().includes(build));
 const museVersion = () =>
