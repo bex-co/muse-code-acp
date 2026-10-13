@@ -16,7 +16,7 @@ import {
   RequestError,
   SessionNotification,
 } from "@agentclientprotocol/sdk";
-import { Connection, MspError, createUuidV7Mint, type FoldedItem } from "@muse-code/sdk";
+import { Connection, MspError, type FoldedItem } from "@muse-code/sdk";
 import { realpathSync } from "node:fs";
 import type { AcpClient } from "./acp-agent.js";
 import { sessionInfo, sessionInfoNotification } from "./session-discovery.js";
@@ -86,8 +86,6 @@ export interface MuseSdkOptions {
    */
   goal?: { verb: "set" | "edit" | "pause" | "resume" | "clear"; objective?: string };
 }
-
-const mintCommandId = createUuidV7Mint();
 
 export interface MuseSdkHandle {
   updates: AsyncIterable<SessionNotification>;
@@ -330,8 +328,8 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
         // Not through operation.wait: a refusal is an answer to report, not a
         // host failure to record as the turn's initiating cause.
         try {
+          // The connection mints the command id (one minter per connection).
           ack = (await connection.command(`goal/${verb}`, {
-            commandId: mintCommandId(),
             sessionId: options.sessionId,
             ...(objective !== undefined ? { objective } : {}),
           })) as { turnId?: string };

@@ -51,7 +51,7 @@ The launcher updates and removes superseded binaries, so pointing
 URLs and SHA-256 checks are in [CI](.github/workflows/ci.yml). Keep the verified
 binary at a separate path. These fixes are included in **0.5.0**.
 
-The npm adapter and its pinned `@muse-code/sdk@1.4.6` dependency do not include
+The npm adapter and its pinned `@muse-code/sdk@1.4.7` dependency do not include
 the Muse executable. Native execution, model access, persistence and sandboxing
 remain owned by Muse.
 

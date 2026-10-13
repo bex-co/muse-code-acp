@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Dependencies
+
+- Bump `@muse-code/sdk` from 1.4.6 to 1.4.7 (adds computer-use setup checks only) and verify Muse 1.4.7-R6101.1: the full real-host suite passes, workflow `cancel` is advertised, and earlier fork boundaries still fail (#97). Goal controls now use the connection's own command-id minter.
+
 ### Features
 
 - Task and workflow controls on Muse 1.4.6 or newer (negotiated `muse/asyncTasks`): running workflows offer `pause`, running foreground tool calls offer `background` (the prompt ends while the tool keeps running), backgrounded tools offer `stop`, and `/tasks` lists running tasks. Paused workflows offer no actions, since Muse 1.4.6 refuses to cancel them and resume was not observed to work. Muse's refusals are reported as `Muse rejected <method>: <reason>`.
