@@ -6,35 +6,31 @@
 
 ### Features
 
-- `/plugins` lists installed Muse plugins, `/plugins install <folder>` installs a local plugin (explicit command only; Muse errors reported verbatim), and `/hooks` lists installed hooks (Muse 1.4.7 or newer). Marketplace management is not offered yet: only its refusal paths were observed.
-
-- `/status` adds Muse's subscription usage from `usage/read` (tier, current window and weekly percentages with reset times) on Muse 1.4.7 or newer, or says it is not reported. `turn/interrupt`, `userInput/interrupt` and `turn/unqueue` stay unadvertised: on Muse 1.4.7 the interrupts behave exactly like ACP cancel, and the adapter never queues turns.
-
-- `/skills enable|disable <skill>` sets a skill's activation in the scope it comes from; `/skills import claude|codex` previews importing foreign skills, and `--apply` imports them. `/feedback bug|bad|good|other <note>` submits feedback to Muse without files (the session record only with `--with-session`) and reports the outcome and local copy. Muse 1.4.7 or newer; refusals are reported verbatim.
-
-- `/recap` asks Muse for a short native recap of the session (Muse 1.4.7 or newer), streamed as the command's reply; ACP cancel cancels it. `/rename` also sets Muse's own session name through `session/rename`, immediately when the session's host is open or when it next starts, while the adapter title keeps the user's casing.
-
-### Dependencies
-
-- Bump `@muse-code/sdk` from 1.4.6 to 1.4.7 (adds computer-use setup checks only) and verify Muse 1.4.7-R6101.1: the full real-host suite passes, workflow `cancel` is advertised, and earlier fork boundaries still fail (#97). Goal controls now use the connection's own command-id minter.
-
-### Features
+- Native goal controls: on Muse 1.4.6 or newer, `/goal set <objective>`, `/goal edit <objective>`, `/goal pause`, `/goal resume` and `/goal clear` drive Muse's persistent goal through the public `goal/*` methods. `set` and `resume` stream the goal turn Muse starts; refusals such as `invalid_goal_state` and `missing_goal` are reported verbatim. The `muse/goal` extension advertises the controls on supported hosts.
 
 - Task and workflow controls on Muse 1.4.6 or newer (negotiated `muse/asyncTasks`): running workflows offer `pause`, running foreground tool calls offer `background` (the prompt ends while the tool keeps running), backgrounded tools offer `stop`, and `/tasks` lists running tasks. Paused workflows offer no actions, since Muse 1.4.6 refuses to cancel them and resume was not observed to work. Muse's refusals are reported as `Muse rejected <method>: <reason>`.
 
-- Native goal controls: on Muse 1.4.6 or newer, `/goal set <objective>`, `/goal edit <objective>`, `/goal pause`, `/goal resume` and `/goal clear` drive Muse's persistent goal through the public `goal/*` methods. `set` and `resume` stream the goal turn Muse starts; refusals such as `invalid_goal_state` and `missing_goal` are reported verbatim. The `muse/goal` extension advertises the controls on supported hosts.
+- `/recap` asks Muse for a short native recap of the session (Muse 1.4.7 or newer), streamed as the command's reply; ACP cancel cancels it. `/rename` also sets Muse's own session name through `session/rename`, immediately when the session's host is open or when it next starts, while the adapter title keeps the user's casing.
+
+- `/skills enable|disable <skill>` sets a skill's activation in the scope it comes from; `/skills import claude|codex` previews importing foreign skills, and `--apply` imports them. `/feedback bug|bad|good|other <note>` submits feedback to Muse without files (the session record only with `--with-session`) and reports the outcome and local copy. Muse 1.4.7 or newer; refusals are reported verbatim.
+
+- `/status` adds Muse's subscription usage from `usage/read` (tier, current window and weekly percentages with reset times) on Muse 1.4.7 or newer, or says it is not reported. `turn/interrupt`, `userInput/interrupt` and `turn/unqueue` stay unadvertised: on Muse 1.4.7 the interrupts behave exactly like ACP cancel, and the adapter never queues turns.
+
+- `/plugins` lists installed Muse plugins, `/plugins install <folder>` installs a local plugin (explicit command only; Muse errors reported verbatim), and `/hooks` lists installed hooks (Muse 1.4.7 or newer). Marketplace management is not offered yet: only its refusal paths were observed.
 
 ### Fixes
 
 - Keep the SDK host open while a host-owned turn is still running after a foreground release, instead of closing it mid-write, which could leave a truncated session log (`MalformedJsonl` on the next open).
 
+### Compatibility
+
+- Muse 1.4.6 runs its automated approval reviewer in `muse serve`: SDK-backend tool calls the reviewer approves run without an ACP permission prompt, and only escalations reach the client. It also loads and continues exec-created `:auto-review` sessions. Forking at an earlier turn still fails on 1.4.6 ([muse-code-sdk#97](https://github.com/meta-models/muse-code-sdk/issues/97)), and workflow children refuse the `none` effort.
+
 ### Dependencies
 
 - Bump `@muse-code/sdk` from 1.4.4 to 1.4.6 and verify Muse 1.4.6-R6000.1. The new `webSearch` item renders as a generic Web search card (the model's `web_search` tool still arrives as a tool call). Workflow `cancel` is advertised on 1.4.6.
 
-### Compatibility
-
-- Muse 1.4.6 runs its automated approval reviewer in `muse serve`: SDK-backend tool calls the reviewer approves run without an ACP permission prompt, and only escalations reach the client. It also loads and continues exec-created `:auto-review` sessions. Forking at an earlier turn still fails on 1.4.6 ([muse-code-sdk#97](https://github.com/meta-models/muse-code-sdk/issues/97)), and workflow children refuse the `none` effort.
+- Bump `@muse-code/sdk` from 1.4.6 to 1.4.7 (adds computer-use setup checks only) and verify Muse 1.4.7-R6101.1: the full real-host suite passes, workflow `cancel` is advertised, and earlier fork boundaries still fail (#97). Goal controls now use the connection's own command-id minter.
 
 ## [0.9.1](https://github.com/bex-co/muse-code-acp/compare/v0.9.0...v0.9.1) (2026-10-11)
 

@@ -53,9 +53,11 @@ skill or ship code does not authorize publication.
    the npm registry, with the expected `latest` dist-tag. Check package metadata
    and smoke-test the installed published version in a temporary directory.
    Use `scripts/pack-smoke.mjs` as a reference for meaningful package checks.
-5. Create the GitHub release for the existing tag with the reviewed release notes
-   (use `gh release create --verify-tag` and a notes file). If it already exists,
-   inspect and reconcile it rather than creating a duplicate.
+5. The workflow's `github-release` job creates (or, on a rerun, updates) the GitHub
+   release for the tag after npm publication, using that version's `CHANGELOG.md`
+   section via `scripts/release-notes.mjs`; `resolve-release` fails before
+   publishing if that section is missing. Review the section before tagging, then
+   confirm the release exists with the expected notes and is marked Latest.
 
 ## Failures and cleanup
 

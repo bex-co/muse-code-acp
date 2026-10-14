@@ -41,6 +41,8 @@ jobs:
             echo "Release tag does not match package.json version" >&2
             exit 1
           }
+          # The GitHub Release body; fail before publishing anything if it is missing.
+          node scripts/release-notes.mjs "$version" > /dev/null
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
   verify-release:
@@ -72,3 +74,28 @@ jobs:
       - run: npm run build
       - run: npm --version
       - run: npm publish --registry=https://registry.npmjs.org/
+
+  github-release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    needs: [resolve-release, publish-npm]
+    if: ${{ !cancelled() && needs.publish-npm.result == 'success' }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.resolve-release.outputs.sha }}
+      - name: Create or update the release from its CHANGELOG section
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+          node scripts/release-notes.mjs "${RELEASE_TAG#v}" > release-notes.md
+          # Idempotent: a rerun updates the existing release instead of failing.
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --title "$RELEASE_TAG" --notes-file release-notes.md
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --notes-file release-notes.md
+          fi
