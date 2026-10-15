@@ -47,3 +47,7 @@ Baseline, 2026-10-15 at `cb40c70`, macOS arm64:
 - `npm run check` with `no-floating-promises`, `no-misused-promises` and `await-thenable`: clean. `npm run build`, `npm run test:pack-smoke`: passed.
 - Real host Muse 1.4.8-R6256.1 loopback suite: 65/68; the same 3 tests fail on clean `adae363` (1.4.8 host gaps, now recorded in w3/m17/t002).
 - Root causes and fixes are recorded in t001.
+
+### Correction — 2026-10-15, after shipping `4d7cf6c`
+
+GitHub CI failed the coverage step: the build job has no Muse host, so 9 live-echo tests inside `test:unit` skip, and coverage there is 85.82/77.57/86.9/87.61, below the macOS-with-host floors above. Reproduced locally with `muse` off `PATH` (85.85/77.6/87.2/87.67). Thresholds are now the floors of the host-less CI baseline, 85/77/86/87; the `t003` "baseline" numbers above were measured with a host installed.
