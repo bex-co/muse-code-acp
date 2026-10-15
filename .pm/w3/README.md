@@ -18,6 +18,11 @@
 - [x] [**m12** — Skill activation, skill import and feedback](done/m12/README.md) (6 tasks) ← 2026-10-12 Muse feature research
 - [x] [**m13** — Turn interrupt, unqueue and native usage](done/m13/README.md) (6 tasks) ← 2026-10-12 Muse feature research
 - [x] [**m14** — Plugin and hook visibility](done/m14/README.md) (6 tasks) ← 2026-10-12 Muse feature research
+- [ ] [**m15** — Trustworthy quality gates](m15/README.md) (7 tasks) ← 2026-10-15 code-quality brainstorm
+- [ ] [**m16** — Real-host CI on the newest verified Muse](m16/README.md) (7 tasks) ← 2026-10-15 code-quality brainstorm
+- [ ] [**m17** — Catch up to ACP SDK 1.8.0 and Muse SDK 1.4.8](m17/README.md) (7 tasks) ← 2026-10-15 code-quality brainstorm
+- [ ] [**m18** — Split acp-agent.ts without changing behavior](m18/README.md) (7 tasks) ← 2026-10-15 code-quality brainstorm
+- [ ] [**m19** — Standard ACP session state and stop reasons](m19/README.md) (6 tasks) ← 2026-10-15 code-quality brainstorm
 
 ## Inbox
 
@@ -25,5 +30,7 @@
 - [006](006.md) — Computer-use settings and setup (deferred)
 - [007](007.md) — Media upload and video prompt input (deferred)
 - [008](008.md) — Surface Muse reviewer decisions and decide on reviewer control (needs user decision)
+- [009](009.md) — Assess stricter TypeScript compiler flags (after m18)
 
 001 and 002 were promoted to m4, 003 to m5 (2026-10-08) and 004 to m6 (2026-10-09).
+
