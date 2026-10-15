@@ -49,8 +49,13 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Run deterministic contract tests
-        run: npm run test:unit
+      - name: Run deterministic contract tests with enforced coverage
+        run: npm run test:coverage
+
+      # Random file and test order catches leaked state; the log prints the
+      # seed, and `npm run test:unit:shuffle -- --sequence.seed=<seed>` replays it.
+      - name: Run deterministic contract tests in shuffled order
+        run: npm run test:unit:shuffle
 
       - name: Packed install smoke
         run: npm run test:pack-smoke

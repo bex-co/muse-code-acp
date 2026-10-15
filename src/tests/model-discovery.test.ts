@@ -148,7 +148,8 @@ test("unsupported method falls back and an empty supported catalog remains valid
 });
 
 test("deadline closes an unresponsive host and disposal prevents further spawning", async () => {
-  const f = setup({ mode: "model-timeout", timeoutMs: 500 });
+  // The deadline also covers spawning the fake host, which must reach model/list first.
+  const f = setup({ mode: "model-timeout", timeoutMs: 2000 });
   expect(await f.discovery.discover(f.root)).toMatchObject({
     status: "fallback",
     reason: "Muse model discovery timed out",

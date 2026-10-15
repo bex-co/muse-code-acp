@@ -220,7 +220,7 @@ export async function startLoopbackProvider(
   const server: Server = createServer((request, response) => {
     const chunks: Buffer[] = [];
     request.on("data", (chunk: Buffer) => chunks.push(chunk));
-    request.on("end", async () => {
+    const respond = async () => {
       const body = Buffer.concat(chunks).toString("utf8");
       if (request.method === "GET" && (request.url ?? "").endsWith("/muse-code/models")) {
         catalogGets += 1;
@@ -301,6 +301,14 @@ export async function startLoopbackProvider(
         options.holdMsForRequest?.(parsed) ?? holdMs,
       );
       holds.add(hold);
+    };
+    request.on("end", () => {
+      // A malformed body or failing script callback must answer the host, not
+      // become an unhandled rejection that kills the test worker.
+      respond().catch((error: unknown) => {
+        if (!response.headersSent) response.writeHead(500);
+        response.end(String(error));
+      });
     });
     request.on("error", () => {});
     response.on("error", () => {});

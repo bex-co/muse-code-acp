@@ -37,6 +37,9 @@ export default [
       ...tseslint.configs.recommended.rules,
       "@typescript-eslint/explicit-function-return-type": "off",
       "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/await-thenable": "error",
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": "error",
       "@typescript-eslint/no-unused-vars": [
         "error",
         {

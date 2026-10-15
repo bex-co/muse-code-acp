@@ -272,6 +272,8 @@ npm ci
 npm run check                 # eslint + prettier
 npm run build                 # TypeScript compilation
 npm run test:unit             # deterministic contracts; no Muse host required
+npm run test:coverage         # the same suite with enforced coverage thresholds
+npm run test:unit:shuffle     # the same suite in random order (prints its seed)
 npm run test:pack-smoke       # clean tarball install and ACP execution
 ```
 

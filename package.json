@@ -52,7 +52,8 @@
     "test:unit": "vitest run --exclude 'src/tests/**/*-live.test.ts' --exclude 'src/tests/real-provider.integration.test.ts'",
     "test:muse-loopback": "vitest run src/tests/startup-live.test.ts src/tests/stored-output-live.test.ts src/tests/session-commands-live.test.ts src/tests/async-tasks-live.test.ts src/tests/failure-live.test.ts src/tests/progress-live.test.ts src/tests/settings-live.test.ts src/tests/safety-live.test.ts src/tests/muse-sdk-approval-live.test.ts src/tests/muse-sdk-multistage-live.test.ts src/tests/acp-restart-live.test.ts src/tests/muse-sdk-live.test.ts src/tests/mcp-http-live.test.ts src/tests/goal-live.test.ts src/tests/workflows-live.test.ts src/tests/session-fork-live.test.ts src/tests/file-change-live.test.ts src/tests/session-discovery-live.test.ts src/tests/exec-profile-live.test.ts src/tests/goal-controls-live.test.ts src/tests/native-commands-live.test.ts",
     "test:pack-smoke": "node scripts/pack-smoke.mjs",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "npm run test:unit -- --coverage",
+    "test:unit:shuffle": "npm run test:unit -- --sequence.shuffle",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -79,6 +80,7 @@
     "@types/node": "26.2.0",
     "@typescript-eslint/eslint-plugin": "8.67.0",
     "@typescript-eslint/parser": "8.67.0",
+    "@vitest/coverage-v8": "4.1.11",
     "eslint": "10.8.1",
     "eslint-config-prettier": "10.1.8",
     "globals": "17.11.0",

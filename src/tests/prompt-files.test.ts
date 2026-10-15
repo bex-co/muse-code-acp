@@ -1,7 +1,8 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { describe, expect, it } from "vitest";
+import { join } from "node:path";
+import { describe, expect, it, vi } from "vitest";
 import type { ContentBlock } from "@agentclientprotocol/sdk";
 import { compileMusePrompt } from "../prompt-files.js";
 
@@ -58,13 +59,18 @@ describe("compileMusePrompt", () => {
   });
 
   it("rejects unsupported content before touching the filesystem", async () => {
-    const before = new Set(readdirSync(tmpdir()));
-    await expect(compileMusePrompt([{ type: "bogus" } as unknown as ContentBlock])).rejects.toThrow(
-      /unsupported prompt content/,
-    );
-    const leaked = readdirSync(tmpdir()).filter(
-      (entry) => entry.startsWith("muse-code-acp-images-") && !before.has(entry),
-    );
-    expect(leaked).toEqual([]);
+    // Watch a private temp directory: image tests in other files share the OS one.
+    const scratch = mkdtempSync(join(tmpdir(), "prompt-files-"));
+    vi.stubEnv("TMPDIR", scratch);
+    try {
+      expect(tmpdir()).toBe(scratch);
+      await expect(
+        compileMusePrompt([{ type: "bogus" } as unknown as ContentBlock]),
+      ).rejects.toThrow(/unsupported prompt content/);
+      expect(readdirSync(scratch)).toEqual([]);
+    } finally {
+      vi.unstubAllEnvs();
+      rmSync(scratch, { recursive: true, force: true });
+    }
   });
 });

@@ -69,10 +69,14 @@ function fixture(extra: Record<string, string> = {}) {
 }
 for (const method of ["initialize", "session/resume"])
   it(`preserves ${method} timeout across EOF and prevents submission`, async () => {
+    // The startup deadline applies to each phase, so delaying session/resume
+    // also needs spawn + initialize to finish within it. Give that phase
+    // headroom under suite load, or the failure lands in "initializing".
+    const deadlineMs = method === "initialize" ? 200 : 3000;
     const f = fixture({
       FAKE_MSP_DELAY_METHOD: method,
-      FAKE_MSP_DELAY_MS: "1000",
-      MUSE_CODE_ACP_STARTUP_TIMEOUT_MS: "200",
+      FAKE_MSP_DELAY_MS: String(deadlineMs * 5),
+      MUSE_CODE_ACP_STARTUP_TIMEOUT_MS: String(deadlineMs),
     });
     try {
       const turn = f.turn();

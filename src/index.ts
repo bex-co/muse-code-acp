@@ -101,10 +101,12 @@ if (process.argv.includes("--cli")) {
   // Exit cleanly when the ACP connection closes (e.g. stdin EOF, transport
   // error). Without this, `process.stdin.resume()` keeps the event loop
   // alive indefinitely, causing orphan process accumulation in oneshot mode.
-  connection.closed.then(shutdown);
+  connection.closed.then(shutdown, shutdown);
 
-  process.on("SIGTERM", shutdown);
-  process.on("SIGINT", shutdown);
+  // shutdown() handles its own failures and exits; signal handlers return void.
+  const onSignal = () => void shutdown();
+  process.on("SIGTERM", onSignal);
+  process.on("SIGINT", onSignal);
 
   // Keep process alive while connection is open
   process.stdin.resume();
