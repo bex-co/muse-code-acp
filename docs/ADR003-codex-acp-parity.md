@@ -73,7 +73,7 @@ support. Workstream references identify scheduled scope, not delivery evidence.
 
 Evidence: [prompt conversion](../src/prompt-content.ts),
 [configuration](../src/config-options.ts), [discovery](../src/model-discovery.ts),
-[ACP capabilities](../src/acp-agent.ts), and
+[ACP capabilities](../src/agent-capabilities.ts), and
 [observed m8 support](sdk-migration.md#observed-host-support-m8).
 
 ## Session lifecycle and interaction

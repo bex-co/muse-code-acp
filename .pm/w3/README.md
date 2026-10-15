@@ -21,7 +21,7 @@
 - [x] [**m15** — Trustworthy quality gates](done/m15/README.md) (7 tasks) ← 2026-10-15 code-quality brainstorm
 - [x] [**m16** — Real-host CI on the newest verified Muse](done/m16/README.md) (7 tasks) ← 2026-10-15 code-quality brainstorm
 - [x] [**m17** — Catch up to ACP SDK 1.8.0 and Muse SDK 1.4.8](done/m17/README.md) (7 tasks) ← 2026-10-15 code-quality brainstorm
-- [ ] [**m18** — Split acp-agent.ts without changing behavior](m18/README.md) (7 tasks) ← 2026-10-15 code-quality brainstorm
+- [x] [**m18** — Split acp-agent.ts without changing behavior](done/m18/README.md) (8 tasks) ← 2026-10-15 code-quality brainstorm
 - [ ] [**m19** — Standard ACP session state and stop reasons](m19/README.md) (6 tasks) ← 2026-10-15 code-quality brainstorm
 
 ## Inbox

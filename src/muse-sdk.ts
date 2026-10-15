@@ -18,7 +18,7 @@ import {
 } from "@agentclientprotocol/sdk";
 import { Connection, MspError, type FoldedItem } from "@muse-code/sdk";
 import { realpathSync } from "node:fs";
-import type { AcpClient } from "./acp-agent.js";
+import type { AcpClient } from "./agent-types.js";
 import { sessionInfo, sessionInfoNotification } from "./session-discovery.js";
 import type { SessionInfo } from "@agentclientprotocol/sdk";
 import { FileChangeEvidence } from "./file-change-evidence.js";

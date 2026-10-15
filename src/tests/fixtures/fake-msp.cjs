@@ -732,6 +732,10 @@ rl.on("line", async (line) => {
       setTimeout(() => write({ method: "recap/completed", params: { sessionId, commandId: params.commandId, outcome: "completed", text: "fake recap of the session" } }), 50);
       break;
     case "session/rename": {
+      if (process.env.FAKE_MSP_RENAME_REJECT) {
+        write({ id, error: { code: -32040, message: "session/rename rejected: name_unavailable", data: { kind: "commandRejected", reason: "name_unavailable", retryable: false } } });
+        break;
+      }
       const name = String(params.name).toLowerCase();
       reply({ commandId: params.commandId, status: "accepted", name });
       notify("session/nameChanged", { name, nameOrigin: "custom", sourceRange: { start: 0, end: 0 } });

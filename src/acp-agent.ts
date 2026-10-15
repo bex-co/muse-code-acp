@@ -1,24 +1,18 @@
-import {
-  OUTPUT_EXTENSION,
-  OUTPUT_METHOD,
-  MAX_OUTPUT_READ,
-  supportsStoredOutput,
-  parseOutputRequest,
-  restoredOutputUpdates,
-} from "./stored-output.js";
+import { OUTPUT_EXTENSION, OUTPUT_METHOD, parseOutputRequest } from "./stored-output.js";
 import {
   COMPAT_STEER_METHOD,
   supportsCompatibleSteering,
   parseCompatibleSteering,
 } from "./steering-protocol.js";
-import { applySessionTitle, applyTitleUpdate, renameSession } from "./session-title.js";
-import { ASYNC_TASKS, TASK_METHOD, parseTaskRequest, restoredTaskUpdates } from "./async-tasks.js";
-import { observedFailure, type FailureObservation } from "./turn-failure.js";
-import { SessionProgress, USAGE_EXTENSION, type ProgressFacts } from "./session-progress.js";
-import { requireAvailable, requireSingleWorkspace, unavailable } from "./availability.js";
+import { applySessionTitle, applyTitleUpdate } from "./session-title.js";
+import { ASYNC_TASKS, TASK_METHOD, parseTaskRequest } from "./async-tasks.js";
+import { observedFailure } from "./turn-failure.js";
+import { SessionProgress, USAGE_EXTENSION } from "./session-progress.js";
+import { requireAvailable, requireSingleWorkspace } from "./availability.js";
 import {
   agent as acpAgent,
   AgentContext,
+  type SessionConfigOption,
   AuthenticateRequest,
   AuthenticateResponse,
   CancelNotification,
@@ -47,12 +41,10 @@ import {
   NewSessionResponse,
   PromptRequest,
   PromptResponse,
-  PROTOCOL_VERSION,
   RequestError,
   RequestPermissionRequest,
   RequestPermissionResponse,
   SessionNotification,
-  SessionInfo,
   SetSessionConfigOptionRequest,
   SetSessionConfigOptionResponse,
   SetSessionModeRequest,
@@ -63,48 +55,27 @@ import { createUuidV7Mint } from "@muse-code/sdk";
 import {
   PROVIDER_EXTENSION,
   gatewayFromEnv,
-  RECOMMENDATION_EXTENSION,
   parseClientProvider,
   providerBinding,
   type ClientProvider,
 } from "./client-provider.js";
 import { randomUUID } from "node:crypto";
-import { isAbsolute } from "node:path";
-import { realpathSync, statSync } from "node:fs";
-import packageJson from "../package.json" with { type: "json" };
 import {
   credentialsConfigured,
   credentialStatus,
   AUTH_EXTENSION,
   META_API_KEY_METHOD_ID,
   MUSE_LOGIN_METHOD_ID,
-  museAuthMethods,
   runMuseLogout,
 } from "./auth.js";
-import { configRecommendations } from "./config-recommendations.js";
 import {
-  applyConfigSelection,
-  buildConfigOptions,
-  catalogDefaultModel,
   defaultSessionConfig,
   effortLevels,
   isReasoningEffort,
-  resolvedModel,
   SessionConfig,
 } from "./config-options.js";
-import {
-  supportsFileReport,
-  fileReportRequest,
-  FILE_REPORT_CAPABILITIES,
-} from "./file-change-evidence.js";
-import { forkMuseSession, FORK_METADATA } from "./session-fork.js";
-import {
-  DEFAULT_SAFETY,
-  assertSafetyGuard,
-  isSafetyConfig,
-  selectSafety,
-  safetyConfigOptions,
-} from "./safety-settings.js";
+import { FORK_METADATA } from "./session-fork.js";
+import { DEFAULT_SAFETY, assertSafetyGuard } from "./safety-settings.js";
 import {
   probeSdkHost,
   assertSdkSafetySupport,
@@ -114,95 +85,46 @@ import {
 } from "./muse-host.js";
 import { Logger } from "./logger.js";
 import { museHostIdentity } from "./host-identity.js";
-import { sdkDeadline } from "./sdk-operation.js";
-import {
-  MuseModelDiscovery,
-  readModelCatalog,
-  type ModelDiscoveryResult,
-} from "./model-discovery.js";
+import { MuseModelDiscovery, type ModelDiscoveryResult } from "./model-discovery.js";
 import { guardContext, modeAvailability, MODES, modeState, MuseModeId } from "./modes.js";
-import { MuseExecHandle, spawnMuseExec } from "./muse-exec.js";
-import { MuseSdkHandle, spawnMuseSdkTurn, readMuseSdkSession, MuseSdkHost } from "./muse-sdk.js";
-import {
-  readSessionPreferences,
-  writeSessionPreferences,
-  writeSessionEffort,
-  writeSessionMode,
-} from "./session-preferences.js";
-import {
-  createMuseMcpOverlay,
-  MuseMcpOverlay,
-  museMcpServers,
-  readConfiguredMcpServers,
-} from "./mcp-overlay.js";
-import { mcpStatus, mcpStartupFailure } from "./mcp-status.js";
-import { SESSION_STATE_EXTENSION } from "./session-state-observer.js";
+import { readMuseSdkSession } from "./muse-sdk.js";
+import { readSessionPreferences, writeSessionPreferences } from "./session-preferences.js";
+import { createMuseMcpOverlay, MuseMcpOverlay, museMcpServers } from "./mcp-overlay.js";
 import { BUILTIN_COMMANDS, parseSlashCommand } from "./slash-commands.js";
 import { buildReviewPrompt } from "./review-prompt.js";
 import type { GoalObservation } from "./goal-state.js";
 import { readMuseSettings, type MuseSettings } from "./muse-settings.js";
-import {
-  feedbackCommand,
-  hookListCommand,
-  pluginInstallCommand,
-  pluginListCommand,
-  recapCommand,
-  skillActivationCommand,
-  skillImportCommand,
-  type HostCommand,
-} from "./host-commands.js";
-import type { NativeCommand } from "./slash-commands.js";
-
-function hostCommandFor(native: NativeCommand): HostCommand {
-  switch (native.kind) {
-    case "recap":
-      return recapCommand;
-    case "pluginList":
-      return pluginListCommand;
-    case "pluginInstall":
-      return pluginInstallCommand(native.path);
-    case "hookList":
-      return hookListCommand;
-    case "skill":
-      return skillActivationCommand(native.verb, native.selector);
-    case "skillImport":
-      return skillImportCommand(native.source, native.apply);
-    case "feedback":
-      return feedbackCommand(native.classification, native.note, native.withSession);
-    default:
-      throw new Error(`unknown native command ${JSON.stringify(native satisfies never)}`);
-  }
-}
-import { compileMusePrompt, type CompiledMusePrompt } from "./prompt-files.js";
 import { convertPromptContent } from "./prompt-content.js";
-import { exportToUpdates, runMuseExport } from "./session-export.js";
-import { discoverSessions, sessionInfoNotification } from "./session-discovery.js";
-import { listStoredSessions } from "./session-store.js";
+import { discoverSessions } from "./session-discovery.js";
 import { listMuseSkills, skillsToCommands } from "./skills.js";
-import { sdkHostConfiguration } from "./host-configuration.js";
-import { SteeringQueue } from "./steering-queue.js";
+import { runLocalCommand } from "./local-commands.js";
+import { runSdkTurn } from "./sdk-prompt-turn.js";
+import { runExecTurn } from "./exec-prompt-turn.js";
+import { initializeResponse } from "./agent-capabilities.js";
+import { inspectGoal, statusText } from "./session-status.js";
+import { publishCatalog, refreshModels } from "./catalog-publication.js";
 import {
-  parseSteeringRequest,
-  STEER_METHOD,
-  STEERING_CAPABILITY,
-  supportsSteering,
-} from "./steering-protocol.js";
-import { TurnTranslator } from "./translate.js";
-import { nodeToWebReadable, nodeToWebWritable, unreachable } from "./utils.js";
+  adoptCatalogDefault,
+  assertWorkflowTools,
+  buildSessionConfigOptions,
+  changeMode,
+  setSessionConfigOption,
+  setSessionMode,
+} from "./session-configuration.js";
+import {
+  forkSessionState,
+  loadSessionState,
+  resolveWorkspace,
+  resumeSessionState,
+} from "./session-lifecycle.js";
+
+import { SteeringQueue } from "./steering-queue.js";
+import { parseSteeringRequest, STEER_METHOD, supportsSteering } from "./steering-protocol.js";
+import { nodeToWebReadable, nodeToWebWritable } from "./utils.js";
 
 export type { Logger } from "./logger.js";
-
-/**
- * Client-facing surface the agent calls back into. This is the subset of ACP
- * client methods the agent actually uses, expressed as a narrow interface so
- * tests can supply lightweight mocks. In production it is backed by
- * {@link ClientConnection} over the SDK's typed `AgentContext`.
- */
-export interface AcpClient {
-  sessionUpdate(params: SessionNotification): Promise<void>;
-  requestPermission(params: RequestPermissionRequest): Promise<RequestPermissionResponse>;
-  createElicitation(params: CreateElicitationRequest): Promise<CreateElicitationResponse>;
-}
+export type { AcpClient, MuseAgentOptions, SessionState } from "./agent-types.js";
+import type { AcpClient, MuseAgentOptions, SessionState } from "./agent-types.js";
 
 /**
  * Bridges {@link AcpClient} to the connection-scoped {@link AgentContext}. The
@@ -225,71 +147,7 @@ class ClientConnection implements AcpClient {
   }
 }
 
-export interface SessionState {
-  authObservation?: "unknown" | "acceptedForTurn" | "rejected";
-  latestFailure?: FailureObservation | null;
-  /** Working directory every Muse turn for this session runs in. */
-  cwd: string;
-  /** The Muse session id; minted by us and identical to the ACP session id. */
-  museSessionId: string;
-  /** Live CLI or SDK turn, including its owned Muse child process. */
-  activeTurn: MuseExecHandle | MuseSdkHandle | null;
-  /** Set by `session/cancel`; forces the turn to settle with `cancelled`. */
-  cancelRequested: boolean;
-  turnFinished: Promise<void> | null;
-  safetyChanging?: boolean;
-  /** Active ACP session mode; decides the safety flags of the next spawn. */
-  modeId: MuseModeId;
-  /** Model + reasoning effort applied to every spawn for this session. */
-  config: SessionConfig;
-  modelDiscovery?: ModelDiscoveryResult;
-  /** A `/rename` made while no host was open; applied when the next turn opens one. */
-  pendingNativeName?: string;
-  /** The model is the built-in default: no settings named one and no turn or selection used it. */
-  builtInModel?: boolean;
-  modelRefresh?: { dispose(): Promise<void> };
-  /** ACP-provided MCP servers injected into Muse for each turn. */
-  mcpServers: McpServer[];
-  mcpFailure?: string;
-  goal?: GoalObservation;
-  progress?: SessionProgress;
-  /** Live per-turn Muse configuration overlay, if this session uses MCP. */
-  activeMcpOverlay: MuseMcpOverlay | null;
-  sdkHost?: { owner: MuseSdkHost; identity: string; overlay: MuseMcpOverlay };
-  steering?: SteeringQueue<MuseSdkHandle, { turnId: string; status: string }>;
-}
-
-/**
- * Engine knobs threaded into every `muse exec` spawn. Production leaves them
- * empty (muse's own defaults + user settings apply); tests inject the echo
- * provider, a fake binary, and an isolated XDG data dir.
- */
-export interface MuseAgentOptions {
-  /** Opt-in SDK migration; the CLI backend remains the default. */
-  backend?: "exec" | "sdk";
-  museBinary?: string;
-  provider?: "meta" | "echo";
-  env?: Record<string, string | undefined>;
-  /** Tests with fake-msp skip the real `muse serve --help` probe. */
-  skipSdkHostCheck?: boolean;
-}
-
-function resolveWorkspace(cwd: string, stored = false): string {
-  if (!isAbsolute(cwd))
-    throw RequestError.invalidParams(undefined, `cwd must be an absolute path, got "${cwd}"`);
-  try {
-    const canonical = realpathSync(cwd);
-    if (!statSync(canonical).isDirectory()) throw new Error("not a directory");
-    return canonical;
-  } catch {
-    throw RequestError.invalidParams(
-      undefined,
-      stored
-        ? `stored workspace directory is unavailable: ${cwd}; start a new session`
-        : `workspace directory does not exist or is unavailable: ${cwd}`,
-    );
-  }
-}
+type ReviewStatus = "started" | "completed" | "cancelled" | "failed";
 
 export class MuseAcpAgent {
   readonly sessions = new Map<string, SessionState>();
@@ -299,7 +157,7 @@ export class MuseAcpAgent {
   private readonly discoveryAbort = new AbortController();
   private disposal: Promise<void> | null = null;
   readonly backend: "exec" | "sdk";
-  private readonly modelDiscovery: MuseModelDiscovery;
+  readonly modelDiscovery: MuseModelDiscovery;
   private readonly providers = new Map<
     string,
     { provider: ClientProvider; overlay: MuseMcpOverlay }
@@ -330,14 +188,23 @@ export class MuseAcpAgent {
     });
   }
 
-  private providerEnv(sessionId: string): Record<string, string | undefined> {
+  get isDisposed(): boolean {
+    return this.disposed;
+  }
+
+  get discoverySignal(): AbortSignal {
+    return this.discoveryAbort.signal;
+  }
+
+  boundProvider(sessionId: string): ClientProvider | undefined {
+    return this.providers.get(sessionId)?.provider;
+  }
+
+  providerEnv(sessionId: string): Record<string, string | undefined> {
     return this.providers.get(sessionId)?.overlay.env ?? this.options.env ?? process.env;
   }
 
-  private async prepareProvider(
-    sessionId: string,
-    meta?: Record<string, unknown> | null,
-  ): Promise<void> {
+  async prepareProvider(sessionId: string, meta?: Record<string, unknown> | null): Promise<void> {
     const fromClient = meta?.[PROVIDER_EXTENSION];
     const existing = this.providers.get(sessionId);
     const env = this.options.env ?? process.env;
@@ -393,7 +260,7 @@ export class MuseAcpAgent {
     }
   }
 
-  private authStatus(sessionId?: string) {
+  authStatus(sessionId?: string) {
     const session = sessionId ? this.sessions.get(sessionId) : undefined;
     return {
       ...credentialStatus(
@@ -407,7 +274,7 @@ export class MuseAcpAgent {
     };
   }
 
-  private async publishAuth(sessionId: string, session: SessionState): Promise<void> {
+  async publishAuth(sessionId: string, session: SessionState): Promise<void> {
     if (
       this.clientCapabilities._meta?.[AUTH_EXTENSION] === 1 &&
       !this.disposed &&
@@ -423,7 +290,7 @@ export class MuseAcpAgent {
       });
   }
 
-  private progressFor(sessionId: string, session: SessionState): SessionProgress {
+  progressFor(sessionId: string, session: SessionState): SessionProgress {
     return (session.progress ??= new SessionProgress(
       sessionId,
       this.clientCapabilities._meta?.[USAGE_EXTENSION] === 1,
@@ -434,58 +301,28 @@ export class MuseAcpAgent {
     ));
   }
 
-  private safetyGuard() {
+  safetyGuard() {
     return { ...guardContext(), env: this.options.env ?? process.env };
   }
 
-  private validateSafety(config: SessionConfig, mode: MuseModeId): void {
+  validateSafety(config: SessionConfig, mode: MuseModeId): void {
     requireAvailable(modeAvailability(mode, this.safetyGuard(), this.backend));
     assertSafetyGuard(config.safety ?? DEFAULT_SAFETY, this.safetyGuard());
     if (!this.options.skipSdkHostCheck)
       assertSdkSafetySupport(config.safety, this.options.env, this.options.museBinary);
   }
 
-  private sessionModes(current: MuseModeId) {
+  sessionModes(current: MuseModeId) {
     return modeState(current, this.safetyGuard(), this.backend);
   }
 
-  private sessionConfigOptions(
+  sessionConfigOptions(
     session: Pick<SessionState, "config" | "modeId" | "modelDiscovery">,
-  ) {
-    const modes = this.sessionModes(session.modeId);
-    const hostVersion = this.options.skipSdkHostCheck
-      ? null
-      : probeSdkHost(this.options.env, this.options.museBinary).version;
-    const options = [
-      {
-        id: "mode",
-        name: "Mode",
-        category: "mode" as const,
-        type: "select" as const,
-        currentValue: modes.currentModeId,
-        options: modes.availableModes.map(({ id, name, description }) => ({
-          value: id,
-          name,
-          description,
-        })),
-      },
-      ...buildConfigOptions(
-        session.config,
-        this.backend,
-        session.modelDiscovery,
-        hostVersion,
-        this.efforts,
-      ),
-      ...(this.backend === "sdk"
-        ? safetyConfigOptions(session.config.safety, this.safetyGuard(), hostVersion)
-        : []),
-    ];
-    if (this.backend !== "sdk" || this.clientCapabilities._meta?.[RECOMMENDATION_EXTENSION] !== 1)
-      return options;
-    return configRecommendations(options, session.modelDiscovery, hostVersion);
+  ): SessionConfigOption[] {
+    return buildSessionConfigOptions(this, session);
   }
 
-  private supportsFork(): boolean {
+  supportsFork(): boolean {
     if (this.backend !== "sdk") return false;
     if (this.options.skipSdkHostCheck) return true;
     try {
@@ -506,105 +343,7 @@ export class MuseAcpAgent {
     // ACP v1: if we support the requested version, echo it; otherwise return
     // our latest supported version. This adapter supports only PROTOCOL_VERSION.
     this.clientCapabilities = params.clientCapabilities ?? {};
-    const authMethods = museAuthMethods({
-      includeTerminal: this.clientCapabilities.auth?.terminal === true,
-    });
-    const forkSupported = this.supportsFork();
-    return {
-      protocolVersion: PROTOCOL_VERSION,
-      // Only advertise what is actually implemented; capabilities grow with
-      // the milestones that ship them. Images work on both backends.
-      agentCapabilities: {
-        promptCapabilities: { image: true, embeddedContext: true },
-        mcpCapabilities: this.backend === "sdk" ? { http: true } : {},
-        loadSession: true,
-        sessionCapabilities: {
-          list: {},
-          close: {},
-          resume: {},
-          ...(forkSupported ? { fork: {} } : {}),
-        },
-        auth: { logout: {} },
-      },
-      authMethods,
-      agentInfo: {
-        name: packageJson.name,
-        version: packageJson.version,
-      },
-      _meta: {
-        ...(this.backend === "sdk" &&
-        this.clientCapabilities._meta?.[OUTPUT_EXTENSION] === 1 &&
-        supportsStoredOutput(probeSdkHost(this.options.env, this.options.museBinary).version)
-          ? {
-              [OUTPUT_EXTENSION]: {
-                version: 1,
-                method: OUTPUT_METHOD,
-                maxLengthBytes: MAX_OUTPUT_READ,
-              },
-            }
-          : {}),
-        ...(this.backend === "sdk" && supportsCompatibleSteering(this.clientCapabilities)
-          ? { steering: { supported: true, idle: "reject", targeting: "active-at-admission" } }
-          : {}),
-        ...(this.backend === "sdk" && this.clientCapabilities._meta?.[ASYNC_TASKS] === 1
-          ? { [ASYNC_TASKS]: { version: 1, method: TASK_METHOD, actionsPerTask: true } }
-          : {}),
-        ...(this.clientCapabilities._meta?.[AUTH_EXTENSION] === 1
-          ? { [AUTH_EXTENSION]: { version: 1, ...this.authStatus() } }
-          : {}),
-        ...(this.backend === "sdk" && this.clientCapabilities._meta?.[PROVIDER_EXTENSION] === 1
-          ? {
-              [PROVIDER_EXTENSION]: {
-                version: 1,
-                providerIds: ["meta"],
-                credentials: "session-only",
-                endpointChanges: "new-session",
-              },
-            }
-          : {}),
-        ...(this.backend === "sdk" &&
-        this.clientCapabilities._meta?.[RECOMMENDATION_EXTENSION] === 1
-          ? { [RECOMMENDATION_EXTENSION]: { version: 1 } }
-          : {}),
-        ...(this.backend === "sdk" && this.clientCapabilities._meta?.[SESSION_STATE_EXTENSION] === 1
-          ? { [SESSION_STATE_EXTENSION]: { version: 1, reportingOnly: true } }
-          : {}),
-        ...(this.backend === "sdk" && supportsFileReport(this.clientCapabilities)
-          ? FILE_REPORT_CAPABILITIES
-          : {}),
-        ...(forkSupported && this.clientCapabilities._meta?.[FORK_METADATA] === 1
-          ? { [FORK_METADATA]: { version: 1, completedTurnBoundary: true } }
-          : {}),
-        ...(this.backend === "sdk" && this.clientCapabilities._meta?.["muse/review"] === 1
-          ? { "muse/review": { version: 1 } }
-          : {}),
-        ...(this.backend === "sdk" && this.clientCapabilities._meta?.["muse/approval"] === 1
-          ? { "muse/approval": { version: 1 } }
-          : {}),
-        ...(this.backend === "sdk" && this.clientCapabilities._meta?.["muse/goal"] === 1
-          ? {
-              "muse/goal": {
-                version: 1,
-                observation: true,
-                controls: this.goalControlsAvailable()
-                  ? ["set", "edit", "pause", "resume", "clear"]
-                  : [],
-              },
-            }
-          : {}),
-        ...(this.backend === "sdk" && supportsSteering(this.clientCapabilities)
-          ? { [STEERING_CAPABILITY]: { version: 1, method: STEER_METHOD } }
-          : {}),
-        ...(this.backend === "sdk" && this.clientCapabilities._meta?.[USAGE_EXTENSION] === 1
-          ? { [USAGE_EXTENSION]: { version: 1, scope: "rootSession", cumulative: true } }
-          : {}),
-        "bex.security/capabilities": {
-          delegatedWorkers: false,
-          usage: this.backend === "sdk" ? "observed" : "unavailable",
-          interactivePermissions: this.backend === "sdk",
-        },
-      },
-    };
+    return initializeResponse(this.clientCapabilities, this.backend, this.options, this);
   }
 
   /**
@@ -642,7 +381,7 @@ export class MuseAcpAgent {
       : {};
   }
 
-  private validateMcp(servers: McpServer[]): void {
+  validateMcp(servers: McpServer[]): void {
     if (this.backend === "exec" && servers.some((server) => !("command" in server)))
       throw RequestError.invalidParams(undefined, "Remote MCP requires the SDK backend");
     try {
@@ -652,7 +391,7 @@ export class MuseAcpAgent {
     }
   }
 
-  private async publishGoal(
+  async publishGoal(
     sessionId: string,
     session: SessionState,
     goal: GoalObservation,
@@ -667,26 +406,8 @@ export class MuseAcpAgent {
       });
   }
 
-  /** Muse's own subscription usage for `/status`, labeled with its source. */
-  private async subscriptionUsageLine(session: SessionState): Promise<string> {
-    if (this.backend !== "sdk") return "Subscription usage: not available on the exec backend.";
-    if (!this.sessionCommandsAvailable())
-      return "Subscription usage: unavailable (verified from Muse 1.4.7).";
-    let usage;
-    try {
-      usage = await session.sdkHost?.owner.readUsage();
-    } catch {
-      return "Subscription usage: Muse usage/read failed.";
-    }
-    if (usage === undefined)
-      return "Subscription usage: unavailable until this session's host is running.";
-    if (usage === null) return "Subscription usage: not reported by Muse (usage/read).";
-    const at = (ms: number) => new Date(ms).toISOString();
-    return `Subscription usage (Muse usage/read, observed ${at(usage.observedAtMs)}): tier ${usage.tier}; current window ${usage.window.usedPercent}% (resets ${at(usage.window.resetsAtMs)}); weekly ${usage.weekly.usedPercent}% (resets ${at(usage.weekly.resetsAtMs)}).`;
-  }
-
   /** Native recap and rename sync: SDK backend on a host verified for them. */
-  private sessionCommandsAvailable(): boolean {
+  sessionCommandsAvailable(): boolean {
     return (
       this.backend === "sdk" &&
       (this.options.skipSdkHostCheck ||
@@ -695,7 +416,7 @@ export class MuseAcpAgent {
   }
 
   /** Native goal controls: SDK backend on a host verified for them. */
-  private goalControlsAvailable(): boolean {
+  goalControlsAvailable(): boolean {
     return (
       this.backend === "sdk" &&
       (this.options.skipSdkHostCheck ||
@@ -703,79 +424,29 @@ export class MuseAcpAgent {
     );
   }
 
-  private async inspectGoal(sessionId: string, session: SessionState): Promise<string> {
-    if (!session.goal || session.goal.status === "unknown") {
-      let goal: GoalObservation;
-      try {
-        const saved = await this.readSavedSession({
-          sessionId: session.museSessionId,
-          cwd: session.cwd,
-          env: this.options.env ?? process.env,
-          museBinary: this.options.museBinary,
-          logger: this.logger,
-          checkHost: !this.options.skipSdkHostCheck,
-          readGoal: true,
-          allowActive: true,
-        });
-        goal = saved.goal ?? { status: "unknown", reason: "No goal observation available" };
-      } catch {
-        goal = { status: "unknown", reason: "Goal history could not be read" };
-      }
-      if (!session.cancelRequested) await this.publishGoal(sessionId, session, goal);
-    }
-    const observed = session.goal;
-    if (!observed || observed.status === "unknown")
-      return "Goal state is unknown; available history did not establish a current goal.";
-    if (!observed.goal) return "No recorded goal.";
-    const goal = observed.goal;
-    return [
-      `Goal: ${goal.objective}`,
-      `Status: ${goal.status}`,
-      `Reported progress: ${goal.percentComplete}%`,
-      ...(goal.currentWork !== undefined ? [`Current work: ${goal.currentWork}`] : []),
-      ...(goal.nextWork !== undefined ? [`Next work: ${goal.nextWork}`] : []),
-      this.goalControlsAvailable()
-        ? "Last observed Muse state. Change it with /goal set, edit, pause, resume or clear."
-        : "Last observed Muse state. Goal controls need the SDK backend on Muse 1.4.6 or newer.",
-    ].join("\n");
+  refreshModels(sessionId: string, session: SessionState): Promise<string | undefined> {
+    return refreshModels(this, sessionId, session);
   }
 
-  private catalogIdentity(session: SessionState, env: Record<string, string | undefined>): string {
-    return museHostIdentity(session.cwd, env, this.options.museBinary, true).identity;
-  }
-
-  private async publishCatalog(
+  publishCatalog(
     sessionId: string,
     session: SessionState,
     identity: string,
     result: ModelDiscoveryResult,
     cache = true,
   ): Promise<boolean> {
-    if (this.disposed || session.cancelRequested || this.sessions.get(sessionId) !== session)
-      return false;
-    const env = this.providerEnv(sessionId);
-    try {
-      if (this.catalogIdentity(session, env) !== identity) return false;
-    } catch {
-      return false;
-    }
-    if (cache) this.modelDiscovery.remember(session.cwd, env, result);
-    const previous = this.sessionConfigOptions(session);
-    session.modelDiscovery = result;
-    this.adoptCatalogDefault(session);
-    const configOptions = this.sessionConfigOptions(session);
-    if (JSON.stringify(previous) === JSON.stringify(configOptions)) return true;
-    await this.client.sessionUpdate({
-      sessionId,
-      update: {
-        sessionUpdate: "config_option_update",
-        configOptions,
-      },
-    });
-    return true;
+    return publishCatalog(this, sessionId, session, identity, result, cache);
   }
 
-  private execArgs(modeId: MuseModeId): string[] {
+  inspectGoal(sessionId: string, session: SessionState): Promise<string> {
+    return inspectGoal(this, sessionId, session);
+  }
+
+  catalogIdentity(session: SessionState, env: Record<string, string | undefined>): string {
+    return museHostIdentity(session.cwd, env, this.options.museBinary, true).identity;
+  }
+
+  execArgs(modeId: MuseModeId): string[] {
     const { flags, execProfile } = MODES[modeId];
     return execProfile &&
       execSupportsPermissionProfile(this.options.env ?? process.env, this.options.museBinary)
@@ -783,12 +454,12 @@ export class MuseAcpAgent {
       : flags;
   }
 
-  private get efforts() {
+  get efforts() {
     return effortLevels(this.backend, this.options.provider);
   }
 
   /** Settings defaults restricted to the efforts this backend can carry. */
-  private defaultConfig(settings: MuseSettings): SessionConfig {
+  defaultConfig(settings: MuseSettings): SessionConfig {
     const config = defaultSessionConfig(settings, this.efforts);
     if (
       isReasoningEffort(settings.reasoningEffort) &&
@@ -798,18 +469,6 @@ export class MuseAcpAgent {
         `muse settings reasoning_effort "${settings.reasoningEffort}" is not accepted by muse exec for this provider; using the default`,
       );
     return config;
-  }
-
-  /** Until a turn or selection uses it, the built-in default follows the catalog. */
-  private adoptCatalogDefault(session: SessionState): void {
-    const model = session.builtInModel && catalogDefaultModel(session.modelDiscovery);
-    if (model)
-      session.config = {
-        ...session.config,
-        model: model.id,
-        providerId: model.providerId,
-        profileId: model.profileId,
-      };
   }
 
   async newSession(params: NewSessionRequest): Promise<NewSessionResponse> {
@@ -842,7 +501,7 @@ export class MuseAcpAgent {
         mcpServers: params.mcpServers,
         activeMcpOverlay: null,
       });
-      this.adoptCatalogDefault(this.sessions.get(sessionId)!);
+      adoptCatalogDefault(this.sessions.get(sessionId)!);
       try {
         await this.publishGoal(sessionId, this.sessions.get(sessionId)!, {
           status: "known",
@@ -865,7 +524,7 @@ export class MuseAcpAgent {
    * Fire-and-forget: muse skills (per workspace) become ACP slash commands.
    * Invocation is prompt passthrough — `/skill-id …` reaches muse verbatim.
    */
-  private advertiseCommands(sessionId: string, cwd: string): void {
+  advertiseCommands(sessionId: string, cwd: string): void {
     const task = listMuseSkills(
       cwd,
       this.options.env ?? process.env,
@@ -901,7 +560,7 @@ export class MuseAcpAgent {
     void task.finally(() => this.backgroundTasks.delete(task));
   }
 
-  private trackRead<T>(operation: Promise<T>): Promise<T> {
+  trackRead<T>(operation: Promise<T>): Promise<T> {
     const tracked = operation.then(
       () => {},
       () => {},
@@ -911,7 +570,7 @@ export class MuseAcpAgent {
     return operation;
   }
 
-  private readSavedSession(options: Parameters<typeof readMuseSdkSession>[0]) {
+  readSavedSession(options: Parameters<typeof readMuseSdkSession>[0]) {
     this.assertRunning();
     return this.trackRead(readMuseSdkSession({ ...options, signal: this.discoveryAbort.signal }));
   }
@@ -942,10 +601,10 @@ export class MuseAcpAgent {
 
   async loadSession(params: LoadSessionRequest): Promise<LoadSessionResponse> {
     requireSingleWorkspace(params.additionalDirectories);
-    return this.withSessionBinding(params.sessionId, () => this.loadSessionState(params));
+    return this.withSessionBinding(params.sessionId, () => loadSessionState(this, params));
   }
 
-  private async withSessionBinding<T>(sessionId: string, bind: () => Promise<T>): Promise<T> {
+  async withSessionBinding<T>(sessionId: string, bind: () => Promise<T>): Promise<T> {
     this.assertRunning();
     if (
       this.bindingSessions.has(sessionId) ||
@@ -974,550 +633,22 @@ export class MuseAcpAgent {
     }
   }
 
-  private async loadSessionState(params: LoadSessionRequest): Promise<LoadSessionResponse> {
-    this.validateMcp(params.mcpServers);
-    if (this.sessions.get(params.sessionId)?.activeTurn) {
-      throw RequestError.invalidRequest(
-        undefined,
-        "Cannot load a session while a prompt is active",
-      );
-    }
-    let env = this.providerEnv(params.sessionId);
-    const stored = listStoredSessions(null, env, this.logger).find(
-      (session) => session.sessionId === params.sessionId,
-    );
-    if (!stored) {
-      throw RequestError.invalidParams(
-        undefined,
-        `session ${params.sessionId} not found in the muse session store`,
-      );
-    }
-    const cwd = resolveWorkspace(params.cwd);
-    const storedCwd = resolveWorkspace(stored.cwd, true);
-    if (cwd !== storedCwd)
-      throw RequestError.invalidParams(
-        undefined,
-        `session ${params.sessionId} belongs to a different workspace`,
-      );
-
-    await this.prepareProvider(params.sessionId, params._meta);
-    env = this.providerEnv(params.sessionId);
-    await this.sessions.get(params.sessionId)?.sdkHost?.owner.close();
-    const previousSession = this.sessions.get(params.sessionId);
-    previousSession?.steering?.close();
-    if (previousSession) previousSession.steering = undefined;
-    this.assertRunning();
-    const doc = await runMuseExport(params.sessionId, env, this.options.museBinary).catch((err) => {
-      this.logger.error(`session load: export failed: ${err}`);
-      throw RequestError.internalError(undefined, `could not export session history: ${err}`);
-    });
-
-    this.assertRunning();
-    const config = this.defaultConfig(readMuseSettings(env, this.logger));
-    let goal: GoalObservation = { status: "unknown", reason: "No goal state observed" };
-    let savedMode: MuseModeId = "default";
-    let info: SessionInfo | undefined;
-    let progress: ProgressFacts = {};
-    let tasks: import("@muse-code/sdk").FoldedItem[] = [];
-    let outputItems: import("@muse-code/sdk").FoldedItem[] = [];
-    if (this.backend === "sdk") {
-      const saved = await this.readSavedSession({
-        sessionId: params.sessionId,
-        cwd,
-        env,
-        museBinary: this.options.museBinary,
-        logger: this.logger,
-        checkHost: !this.options.skipSdkHostCheck,
-        readGoal: true,
-        readProgress: true,
-        readTasks: true,
-        readOutputReferences: this.clientCapabilities._meta?.[OUTPUT_EXTENSION] === 1,
-      });
-      progress = saved.progress ?? {};
-      tasks = saved.tasks ?? [];
-      outputItems = saved.outputItems ?? [];
-      goal = saved.goal ?? goal;
-      info = saved.info;
-      config.model = saved.modelId ?? config.model;
-      config.providerId = saved.providerId ?? config.providerId;
-      const preferences = readSessionPreferences(params.sessionId, env);
-      // Preserve the recorded execution selection; a native setter may have
-      // changed metadata without changing the provider used for this history.
-      if (preferences.modelSelection) Object.assign(config, preferences.modelSelection);
-      config.reasoningEffort = preferences.reasoningEffort ?? config.reasoningEffort;
-      savedMode = preferences.modeId ?? "default";
-      config.safety = preferences.safety;
-      this.validateSafety(config, savedMode);
-    }
-    const modelDiscovery =
-      this.backend === "sdk"
-        ? this.modelDiscovery.peek(cwd, this.providerEnv(params.sessionId))
-        : undefined;
-    this.assertRunning();
-    this.sessions.set(params.sessionId, {
-      cwd,
-      museSessionId: params.sessionId,
-      activeTurn: null,
-      turnFinished: null,
-      cancelRequested: false,
-      modeId: "default",
-      config,
-      modelDiscovery,
-      mcpServers: params.mcpServers,
-      activeMcpOverlay: null,
-    });
-    try {
-      const bound = this.sessions.get(params.sessionId)!;
-      bound.modeId = savedMode;
-      await this.publishGoal(params.sessionId, bound, goal);
-      if (this.backend === "sdk")
-        await this.progressFor(params.sessionId, bound).observe(progress, true);
-      for (const update of restoredTaskUpdates(params.sessionId, tasks))
-        await this.client.sessionUpdate(update);
-      if (info)
-        await this.client.sessionUpdate(sessionInfoNotification(info, this.clientCapabilities));
-      for (const notification of exportToUpdates(params.sessionId, doc, this.logger)) {
-        this.assertRunning();
-        await this.client.sessionUpdate(notification);
-      }
-      for (const notification of restoredOutputUpdates(params.sessionId, outputItems))
-        await this.client.sessionUpdate(notification);
-      this.assertRunning();
-    } catch (error) {
-      this.sessions.delete(params.sessionId);
-      throw error;
-    }
-
-    this.advertiseCommands(params.sessionId, cwd);
-    return {
-      modes: this.sessionModes(this.sessions.get(params.sessionId)!.modeId),
-      configOptions: this.sessionConfigOptions(this.sessions.get(params.sessionId)!),
-    };
-  }
-
   async forkSession(params: ForkSessionRequest): Promise<ForkSessionResponse> {
-    if (!this.supportsFork())
-      throw RequestError.invalidRequest(
-        undefined,
-        "Session fork requires supported Muse SDK host 1.1.1+",
-      );
-    this.validateMcp(params.mcpServers ?? []);
-    requireSingleWorkspace(params.additionalDirectories);
-    const cwd = resolveWorkspace(params.cwd);
-    const extension = params._meta?.[FORK_METADATA];
-    let lastTurnId: string | undefined;
-    if (extension !== undefined) {
-      if (
-        this.clientCapabilities._meta?.[FORK_METADATA] !== 1 ||
-        !extension ||
-        typeof extension !== "object" ||
-        Array.isArray(extension) ||
-        typeof (extension as { lastTurnId?: unknown }).lastTurnId !== "string" ||
-        !(extension as { lastTurnId: string }).lastTurnId.trim()
-      )
-        throw RequestError.invalidParams(
-          undefined,
-          "Explicit fork boundary requires negotiated muse/fork and a lastTurnId",
-        );
-      lastTurnId = (extension as { lastTurnId: string }).lastTurnId;
-    }
-    return this.withSessionBinding(params.sessionId, async () => {
-      const source = this.sessions.get(params.sessionId);
-      let env = this.providerEnv(params.sessionId);
-      const stored =
-        source ??
-        listStoredSessions(null, env, this.logger).find((s) => s.sessionId === params.sessionId);
-      if (!stored || resolveWorkspace(stored.cwd, true) !== cwd)
-        throw RequestError.invalidParams(
-          undefined,
-          "Fork source not found in the requested workspace",
-        );
-      await this.prepareProvider(params.sessionId, params._meta);
-      env = this.providerEnv(params.sessionId);
-      if (source?.sdkHost?.owner.hasActiveTurn)
-        throw RequestError.invalidRequest(undefined, "Cannot fork an active Muse session");
-      await source?.sdkHost?.owner.close();
-      if (source) source.sdkHost = undefined;
-      this.assertRunning();
-      const saved = await this.readSavedSession({
-        sessionId: params.sessionId,
-        cwd,
-        env,
-        museBinary: this.options.museBinary,
-        logger: this.logger,
-        checkHost: !this.options.skipSdkHostCheck,
-      });
-      this.assertRunning();
-      const preferences = readSessionPreferences(params.sessionId, env);
-      const config = {
-        ...(source?.config ?? this.defaultConfig(readMuseSettings(env, this.logger))),
-      };
-      config.safety = undefined;
-      config.model = saved.modelId ?? config.model;
-      config.providerId = saved.providerId ?? config.providerId;
-      config.reasoningEffort =
-        source?.config.reasoningEffort ?? preferences.reasoningEffort ?? config.reasoningEffort;
-      if (preferences.modelSelection) Object.assign(config, preferences.modelSelection);
-      // Muse 1.1.1 constructs fork metadata from host settings. Use the same
-      // isolated execution configuration as ordinary SDK turns, then verify
-      // the fork's authoritative model rather than trusting an accepted setter.
-      const overlay = createMuseMcpOverlay([], env, config);
-      let result;
-      try {
-        result = await this.trackRead(
-          forkMuseSession({
-            signal: this.discoveryAbort.signal,
-            sessionId: params.sessionId,
-            cwd,
-            lastTurnId,
-            env: overlay.env,
-            museBinary: this.options.museBinary,
-            checkHost: !this.options.skipSdkHostCheck,
-            logger: this.logger,
-          }),
-        );
-      } finally {
-        overlay.cleanup();
-      }
-      this.assertRunning();
-      const sessionId = result.session.sessionId;
-      if (this.sessions.has(sessionId)) throw new Error("Muse fork identity is already bound");
-      const sourceProvider = this.providers.get(params.sessionId)?.provider;
-      if (sourceProvider)
-        await this.prepareProvider(sessionId, { [PROVIDER_EXTENSION]: sourceProvider });
-      this.assertRunning();
-      // A branch starts with default sandbox/approval policy, not inherited grants.
-      writeSessionPreferences(
-        sessionId,
-        { reasoningEffort: config.reasoningEffort, modeId: "default" },
-        env,
-      );
-      this.sessions.set(sessionId, {
-        cwd,
-        museSessionId: sessionId,
-        activeTurn: null,
-        turnFinished: null,
-        cancelRequested: false,
-        modeId: "default",
-        config,
-        modelDiscovery: source?.modelDiscovery ? structuredClone(source.modelDiscovery) : undefined,
-        mcpServers: structuredClone(params.mcpServers ?? []),
-        activeMcpOverlay: null,
-      });
-      this.advertiseCommands(sessionId, cwd);
-      return {
-        sessionId,
-        modes: this.sessionModes("default"),
-        configOptions: this.sessionConfigOptions(this.sessions.get(sessionId)!),
-        ...(this.clientCapabilities._meta?.[FORK_METADATA] === 1
-          ? {
-              _meta: {
-                [FORK_METADATA]: {
-                  sourceSessionId: params.sessionId,
-                  cutCursor: result.session.forkedFrom?.cutCursor,
-                  explicitBoundary: result.session.forkedFrom?.cutExplicit,
-                },
-              },
-            }
-          : {}),
-      };
-    });
+    return forkSessionState(this, params);
   }
 
   async resumeSession(params: ResumeSessionRequest): Promise<ResumeSessionResponse> {
-    return this.withSessionBinding(params.sessionId, () => this.resumeSessionState(params));
-  }
-
-  private async resumeSessionState(params: ResumeSessionRequest): Promise<ResumeSessionResponse> {
-    this.validateMcp(params.mcpServers ?? []);
-    if (!isAbsolute(params.cwd)) {
-      throw RequestError.invalidParams(
-        undefined,
-        `cwd must be an absolute path, got "${params.cwd}"`,
-      );
-    }
-    requireSingleWorkspace(params.additionalDirectories);
-
-    const existing = this.sessions.get(params.sessionId);
-    if (existing?.turnFinished) {
-      throw RequestError.invalidRequest(
-        undefined,
-        `session ${params.sessionId} already has a prompt turn in flight`,
-      );
-    }
-    // Keep validation and mutation synchronous after the busy check so a prompt
-    // cannot enter while resume replaces the session's MCP server snapshot.
-    const stored = existing
-      ? { cwd: existing.cwd }
-      : listStoredSessions(null, this.options.env ?? process.env, this.logger).find(
-          (session) => session.sessionId === params.sessionId,
-        );
-    if (!stored) {
-      throw RequestError.invalidParams(
-        undefined,
-        `session ${params.sessionId} not found in the muse session store`,
-      );
-    }
-    const storedCwd = resolveWorkspace(stored.cwd, true);
-    const requestedCwd = resolveWorkspace(params.cwd, false);
-    if (requestedCwd !== storedCwd) {
-      throw RequestError.invalidParams(
-        undefined,
-        `session ${params.sessionId} belongs to ${stored.cwd}; ` +
-          "resume from that directory or start a new session",
-      );
-    }
-
-    await this.prepareProvider(params.sessionId, params._meta);
-    const mcpServers = params.mcpServers ?? [];
-    if (existing) {
-      if (params._meta?.[PROVIDER_EXTENSION] !== undefined)
-        existing.modelDiscovery = this.modelDiscovery.peek(
-          storedCwd,
-          this.providerEnv(params.sessionId),
-        );
-      existing.cwd = storedCwd;
-      existing.mcpServers = mcpServers;
-      existing.mcpFailure = undefined;
-      return {
-        modes: this.sessionModes(existing.modeId),
-        configOptions: this.sessionConfigOptions(existing),
-      };
-    }
-
-    const config = this.defaultConfig(
-      readMuseSettings(this.options.env ?? process.env, this.logger),
-    );
-    let goal: GoalObservation = { status: "unknown", reason: "No goal state observed" };
-    let savedMode: MuseModeId = "default";
-    let info: SessionInfo | undefined;
-    let progress: ProgressFacts = {};
-    if (this.backend === "sdk") {
-      const env = this.providerEnv(params.sessionId);
-      const saved = await this.readSavedSession({
-        sessionId: params.sessionId,
-        cwd: storedCwd,
-        env,
-        museBinary: this.options.museBinary,
-        logger: this.logger,
-        checkHost: !this.options.skipSdkHostCheck,
-        readGoal: true,
-        readProgress: true,
-      });
-      progress = saved.progress ?? {};
-      goal = saved.goal ?? goal;
-      info = saved.info;
-      config.model = saved.modelId ?? config.model;
-      config.providerId = saved.providerId ?? config.providerId;
-      const preferences = readSessionPreferences(params.sessionId, env);
-      // Preserve the recorded execution selection; a native setter may have
-      // changed metadata without changing the provider used for this history.
-      if (preferences.modelSelection) Object.assign(config, preferences.modelSelection);
-      config.reasoningEffort = preferences.reasoningEffort ?? config.reasoningEffort;
-      savedMode = preferences.modeId ?? "default";
-      config.safety = preferences.safety;
-      this.validateSafety(config, savedMode);
-    }
-    const modelDiscovery =
-      this.backend === "sdk"
-        ? this.modelDiscovery.peek(storedCwd, this.providerEnv(params.sessionId))
-        : undefined;
-    this.assertRunning();
-    this.sessions.set(params.sessionId, {
-      cwd: storedCwd,
-      museSessionId: params.sessionId,
-      activeTurn: null,
-      turnFinished: null,
-      cancelRequested: false,
-      modeId: "default",
-      config,
-      modelDiscovery,
-      mcpServers,
-      activeMcpOverlay: null,
-    });
-    try {
-      const bound = this.sessions.get(params.sessionId)!;
-      bound.modeId = savedMode;
-      await this.publishGoal(params.sessionId, bound, goal);
-      if (this.backend === "sdk")
-        await this.progressFor(params.sessionId, bound).observe(progress, true);
-      if (info)
-        await this.client.sessionUpdate(sessionInfoNotification(info, this.clientCapabilities));
-    } catch (error) {
-      this.sessions.delete(params.sessionId);
-      throw error;
-    }
-    this.advertiseCommands(params.sessionId, storedCwd);
-    return {
-      modes: this.sessionModes(this.sessions.get(params.sessionId)!.modeId),
-      configOptions: this.sessionConfigOptions(this.sessions.get(params.sessionId)!),
-    };
+    return this.withSessionBinding(params.sessionId, () => resumeSessionState(this, params));
   }
 
   async setSessionConfigOption(
     params: SetSessionConfigOptionRequest,
   ): Promise<SetSessionConfigOptionResponse> {
-    const session = this.requireSession(params.sessionId);
-    if (
-      this.backend === "sdk" &&
-      (session.safetyChanging || session.turnFinished || session.sdkHost?.owner.hasActiveTurn)
-    )
-      requireAvailable(
-        unavailable(
-          "busy",
-          "Wait for the active turn or configuration change before changing settings",
-        ),
-      );
-    if (params.configId === "mode") {
-      if (typeof params.value !== "string")
-        throw RequestError.invalidParams(undefined, "mode expects a select value");
-      await this.setSessionMode({ sessionId: params.sessionId, modeId: params.value });
-      return { configOptions: this.sessionConfigOptions(session) };
-    }
-    if (this.backend === "sdk" && isSafetyConfig(params.configId)) {
-      if (session.safetyChanging || session.turnFinished || session.sdkHost?.owner.hasActiveTurn)
-        throw RequestError.invalidRequest(
-          undefined,
-          "Wait for the active turn before changing safety settings",
-        );
-      const safety = selectSafety(
-        session.config.safety,
-        params.configId,
-        params.value,
-        this.safetyGuard(),
-      );
-      this.validateSafety({ ...session.config, safety }, session.modeId);
-      if (JSON.stringify(safety) === JSON.stringify(session.config.safety ?? DEFAULT_SAFETY))
-        return { configOptions: this.sessionConfigOptions(session) };
-      session.safetyChanging = true;
-      try {
-        writeSessionPreferences(params.sessionId, { safety }, this.options.env ?? process.env);
-        if (session.sdkHost) {
-          await session.sdkHost.owner.close();
-          session.sdkHost = undefined;
-        }
-        session.config = { ...session.config, safety };
-        const configOptions = this.sessionConfigOptions(session);
-        await this.client.sessionUpdate({
-          sessionId: params.sessionId,
-          update: { sessionUpdate: "config_option_update", configOptions },
-        });
-        return { configOptions };
-      } finally {
-        session.safetyChanging = false;
-      }
-    }
-    const config = applyConfigSelection(
-      session.config,
-      params.configId,
-      params.value,
-      this.backend === "sdk" ? session.modelDiscovery : undefined,
-      this.efforts,
-    );
-    if (this.backend === "sdk" && params.configId === "model") {
-      session.builtInModel = false;
-      const provider =
-        readMuseSettings(this.providerEnv(params.sessionId), this.logger).provider ?? "meta";
-      if (
-        JSON.stringify(resolvedModel(config, session.modelDiscovery, provider)) ===
-        JSON.stringify(resolvedModel(session.config, session.modelDiscovery, provider))
-      )
-        return { configOptions: this.sessionConfigOptions(session) };
-    }
-    const boundProvider = this.providers.get(params.sessionId)?.provider;
-    if (boundProvider && config.providerId && config.providerId !== boundProvider.providerId)
-      throw RequestError.invalidParams(
-        undefined,
-        "The selected model belongs to another provider; choose a model for this session's configured gateway",
-      );
-    if (JSON.stringify(config) === JSON.stringify(session.config))
-      return { configOptions: this.sessionConfigOptions(session) };
-    session.safetyChanging = true;
-    try {
-      if (this.backend === "sdk" && params.configId === "model" && session.sdkHost) {
-        await session.sdkHost.owner.close();
-        session.sdkHost = undefined;
-      }
-      if (this.backend === "sdk" && params.configId === "reasoningEffort")
-        writeSessionEffort(
-          params.sessionId,
-          config.reasoningEffort,
-          this.options.env ?? process.env,
-        );
-      session.config = config;
-      const configOptions = this.sessionConfigOptions(session);
-      await this.client.sessionUpdate({
-        sessionId: params.sessionId,
-        update: { sessionUpdate: "config_option_update", configOptions },
-      });
-      return { configOptions };
-    } finally {
-      session.safetyChanging = false;
-    }
+    return setSessionConfigOption(this, params);
   }
 
   async setSessionMode(params: SetSessionModeRequest): Promise<SetSessionModeResponse> {
-    const session = this.requireSession(params.sessionId);
-    requireAvailable(modeAvailability(params.modeId, this.safetyGuard(), this.backend));
-    if (
-      (this.backend === "sdk" || params.modeId === "plan" || session.modeId === "plan") &&
-      (session.safetyChanging || session.turnFinished || session.sdkHost?.owner.hasActiveTurn)
-    )
-      throw RequestError.invalidRequest(
-        undefined,
-        "Wait for the active turn before changing safety or planning mode",
-      );
-    if (session.modeId !== params.modeId)
-      await this.changeMode(params.sessionId, session, params.modeId as MuseModeId);
-    return {};
-  }
-
-  private assertWorkflowTools(session: SessionState): void {
-    if (
-      session.mcpServers.length ||
-      Object.keys(readConfiguredMcpServers(this.options.env ?? process.env)).length
-    )
-      throw RequestError.invalidParams(
-        undefined,
-        "Planning and review require a session without MCP servers; read-only workspace flags do not constrain external tool effects",
-      );
-  }
-
-  private async changeMode(
-    sessionId: string,
-    session: SessionState,
-    mode: MuseModeId,
-  ): Promise<void> {
-    if (session.safetyChanging)
-      throw RequestError.invalidRequest(
-        undefined,
-        "A safety setting change is already in progress",
-      );
-    session.safetyChanging = true;
-    try {
-      if (mode === "plan") this.assertWorkflowTools(session);
-      if (this.backend === "sdk" && mode !== "yolo") {
-        writeSessionMode(sessionId, mode, this.options.env ?? process.env);
-        if (session.sdkHost) {
-          await session.sdkHost.owner.close();
-          session.sdkHost = undefined;
-        }
-      }
-      session.modeId = mode;
-      await this.client.sessionUpdate({
-        sessionId,
-        update: { sessionUpdate: "current_mode_update", currentModeId: mode },
-      });
-      await this.client.sessionUpdate({
-        sessionId,
-        update: {
-          sessionUpdate: "config_option_update",
-          configOptions: this.sessionConfigOptions(session),
-        },
-      });
-    } finally {
-      session.safetyChanging = false;
-    }
+    return setSessionMode(this, params);
   }
 
   async compatibleSteer(
@@ -1576,10 +707,11 @@ export class MuseAcpAgent {
       );
     }
 
+    // Slash commands exist only on the SDK backend; exec sends them as prompt text.
     const command = this.backend === "sdk" ? parseSlashCommand(params.prompt) : undefined;
     const workflow = command?.workflow;
     if (!command?.local && (workflow || session.modeId === "plan"))
-      this.assertWorkflowTools(session);
+      assertWorkflowTools(this.options, session);
     if (workflow && session.sdkHost?.owner.hasActiveTurn)
       throw RequestError.invalidRequest(
         undefined,
@@ -1594,195 +726,33 @@ export class MuseAcpAgent {
     if (!converted.ok) throw converted.error;
     const parts = converted.parts;
 
-    if (command?.local) {
-      session.safetyChanging = true;
-      try {
-        let text: string;
-        if (command.local.kind === "rename") {
-          const title = renameSession(
-            params.sessionId,
-            command.local.argument,
-            this.options.env ?? process.env,
-          );
-          await this.client.sessionUpdate({
-            sessionId: params.sessionId,
-            update: {
-              sessionUpdate: "session_info_update",
-              title: title.text,
-              updatedAt: title.updatedAt,
-            },
-          });
-          text = `Session title saved by this adapter: ${title.text}`;
-          if (this.sessionCommandsAvailable()) {
-            const owner = session.sdkHost?.owner;
-            if (owner?.isOpen) {
-              try {
-                const name = await owner.renameNative(title.text);
-                text += `\nMuse session name set to "${name}" (Muse normalizes names).`;
-              } catch (error) {
-                text += `\nMuse kept its own session name: ${error instanceof Error ? error.message : String(error)}`;
-              }
-            } else {
-              session.pendingNativeName = title.text;
-              text += "\nMuse's own session name will be set when this session's host next starts.";
-            }
-          }
-        } else if (command.local.kind === "models") {
-          session.cancelRequested = false;
-          const env = this.providerEnv(params.sessionId);
-          const identity = this.catalogIdentity(session, env);
-          // An explicit refresh can wait for startup; ordinary session creation never does.
-          const discovery = new MuseModelDiscovery({
-            env,
-            museBinary: this.options.museBinary,
-            logger: this.logger,
-            timeoutMs: sdkDeadline(env, "STARTUP"),
-          });
-          const abort = new AbortController();
-          session.modelRefresh = {
-            dispose: async () => {
-              abort.abort();
-              await discovery.dispose();
-            },
-          };
-          try {
-            const connection = session.sdkHost?.owner.catalogConnection;
-            const result = await this.trackRead(
-              connection
-                ? readModelCatalog(connection, abort.signal)
-                : discovery.discover(session.cwd),
-            );
-            const published = await this.publishCatalog(
-              params.sessionId,
-              session,
-              identity,
-              result,
-              !connection,
-            );
-            if (session.cancelRequested) return { stopReason: "cancelled" };
-            text = !published
-              ? "Configuration changed during refresh. Run /models again for the current choices."
-              : result.status === "available"
-                ? `Model choices refreshed (${result.models.length} reported). Select a model in session settings.`
-                : `Model choices could not be refreshed. The current selection is retained. ${result.reason}`;
-          } finally {
-            await discovery.dispose();
-            session.modelRefresh = undefined;
-          }
-        } else if (command.local.kind === "skills") {
-          const skills = await listMuseSkills(
-            session.cwd,
-            this.providerEnv(params.sessionId),
-            this.options.museBinary,
-            this.logger,
-          );
-          this.assertRunning();
-          if (this.sessions.get(params.sessionId) !== session)
-            throw RequestError.invalidRequest(undefined, "Session closed while listing skills");
-          text =
-            skills
-              .slice(0, 200)
-              .map((s) => `${s.id} [${s.activation}, ${s.scope}] — ${s.description.slice(0, 300)}`)
-              .join("\n") || "No Muse skills were reported.";
-        } else if (command.local.kind === "tasks") {
-          const tasks = await session.sdkHost?.owner.listTasks();
-          text =
-            tasks === undefined
-              ? "No live Muse host reports background tasks for this session (task listing needs a running host on Muse 1.4.6 or newer)."
-              : tasks
-                  .slice(0, 200)
-                  .map(
-                    (t) =>
-                      `${t.tool ?? t.kind} ${t.taskId} [${t.status}${t.backgroundInitiator ? `, backgrounded by ${t.backgroundInitiator}` : ""}]${t.startedAt ? ` since ${t.startedAt}` : ""}`,
-                  )
-                  .join("\n") || "No background tasks are running.";
-        } else {
-          await this.logout({});
-          text = `Stored Muse logout completed. ${this.authStatus().configured ? "Credentials remain configured (including any exported META_API_KEY); verification is unknown." : "No credentials are configured."} Adapter sessions were closed.`;
-        }
-        if (
-          !this.disposed &&
-          (!this.sessions.has(params.sessionId) || this.sessions.get(params.sessionId) === session)
-        )
-          await this.client.sessionUpdate({
-            sessionId: params.sessionId,
-            update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text } },
-          });
-        return { stopReason: "end_turn" };
-      } finally {
-        session.safetyChanging = false;
-      }
-    }
+    if (command?.local) return runLocalCommand(this, params.sessionId, session, command.local);
 
     const finished = Promise.withResolvers<void>();
     session.turnFinished = finished.promise;
     session.cancelRequested = false;
-    const reviewId = workflow?.kind === "review" ? randomUUID() : undefined;
-    const publishReview = async (status: "started" | "completed" | "cancelled" | "failed") => {
-      if (
-        !reviewId ||
-        this.clientCapabilities._meta?.["muse/review"] !== 1 ||
-        this.disposed ||
-        this.sessions.get(params.sessionId) !== session
-      )
-        return;
-      await this.client.sessionUpdate({
-        sessionId: params.sessionId,
-        update: {
-          sessionUpdate: "session_info_update",
-          _meta: {
-            "muse/review": {
-              reviewId,
-              status,
-              target: workflow?.kind === "review" ? workflow.target : undefined,
-            },
-          },
-        },
-      });
-    };
-    let compiledPrompt: CompiledMusePrompt | undefined;
-    let mcpOverlay: MuseMcpOverlay | null = null;
+    const review =
+      workflow?.kind === "review" ? { reviewId: randomUUID(), target: workflow.target } : undefined;
+    const publishReview = (status: ReviewStatus) =>
+      this.publishReview(params.sessionId, session, review, status);
     try {
-      const say = async (text: string) => {
-        if (
-          session.cancelRequested ||
-          this.disposed ||
-          this.sessions.get(params.sessionId) !== session
-        )
-          return;
-        await this.client.sessionUpdate({
-          sessionId: params.sessionId,
-          update: {
-            sessionUpdate: "agent_message_chunk",
-            content: { type: "text", text: `${text}\n\n` },
-          },
-        });
-      };
+      const say = (text: string) => this.say(params.sessionId, session, text);
       if (command?.notice) await say(command.notice);
       if (command?.status) {
-        const status =
-          command.status === "status"
-            ? `${await this.subscriptionUsageLine(session)}\nRequested model: ${session.config.model}; provider: ${session.config.providerId ?? "configured default"}; effort: ${session.config.reasoningEffort}; mode: ${session.modeId}.\n${this.progressFor(params.sessionId, session).status()}\nCredentials: ${this.authStatus(params.sessionId).configured ? "configured" : "not configured"}; verification: ${this.authStatus(params.sessionId).verification}; identity: unknown.\nLatest failure: ${session.latestFailure?.kind ?? "none observed"}.`
-            : command.status === "goal"
-              ? await this.inspectGoal(params.sessionId, session)
-              : mcpStatus(session.mcpServers, this.options.env ?? process.env, session.mcpFailure);
+        const status = await statusText(this, params.sessionId, session, command.status);
         await say(status);
         if (!command.stop)
           parts.unshift({ type: "text", text: `Observed ${command.status} status:\n${status}` });
       }
       if (command?.native && !this.sessionCommandsAvailable()) {
         await say(
-          this.backend === "sdk"
-            ? "This Muse command is verified from Muse 1.4.7; this host is not supported. Nothing was changed or sent."
-            : "This Muse command requires the SDK backend. Nothing was changed or sent.",
+          "This Muse command is verified from Muse 1.4.7; this host is not supported. Nothing was changed or sent.",
         );
         return { stopReason: "end_turn" };
       }
       if (command?.goal && !this.goalControlsAvailable()) {
         await say(
-          this.backend === "sdk"
-            ? "Native goal controls are verified from Muse 1.4.6; this host is not supported. No goal was changed."
-            : "Native goal controls require the SDK backend. No goal was changed.",
+          "Native goal controls are verified from Muse 1.4.6; this host is not supported. No goal was changed.",
         );
         return { stopReason: "end_turn" };
       }
@@ -1796,7 +766,7 @@ export class MuseAcpAgent {
             undefined,
             "Wait for native work before entering planning mode",
           );
-        await this.changeMode(params.sessionId, session, "plan");
+        await changeMode(this, params.sessionId, session, "plan");
         if (command?.barePlan) {
           await say(
             "Plan mode enabled. Send a task to begin planning; implementation requires an explicit mode change.",
@@ -1823,324 +793,67 @@ export class MuseAcpAgent {
       if (session.cancelRequested || this.disposed) return { stopReason: "cancelled" };
       const readOnly =
         session.modeId === "readOnly" || session.modeId === "plan" || workflow?.kind === "review";
-      if (this.backend === "exec" && session.mcpServers.length > 0) {
-        mcpOverlay = createMuseMcpOverlay(session.mcpServers, baseEnv);
-        session.activeMcpOverlay = mcpOverlay;
-      }
-      if (this.backend === "sdk") {
-        if (this.options.provider === "echo") {
-          throw RequestError.invalidParams(
-            undefined,
-            "The SDK backend requires a configured Muse provider; use the exec backend for echo",
-          );
-        }
-        session.builtInModel = false;
-        const { providerId, profileId: discoveredProfileId } = resolvedModel(
-          session.config,
-          session.modelDiscovery,
-          readMuseSettings(baseEnv, this.logger).provider ?? "meta",
-        );
-        const profileId = discoveredProfileId ?? null;
-        const boundProvider = this.providers.get(params.sessionId)?.provider;
-        if (boundProvider && providerId !== boundProvider.providerId)
-          throw RequestError.invalidParams(
-            undefined,
-            "Saved model provider does not match the explicitly configured gateway; no fallback was attempted",
-          );
-        // Catalog updates may arrive during a turn. Retain its explicit requested route.
-        session.config = { ...session.config, providerId, profileId: profileId ?? null };
-        const identity = sdkHostConfiguration(
-          session.cwd,
-          session.config,
-          `${session.modeId}:${readOnly}`,
-          session.mcpServers,
-          baseEnv,
-          this.options.museBinary,
-        );
-        if (
-          session.sdkHost &&
-          (session.sdkHost.identity !== identity || !session.sdkHost.owner.reusable)
-        ) {
-          await session.sdkHost.owner.close();
-          session.sdkHost = undefined;
-        }
-        if (session.cancelRequested || this.disposed) return { stopReason: "cancelled" };
-        // Goal controls are how a user pauses or clears host-owned goal work.
-        if (session.sdkHost?.owner.hasActiveTurn && !command?.goal)
-          throw RequestError.invalidRequest(
-            undefined,
-            "Muse is executing a host-owned turn; retry after it finishes or close the session to stop the host",
-          );
-        if (!session.sdkHost) {
-          const overlay = createMuseMcpOverlay(session.mcpServers, baseEnv, session.config);
-          if (
-            (workflow || session.modeId === "plan") &&
-            Object.keys(readConfiguredMcpServers(overlay.env)).length
-          ) {
-            overlay.cleanup();
-            throw RequestError.invalidParams(
-              undefined,
-              "MCP configuration changed while preparing the planning or review host",
-            );
-          }
-          const catalogIdentity = this.catalogIdentity(session, baseEnv);
-          const owner = new MuseSdkHost({
-            sessionId: session.museSessionId,
-            cwd: session.cwd,
-            model: session.config.model,
-            providerId,
-            profileId,
-            readOnly,
-            safety: session.config.safety,
-            museBinary: this.options.museBinary,
-            env: overlay.env,
-            logger: this.logger,
-            checkHost: !this.options.skipSdkHostCheck,
-            onClose: () => overlay.cleanup(),
-            onCatalogConnection: (connection) => {
-              void this.trackRead(
-                readModelCatalog(connection).then(async (result) => {
-                  if (session.sdkHost?.owner === owner && !owner.closed)
-                    await this.publishCatalog(
-                      params.sessionId,
-                      session,
-                      catalogIdentity,
-                      result,
-                      false,
-                    );
-                }),
-              ).catch(() => this.logger.log("Model catalog update could not be delivered"));
-            },
-            onTaskUpdate: async (notification) => {
-              if (
-                !this.disposed &&
-                this.sessions.get(params.sessionId) === session &&
-                session.sdkHost?.owner === owner
-              )
-                await this.client.sessionUpdate(notification);
-            },
-            onGoal: (goal) => this.publishGoal(params.sessionId, session, goal),
-            onProgress: async (facts) => {
-              if (session.sdkHost?.owner === owner)
-                await this.progressFor(params.sessionId, session).observe(facts);
-            },
-            initialGoal: session.goal,
-            ...(this.clientCapabilities._meta?.[SESSION_STATE_EXTENSION] === 1
-              ? {
-                  onSessionState: async (state) => {
-                    if (this.disposed || this.sessions.get(params.sessionId) !== session) return;
-                    await this.client.sessionUpdate({
-                      sessionId: params.sessionId,
-                      update: {
-                        sessionUpdate: "session_info_update",
-                        _meta: { [SESSION_STATE_EXTENSION]: state },
-                      },
-                    });
-                  },
-                }
-              : {}),
-          });
-          session.sdkHost = { owner, identity, overlay };
-        }
-        session.activeMcpOverlay = session.sdkHost.overlay;
-        await publishReview("started");
-        if (session.cancelRequested || this.disposed) {
-          await publishReview("cancelled");
-          return { stopReason: "cancelled" };
-        }
-        await this.publishAuth(params.sessionId, session);
-        const handle = spawnMuseSdkTurn({
-          sessionId: session.museSessionId,
-          cwd: session.cwd,
-          input: parts,
-          model: session.config.model,
-          providerId,
-          profileId,
-          reasoningEffort: session.config.reasoningEffort,
+      if (this.backend === "sdk")
+        return await runSdkTurn(this, {
+          sessionId: params.sessionId,
+          session,
+          meta: params._meta,
+          parts,
+          command,
+          workflow,
           readOnly,
-          safety: session.config.safety,
-          automaticDecision: readOnly
-            ? undefined
-            : session.modeId === "bypassApprovals"
-              ? "approve"
-              : session.modeId === "rejectApprovals"
-                ? "reject"
-                : undefined,
-          museBinary: this.options.museBinary,
-          env: session.sdkHost.overlay.env,
-          hostOwner: session.sdkHost.owner,
-          steering: supportsSteering(this.clientCapabilities),
-          logger: this.logger,
-          checkHost: this.options.skipSdkHostCheck ? false : undefined,
-          acpClient: this.client,
-          clientCapabilities: this.clientCapabilities,
-          fileReportRequestId: supportsFileReport(this.clientCapabilities)
-            ? fileReportRequest(params._meta)
-            : undefined,
-          isCancelled: () => session.cancelRequested,
-          goal: command?.goal,
-          hostCommand: command?.native && hostCommandFor(command.native),
-          nativeName: session.pendingNativeName,
-          onNativeName: () => {
-            session.pendingNativeName = undefined;
-          },
+          baseEnv,
+          say,
+          publishReview,
         });
-        const goalBefore = JSON.stringify(session.goal);
-        session.activeTurn = handle;
-        try {
-          for await (const notification of handle.updates) {
-            await this.client.sessionUpdate(notification);
-          }
-          const response = await handle.done;
-          if (response.stopReason === "end_turn" && !session.cancelRequested) {
-            session.latestFailure = null;
-            session.authObservation = "acceptedForTurn";
-            await this.publishAuth(params.sessionId, session);
-          }
-          if (response.stopReason === "end_turn" && !session.cancelRequested)
-            writeSessionPreferences(
-              params.sessionId,
-              { modelSelection: { model: session.config.model, providerId, profileId } },
-              this.options.env ?? process.env,
-            );
-          await publishReview(
-            session.cancelRequested || response.stopReason === "cancelled"
-              ? "cancelled"
-              : "completed",
-          );
-          if (command?.goal && !session.cancelRequested) {
-            // The host publishes goal changes on its 100 ms observation tick.
-            for (let i = 0; i < 20 && JSON.stringify(session.goal) === goalBefore; i++)
-              await new Promise((resolve) => setTimeout(resolve, 100));
-            await say(
-              `Goal ${command.goal.verb} accepted.\n${await this.inspectGoal(params.sessionId, session)}`,
-            );
-          }
-          return session.cancelRequested ? { stopReason: "cancelled" } : response;
-        } catch (error) {
-          if (!session.cancelRequested) {
-            session.latestFailure = observedFailure(error) ?? null;
-            if (session.latestFailure?.kind === "authRequired")
-              session.authObservation = "rejected";
-            await this.publishAuth(params.sessionId, session);
-          }
-          session.mcpFailure = mcpStartupFailure(error);
-          await session.sdkHost?.owner.close();
-          await publishReview(session.cancelRequested ? "cancelled" : "failed");
-          throw error;
-        } finally {
-          handle.kill();
-          await handle.done.catch(() => {});
-        }
-      }
-      compiledPrompt = await compileMusePrompt(params.prompt);
-      if (session.cancelRequested) return { stopReason: "cancelled" };
-      const translator = new TurnTranslator(params.sessionId);
-      const handle = spawnMuseExec({
-        prompt: compiledPrompt.prompt,
-        imagePaths: compiledPrompt.imagePaths,
-        sessionId: session.museSessionId,
-        cwd: session.cwd,
-        museBinary: this.options.museBinary,
-        provider: this.options.provider,
-        // Model/effort flags only apply to the real provider; muse rejects or
-        // ignores them for echo, so tests with the echo provider skip them.
-        ...(this.options.provider === "echo"
-          ? {}
-          : { model: session.config.model, reasoningEffort: session.config.reasoningEffort }),
-        env: mcpOverlay?.env ?? this.options.env,
-        extraArgs: this.execArgs(session.modeId),
-        logger: this.logger,
-      });
-      session.activeTurn = handle;
-      for await (const envelope of handle.events) {
-        for (const notification of translator.toUpdates(envelope)) {
-          await this.client.sessionUpdate(notification);
-        }
-        if (translator.approvalWait !== null) {
-          handle.kill();
-          break;
-        }
-      }
-      const outcome = await handle.done;
-      const stall = handle.approvalStall();
-      if (stall)
-        throw RequestError.internalError(
-          undefined,
-          `muse exec stopped: its ${stall.taskKind} call waited for an approval decision that headless exec cannot receive (Muse's reviewer likely escalated to a user). Use the SDK backend for interactive approvals, or choose Read-only or Auto-approve mode`,
-        );
-      if (translator.approvalWait !== null) {
-        throw RequestError.internalError(
-          undefined,
-          `muse requested approval for ${translator.approvalWait.toolName}, but muse 0.2.1 cannot route headless approvals through ACP; select bypassApprovals or readOnly before prompting`,
-        );
-      }
-      if (session.cancelRequested || outcome.kind === "cancelled") {
-        // ACP requires the prompt to settle with `cancelled` after a
-        // session/cancel, even if the child managed to finish first.
-        return { stopReason: "cancelled" };
-      }
-      switch (outcome.kind) {
-        case "completed":
-          return { stopReason: "end_turn" };
-        case "usage-error":
-          throw RequestError.internalError(
-            undefined,
-            `muse exec rejected the invocation (exit ${outcome.code}) — ` +
-              `adapter/CLI flag mismatch. argv: ${handle.argv.join(" ")}`,
-          );
-        case "failed": {
-          const terminal = translator.lastTerminal;
-          // Muse exits 1 when --max-model-steps caps the run; that is a turn
-          // limit, not an error (best-effort match on the terminal reason).
-          if (/max[ _-]?(model[ _-]?)?steps/i.test(terminal?.reason ?? "")) {
-            return { stopReason: "max_turn_requests" };
-          }
-          throw this.turnFailure(outcome.code, terminal);
-        }
-        default:
-          return (unreachable(outcome, this.logger), { stopReason: "end_turn" });
-      }
+      return await runExecTurn(this, params.sessionId, session, params.prompt, baseEnv);
     } finally {
       try {
         session.activeTurn?.kill();
         await session.activeTurn?.done.catch(() => {});
-        mcpOverlay?.cleanup();
       } finally {
-        try {
-          await compiledPrompt?.cleanup();
-        } finally {
-          session.activeTurn = null;
-          session.activeMcpOverlay = null;
-          session.turnFinished = null;
-          finished.resolve();
-        }
+        session.activeTurn = null;
+        session.activeMcpOverlay = null;
+        session.turnFinished = null;
+        finished.resolve();
       }
     }
   }
 
-  /**
-   * Classifies an exit-1 turn using the run's own terminal record. Note: exit
-   * codes describe run completion, not code correctness — an exit-0 turn where
-   * the agent reports failing tests is still `end_turn`; only run-level
-   * failures land here.
-   */
-  private turnFailure(
-    code: number,
-    terminal: { terminal: string; text?: string | null; reason?: string | null } | null,
-  ): RequestError {
-    const detail = [terminal?.reason, terminal?.text].filter(Boolean).join(" — ");
-    if (/auth|credential|api.?key|unauthorized|log.?in|401/i.test(detail)) {
-      return RequestError.authRequired(
-        undefined,
-        `muse provider authentication failed: ${detail}. ` +
-          `Run \`muse login\` or set META_API_KEY.`,
-      );
-    }
-    return RequestError.internalError(
-      undefined,
-      detail ? `muse exec failed (exit ${code}): ${detail}` : `muse exec failed (exit ${code})`,
-    );
+  /** One agent message for the current turn, unless it was cancelled or replaced. */
+  private async say(sessionId: string, session: SessionState, text: string): Promise<void> {
+    if (session.cancelRequested || this.disposed || this.sessions.get(sessionId) !== session)
+      return;
+    await this.client.sessionUpdate({
+      sessionId,
+      update: {
+        sessionUpdate: "agent_message_chunk",
+        content: { type: "text", text: `${text}\n\n` },
+      },
+    });
+  }
+
+  /** Negotiated `muse/review` lifecycle for a review workflow turn. */
+  private async publishReview(
+    sessionId: string,
+    session: SessionState,
+    review: { reviewId: string; target: unknown } | undefined,
+    status: ReviewStatus,
+  ): Promise<void> {
+    if (
+      !review ||
+      this.clientCapabilities._meta?.["muse/review"] !== 1 ||
+      this.disposed ||
+      this.sessions.get(sessionId) !== session
+    )
+      return;
+    await this.client.sessionUpdate({
+      sessionId,
+      update: {
+        sessionUpdate: "session_info_update",
+        _meta: { "muse/review": { reviewId: review.reviewId, status, target: review.target } },
+      },
+    });
   }
 
   async readOutput(params: ReturnType<typeof parseOutputRequest>) {
@@ -2220,7 +933,7 @@ export class MuseAcpAgent {
     return {};
   }
 
-  private assertRunning(): void {
+  assertRunning(): void {
     if (this.disposed) throw RequestError.invalidRequest(undefined, "agent is shutting down");
   }
 

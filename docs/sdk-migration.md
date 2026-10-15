@@ -28,7 +28,7 @@ MUSE_CODE_ACP_BACKEND=exec muse-code-acp
 
 | Capability                            | Advertised?                                    | Contract owner                                                                    |
 | ------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------- |
-| Protocol major 1                      | yes (always returned as our supported version) | `src/acp-agent.ts` initialize + `src/tests/acp-wire.test.ts`                      |
+| Protocol major 1                      | yes (always returned as our supported version) | `src/agent-capabilities.ts` + `src/tests/acp-wire.test.ts`                        |
 | Prompt: text + resource_link          | baseline (no capability flag required)         | `src/prompt-content.ts`                                                           |
 | Prompt: embedded text resource        | yes (`embeddedContext`)                        | attributed text; binary resources rejected                                        |
 | Prompt: audio                         | **no**                                         | rejected with invalid params                                                      |

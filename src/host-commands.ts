@@ -1,5 +1,6 @@
 import { MspError } from "@muse-code/sdk";
 import type { MuseSdkHost } from "./muse-sdk-host.js";
+import type { NativeCommand } from "./slash-commands.js";
 
 /** A native host command: its reply text, or undefined when cancelled. */
 export type HostCommand = (
@@ -153,3 +154,25 @@ export const hookListCommand: HostCommand = (owner) =>
           .join("\n")
       : "No Muse hooks are installed.";
   });
+
+/** The host command a parsed native slash command runs. */
+export function hostCommandFor(native: NativeCommand): HostCommand {
+  switch (native.kind) {
+    case "recap":
+      return recapCommand;
+    case "pluginList":
+      return pluginListCommand;
+    case "pluginInstall":
+      return pluginInstallCommand(native.path);
+    case "hookList":
+      return hookListCommand;
+    case "skill":
+      return skillActivationCommand(native.verb, native.selector);
+    case "skillImport":
+      return skillImportCommand(native.source, native.apply);
+    case "feedback":
+      return feedbackCommand(native.classification, native.note, native.withSession);
+    default:
+      throw new Error(`unknown native command ${JSON.stringify(native satisfies never)}`);
+  }
+}
