@@ -28,9 +28,11 @@
 
 - [005](005.md) — Side chats over ACP (deferred)
 - [006](006.md) — Computer-use settings and setup (deferred)
-- [007](007.md) — Media upload and video prompt input (deferred)
-- [008](008.md) — Surface Muse reviewer decisions and decide on reviewer control (needs user decision)
 - [009](009.md) — Assess stricter TypeScript compiler flags (after m18)
 
 001 and 002 were promoted to m4, 003 to m5 (2026-10-08) and 004 to m6 (2026-10-09).
 
+## Dropped
+
+- ~~**007**~~ — Media upload and video prompt input — dropped 2026-10-15: incorrect; user-requested triage. `media/upload` accepts only `video/mp4` and `video/quicktime` (it fills the session's video store; SDK 1.4.8 `MediaUploadParams`), so the note's "use it for large images/resources" is impossible. Its "video needs an ACP content type first" also doesn't hold up: ACP 1.8.0 still has no video `ContentBlock`, but `resource` blobs and `resource_link` can already carry video MIME types (`src/prompt-content.ts` rejects them today). A future video-input note should start from that mapping.
+- ~~**008**~~ — Surface Muse reviewer decisions and decide on reviewer control — dropped 2026-10-15: outdated; user-requested triage. (1) Already delivered: clients negotiating `muse/approval` get `judgeEscalated` on permission requests and the final decision with `resolvedBy` through session-info `_meta` (`src/muse-sdk.ts` `publishApprovalResults`, `docs/workflows.md` § Permission presentation). On Muse 1.4.8-R6256.1 with the loopback reviewer approving, no permission prompt arrived, the tool ran and `resolvedBy: "llmJudge"` was published; an escalation reached the client with `resolvedBy: "user"` after the choice. (2) Nothing to offer: on 1.4.8 `muse serve --approval-judge` is refused ("not a serve option; approval mode is selected over the wire") and `-c approval_judge=…` is an unknown key. Only `muse exec --approval-judge` exists, and turning the reviewer off there would make headless exec stall on approvals (w3/m6). The reviewer behavior itself is recorded in w3/m7, CHANGELOG 0.10.0 Compatibility and the README.
