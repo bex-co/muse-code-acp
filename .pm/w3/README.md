@@ -22,7 +22,6 @@
 - [x] [**m16** — Real-host CI on the newest verified Muse](done/m16/README.md) (7 tasks) ← 2026-10-15 code-quality brainstorm
 - [x] [**m17** — Catch up to ACP SDK 1.8.0 and Muse SDK 1.4.8](done/m17/README.md) (7 tasks) ← 2026-10-15 code-quality brainstorm
 - [x] [**m18** — Split acp-agent.ts without changing behavior](done/m18/README.md) (8 tasks) ← 2026-10-15 code-quality brainstorm
-- [ ] [**m19** — Standard ACP session state and stop reasons](m19/README.md) (6 tasks) ← 2026-10-15 code-quality brainstorm
 
 ## Inbox
 
@@ -35,5 +34,6 @@
 
 ## Dropped
 
+- ~~**m19**~~ — Standard ACP session state and stop reasons — dropped 2026-10-15: premise did not hold, as its own definition of done provided for. In the ACP 1.8.0 schema, `StateUpdate` (idle/running/requires-action) is referenced only by the UNSTABLE `SubagentUpdate`, and `ErrorStopReason` only by a child's `IdleStateUpdate`; there is no state update for an ordinary session, and prompt `StopReason` has no error variant (w3/m17 t003, `docs/capability-audit.md` § "ACP 1.8 schema additions"). Child sessions depend on future watch w1/005. The backed stable surface, `Notice` for Muse 1.4.8 model retries, is inbox [010](010.md).
 - ~~**007**~~ — Media upload and video prompt input — dropped 2026-10-15: incorrect; user-requested triage. `media/upload` accepts only `video/mp4` and `video/quicktime` (it fills the session's video store; SDK 1.4.8 `MediaUploadParams`), so the note's "use it for large images/resources" is impossible. Its "video needs an ACP content type first" also doesn't hold up: ACP 1.8.0 still has no video `ContentBlock`, but `resource` blobs and `resource_link` can already carry video MIME types (`src/prompt-content.ts` rejects them today). A future video-input note should start from that mapping.
 - ~~**008**~~ — Surface Muse reviewer decisions and decide on reviewer control — dropped 2026-10-15: outdated; user-requested triage. (1) Already delivered: clients negotiating `muse/approval` get `judgeEscalated` on permission requests and the final decision with `resolvedBy` through session-info `_meta` (`src/muse-sdk.ts` `publishApprovalResults`, `docs/workflows.md` § Permission presentation). On Muse 1.4.8-R6256.1 with the loopback reviewer approving, no permission prompt arrived, the tool ran and `resolvedBy: "llmJudge"` was published; an escalation reached the client with `resolvedBy: "user"` after the choice. (2) Nothing to offer: on 1.4.8 `muse serve --approval-judge` is refused ("not a serve option; approval mode is selected over the wire") and `-c approval_judge=…` is an unknown key. Only `muse exec --approval-judge` exists, and turning the reviewer off there would make headless exec stall on approvals (w3/m6). The reviewer behavior itself is recorded in w3/m7, CHANGELOG 0.10.0 Compatibility and the README.
