@@ -20,7 +20,7 @@
 - [x] [**m14** — Plugin and hook visibility](done/m14/README.md) (6 tasks) ← 2026-10-12 Muse feature research
 - [x] [**m15** — Trustworthy quality gates](done/m15/README.md) (7 tasks) ← 2026-10-15 code-quality brainstorm
 - [x] [**m16** — Real-host CI on the newest verified Muse](done/m16/README.md) (7 tasks) ← 2026-10-15 code-quality brainstorm
-- [ ] [**m17** — Catch up to ACP SDK 1.8.0 and Muse SDK 1.4.8](m17/README.md) (7 tasks) ← 2026-10-15 code-quality brainstorm
+- [x] [**m17** — Catch up to ACP SDK 1.8.0 and Muse SDK 1.4.8](done/m17/README.md) (7 tasks) ← 2026-10-15 code-quality brainstorm
 - [ ] [**m18** — Split acp-agent.ts without changing behavior](m18/README.md) (7 tasks) ← 2026-10-15 code-quality brainstorm
 - [ ] [**m19** — Standard ACP session state and stop reasons](m19/README.md) (6 tasks) ← 2026-10-15 code-quality brainstorm
 
@@ -29,6 +29,7 @@
 - [005](005.md) — Side chats over ACP (deferred)
 - [006](006.md) — Computer-use settings and setup (deferred)
 - [009](009.md) — Assess stricter TypeScript compiler flags (after m18)
+- [010](010.md) — Show native model retries as ACP notices (Muse 1.4.8; from w1/006)
 
 001 and 002 were promoted to m4, 003 to m5 (2026-10-08) and 004 to m6 (2026-10-09).
 

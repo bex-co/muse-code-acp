@@ -2,9 +2,17 @@
 
 ## Unreleased
 
+### Dependencies
+
+- Bump `@agentclientprotocol/sdk` from 1.3.0 to 1.8.0. Elicitation and terminal authentication are now stable protocol features; the adapter's wire behavior is otherwise unchanged.
+- Bump `@muse-code/sdk` from 1.4.7 to 1.4.8 and verify Muse 1.4.8-R6256.1: the full real-host suite passes. The new `monitorFeed` item arrives outside turns and is not shown; `turn/modelRetryScheduled` is classified but not yet shown.
+
 ### Compatibility
 
-- Release CI now runs the real-host suites on Muse 1.4.7-R6101.1 as well as the 1.1.1-R2514.1 baseline, and fails if a suite for a 1.4.x capability (goal controls, task controls, native session commands, exec reviewer) would skip there.
+- The `META_API_KEY` auth method is now a standard agent method (ACP 1.8.0 removed the unstable `env_var` type): `authenticate` checks that the key is set in the adapter's environment, as before, but clients no longer get a field to enter it.
+- ACP messages over 32 MiB are now refused by the ACP SDK, which closes the connection; the adapter exits with status 1 and reports the limit on stderr instead of exiting silently.
+- Workflow `cancel` is advertised on Muse 1.4.8 after verifying it against a real run. Forking at an earlier turn still fails on 1.4.7 and 1.4.8 ([muse-code-sdk#97](https://github.com/meta-models/muse-code-sdk/issues/97)).
+- Release CI now runs the real-host suites on Muse 1.4.8-R6256.1 as well as the 1.1.1-R2514.1 baseline, and fails if a suite for a 1.4.x capability (goal controls, task controls, native session commands, exec reviewer) would skip there.
 
 ## [0.10.0](https://github.com/bex-co/muse-code-acp/compare/v0.9.1...v0.10.0) (2026-10-12)
 

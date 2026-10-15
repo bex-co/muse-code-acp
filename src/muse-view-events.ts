@@ -48,6 +48,8 @@ export const IGNORED_VIEW_EVENTS: Readonly<Record<string, string>> = {
     "SDK 1.3.0 addition; disclosure only after a provider swap the adapter never issues; not scheduled.",
   "turn/foregroundCompleted":
     "SDK 1.4.4 addition; non-terminal by contract, so the ACP prompt still settles on the turn terminal. Early-answer signalling not scheduled.",
+  "turn/modelRetryScheduled":
+    "SDK 1.4.8 addition: model-attempt backoff before the turn ends; non-terminal. Rendering it is the turn/retryScheduled question (future w1/006).",
 };
 
 /** Every classified method. A method may appear in exactly one table. */
@@ -84,4 +86,6 @@ export const ITEM_KIND_CONSUMERS: Readonly<Record<string, string>> = {
     "SDK 1.4.4 addition; the adapter never opens side chats, so another client's side chat renders as a generic card.",
   webSearch:
     "SDK 1.4.6 addition with no documented fields; muse-sdk-events.ts renders a generic Web search card. The model's web_search tool still arrives as a toolCall (Muse 1.4.6 probe).",
+  monitorFeed:
+    "SDK 1.4.8 addition; always outside a turn (turnId null), and the adapter streams only the active turn's items, so monitor output is not shown. Not scheduled.",
 };

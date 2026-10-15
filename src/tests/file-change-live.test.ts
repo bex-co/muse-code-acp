@@ -125,7 +125,7 @@ describe.skipIf(!available)("real Muse file-change evidence", () => {
       });
       expect(JSON.stringify(second.updates)).not.toContain("agentFileChangeReport");
       expect(
-        second.updates.flatMap((n) =>
+        second.updates.flatMap((n): unknown[] =>
           "content" in n.update && Array.isArray(n.update.content) ? n.update.content : [],
         ),
       ).toContainEqual(

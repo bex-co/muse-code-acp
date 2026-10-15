@@ -50,6 +50,8 @@ describe("auth over ACP", () => {
     const ctx = await testClient.connect();
     const response = await ctx.request(methods.agent.initialize, { protocolVersion: 1 });
     expect(response.authMethods?.map((m) => m.id)).toEqual(["meta-api-key"]);
+    // ACP 1.8 has no env_var type; an agent method omits `type` and uses authenticate.
+    expect(response.authMethods?.[0]).not.toHaveProperty("type");
   });
 
   it("authenticate confirms configuration only and rejects when absent", async () => {

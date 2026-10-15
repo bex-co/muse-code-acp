@@ -1,7 +1,10 @@
-import { existsSync } from "node:fs";
-import { methods, PROTOCOL_VERSION } from "@agentclientprotocol/sdk";
+import { spawn } from "node:child_process";
+import { chmodSync, existsSync } from "node:fs";
+import { join } from "node:path";
+import { DEFAULT_MAX_MESSAGE_BYTES, methods, PROTOCOL_VERSION } from "@agentclientprotocol/sdk";
 import { describe, expect, it } from "vitest";
 import { agentEntrypoint, createWireFixture } from "./acp-wire-helpers.js";
+import { fixturesDir } from "./helpers.js";
 
 describe("ACP stdio wire contracts", () => {
   it("uses the built entrypoint over NDJSON for initialize/new/prompt", async () => {
@@ -147,5 +150,21 @@ describe("ACP stdio wire contracts", () => {
     } finally {
       await wire.dispose();
     }
+  }, 30_000);
+
+  it("exits with the reason when a message exceeds the SDK's size limit", async () => {
+    const fakeMsp = join(fixturesDir, "fake-msp.cjs");
+    chmodSync(fakeMsp, 0o755);
+    const child = spawn(process.execPath, [agentEntrypoint], {
+      env: { ...process.env, MUSE_CODE_EXECUTABLE: fakeMsp },
+      stdio: ["pipe", "ignore", "pipe"],
+    });
+    let stderr = "";
+    child.stderr.setEncoding("utf8").on("data", (chunk: string) => (stderr += chunk));
+    child.stdin.on("error", () => {});
+    const exited = new Promise<number | null>((resolve) => child.on("exit", resolve));
+    child.stdin.write("x".repeat(DEFAULT_MAX_MESSAGE_BYTES + 1) + "\n");
+    expect(await exited).toBe(1);
+    expect(stderr).toContain(`exceeds the configured ${DEFAULT_MAX_MESSAGE_BYTES} byte limit`);
   }, 30_000);
 });

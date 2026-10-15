@@ -2,8 +2,8 @@ import { expect, it } from "vitest";
 import { methods } from "@agentclientprotocol/sdk";
 import { join } from "node:path";
 import { rm } from "node:fs/promises";
-import { spawnSync } from "node:child_process";
-import { museCliPath } from "../muse-cli.js";
+import { probeSdkHost } from "../muse-host.js";
+import { WORKFLOW_CANCEL_HOSTS } from "../muse-sdk-host.js";
 import { connectTestClient, hostSupports, initialized } from "./helpers.js";
 import { startLoopbackProvider } from "./loopback-provider.js";
 const env = (p: Awaited<ReturnType<typeof startLoopbackProvider>>) => ({
@@ -136,12 +136,8 @@ it("cancels only an observed workflow and rejects stale host targets", async () 
           ? [n.update]
           : [],
       );
-    // Workflow cancellation is verified on 1.2.1, 1.3.0, 1.4.4, 1.4.6 and 1.4.7 (WORKFLOW_CANCEL_HOSTS).
-    if (
-      !/\b1\.(2\.1|3\.0|4\.4|4\.6|4\.7)\b/.test(
-        spawnSync(museCliPath(), ["--version"], { encoding: "utf8" }).stdout,
-      )
-    ) {
+    // Workflow cancellation is advertised only on the hosts where it was verified.
+    if (!WORKFLOW_CANCEL_HOSTS.includes(probeSdkHost().version ?? "")) {
       expect(
         client.updates.some(
           (n) =>

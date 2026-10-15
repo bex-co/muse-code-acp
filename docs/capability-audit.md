@@ -75,3 +75,24 @@ effort, view subscribe and item/readOutput. Bounded real shell-output reads now
 have positive evidence and are assigned to [w2/m11](../.pm/w2/done/m11/README.md).
 Workflow cancellation is delivered by [w2/m9](../.pm/w2/done/m9/README.md) using the
 public conformance contract even though SDK 0.1.1 omits its declaration.
+
+## ACP 1.8 schema additions (w3/m17, 2026-10-15)
+
+`@agentclientprotocol/sdk` 1.8.0 (schema v1.25.0) adds these types over 1.3.0.
+"Stable" means the type carries no **UNSTABLE** marker in the 1.8.0 schema.
+Muse evidence is from Muse 1.4.8-R6256.1 with `@muse-code/sdk` 1.4.8.
+
+| ACP type                                                                                             | Stability | What it is                                                                             | Muse public signal                                                                                                                                                                    | Decision                                                                                               |
+| ---------------------------------------------------------------------------------------------------- | --------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `CompactionUpdate`, `CompactionSummaryChunk`                                                         | stable    | Compaction progress and summary, sent only to clients advertising `session.compaction` | `session/compact` and `compaction` items; the host still refuses compaction on 1.4.8 (`compaction_unavailable`)                                                                       | Deferred to [w3/m9](../.pm/w3/m9/README.md), which stays blocked on the host                           |
+| `Notice`                                                                                             | stable    | Fire-and-forget user notice, sent only to clients advertising `session.notices`        | `turn/modelRetryScheduled` (new in SDK 1.4.8): observed on 1.4.8 with attempt, next attempt, maximum, delay, error kind and HTTP status before a failed terminal (provider 503 probe) | Backed. Candidate: model-retry notices, inbox [w3/010](../.pm/w3/010.md); not implemented              |
+| `StateUpdate` (`Idle`/`Running`/`RequiresAction`/`Unknown`), `ErrorStopReason`                       | unstable  | Foreground state and failure details of a reusable **child (subagent) session**        | Muse workflow and subagent children exist, but public child-session access is a future watch ([w1/005](../.pm/w1/005.md))                                                             | Unbacked for root sessions; not advertised. Root sessions keep `muse/*` progress and failure reporting |
+| `SubagentUpdate`, `SubagentCapabilities`, `SubagentSessionCapabilities`, `SessionCancelCapabilities` | unstable  | Parent-owned child sessions exposed as restricted ACP sessions                         | As above ([w1/005](../.pm/w1/005.md)); child attribution stays on worker cards                                                                                                        | Deferred with w1/005                                                                                   |
+| `SessionMessage`, `SessionMessageChunk`                                                              | unstable  | Inter-session messages                                                                 | None                                                                                                                                                                                  | Unbacked                                                                                               |
+| `McpError`, `McpRequestId` (MCP-over-ACP messages)                                                   | unstable  | MCP traffic tunnelled over the ACP connection                                          | The adapter passes MCP servers to Muse ([mcp-passthrough](mcp-passthrough.md)); it does not tunnel MCP                                                                                | Not applicable                                                                                         |
+
+Removed by 1.8.0: the unstable `env_var` auth method type and MCP connect/disconnect
+requests. The `META_API_KEY` method is now advertised as a standard agent method,
+whose `authenticate` checks that the key is set in the adapter's environment. The
+SDK also refuses incoming ACP messages over 32 MiB by closing the transport; the
+adapter then exits with status 1 and reports the limit on stderr.

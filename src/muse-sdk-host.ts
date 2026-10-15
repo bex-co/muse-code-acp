@@ -63,7 +63,7 @@ interface HostLease {
 }
 
 /** Hosts whose public workflow/cancel was verified against a real observed run. */
-const WORKFLOW_CANCEL_HOSTS = ["1.2.1", "1.3.0", "1.4.4", "1.4.6", "1.4.7"];
+export const WORKFLOW_CANCEL_HOSTS = ["1.2.1", "1.3.0", "1.4.4", "1.4.6", "1.4.7", "1.4.8"];
 
 export interface SubscriptionUsageView {
   observedAtMs: number;

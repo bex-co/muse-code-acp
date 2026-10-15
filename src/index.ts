@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { MessageTooLargeError } from "@agentclientprotocol/sdk";
 import { runAcp } from "./acp-agent.js";
 import { museCliPath } from "./muse-cli.js";
 import packageJson from "../package.json" with { type: "json" };
@@ -92,10 +93,18 @@ if (process.argv.includes("--cli")) {
   const { connection, agent } = runAcp(logger);
 
   async function shutdown() {
+    // The ACP SDK closes the transport on an incoming message over its size
+    // limit (32 MiB); say so instead of exiting silently.
+    const reason: unknown = connection.signal.reason;
+    const oversized = reason instanceof MessageTooLargeError;
+    if (oversized) {
+      console.error(reason.message);
+      logger?.error(reason.message);
+    }
     await agent.dispose().catch((err) => {
       console.error("Error during cleanup:", err);
     });
-    process.exit(0);
+    process.exit(oversized ? 1 : 0);
   }
 
   // Exit cleanly when the ACP connection closes (e.g. stdin EOF, transport

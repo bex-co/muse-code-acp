@@ -51,7 +51,7 @@ The launcher updates and removes superseded binaries, so pointing
 URLs and SHA-256 checks are in [CI](.github/workflows/ci.yml). Keep the verified
 binary at a separate path. These fixes are included in **0.5.0**.
 
-The npm adapter and its pinned `@muse-code/sdk@1.4.7` dependency do not include
+The npm adapter and its pinned `@muse-code/sdk@1.4.8` dependency do not include
 the Muse executable. Native execution, model access, persistence and sandboxing
 remain owned by Muse.
 
@@ -289,7 +289,7 @@ flag prevents a missing host from silently skipping acceptance. Suites for newer
 host features (for example native goal controls from Muse 1.4.6) skip on older
 hosts; set `MUSE_CODE_ACP_REQUIRE_HOST_FEATURES=all`, or a comma-separated list
 such as `goal-controls,session-commands`, to make those skips fail instead. CI
-runs the loopback suites on the 1.1.1-R2514.1 baseline and on 1.4.7-R6101.1 with
+runs the loopback suites on the 1.1.1-R2514.1 baseline and on 1.4.8-R6256.1 with
 every capability required. `npm run test:run`
 builds and runs the full local Vitest suite; paid-provider tests are opt-in via
 `npm run test:integration` and require credentials.

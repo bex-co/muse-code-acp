@@ -9,8 +9,8 @@ never silently fall back to exec.
 
 | Component                  | Version                    | Notes                                             |
 | -------------------------- | -------------------------- | ------------------------------------------------- |
-| `@muse-code/sdk`           | **0.1.1** (exact)          | Public MuseClient / Session / Connection APIs     |
-| `@agentclientprotocol/sdk` | **1.3.0** (exact)          | ACP protocol major `PROTOCOL_VERSION` (= 1)       |
+| `@muse-code/sdk`           | **1.4.8** (exact)          | Public MuseClient / Session / Connection APIs     |
+| `@agentclientprotocol/sdk` | **1.8.0** (exact)          | ACP protocol major `PROTOCOL_VERSION` (= 1)       |
 | Muse host (`muse serve`)   | **1.1.1-R2514.1** verified | Default backend; `muse serve --help` must succeed |
 | Muse host (`muse exec`)    | **≥ 0.2.1**                | Legacy `MUSE_CODE_ACP_BACKEND=exec` only          |
 
@@ -222,7 +222,7 @@ mutation or a model turn, with an actionable alternative.
 
 CI runs the real-host suites twice, each on a public Linux Muse artifact checked
 against the SHA-256 in Meta's release manifest: the **1.1.1-R2514.1** baseline,
-where capability-gated suites skip, and **1.4.7-R6101.1** with
+where capability-gated suites skip, and **1.4.8-R6256.1** with
 `MUSE_CODE_ACP_REQUIRE_HOST_FEATURES=all`, where the exec-reviewer,
 goal-control, task-control and session-command suites must run (a skip fails
 the job). Real-host tests run on Ubuntu 22.04: Muse 1.1.1's bundled

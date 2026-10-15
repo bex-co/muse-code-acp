@@ -1,18 +1,18 @@
 # w3 · m17 — Catch up to ACP SDK 1.8.0 and Muse SDK 1.4.8
 
-**Worker:** worker1 **Goal:** The adapter runs on `@agentclientprotocol/sdk` 1.8.0 and `@muse-code/sdk` 1.4.8, verified on Muse 1.4.8, with an evidence-backed map of the new standard ACP surfaces. **Status:** todo
+**Worker:** worker1 **Goal:** The adapter runs on `@agentclientprotocol/sdk` 1.8.0 and `@muse-code/sdk` 1.4.8, verified on Muse 1.4.8, with an evidence-backed map of the new standard ACP surfaces. **Status:** done
 
 ## Tasks (in order)
 
-| id   | title                                            | est  | depends_on                                         |
-| ---- | ------------------------------------------------ | ---- | -------------------------------------------------- |
-| t001 | Bump the ACP SDK to 1.8.0                        | 1h   | —                                                  |
-| t002 | Bump the Muse SDK to 1.4.8 and verify Muse 1.4.8 | 1.5h | —                                                  |
-| t003 | Map the new ACP surfaces to Muse public signals  | 1.5h | w3/m17/t001, w3/m17/t002                           |
-| t004 | Adoption surface                                 | 30m  | w3/m17/t001, w3/m17/t002, w3/m17/t003              |
-| t005 | Simplify milestone changes                       | 30m  | w3/m17/t004                                        |
-| t006 | CI and behavior coverage                         | 45m  | w3/m17/t001, w3/m17/t002, w3/m17/t003, w3/m17/t005 |
-| t007 | Close out milestone                              | 15m  | w3/m17/t006                                        |
+| id   | title                                                       | est  | depends_on                                         |
+| ---- | ----------------------------------------------------------- | ---- | -------------------------------------------------- |
+| t001 | Bump the ACP SDK to 1.8.0 — **DONE**                        | 1h   | —                                                  |
+| t002 | Bump the Muse SDK to 1.4.8 and verify Muse 1.4.8 — **DONE** | 1.5h | —                                                  |
+| t003 | Map the new ACP surfaces to Muse public signals — **DONE**  | 1.5h | w3/m17/t001, w3/m17/t002                           |
+| t004 | Adoption surface — **DONE**                                 | 30m  | w3/m17/t001, w3/m17/t002, w3/m17/t003              |
+| t005 | Simplify milestone changes — **DONE**                       | 30m  | w3/m17/t004                                        |
+| t006 | CI and behavior coverage — **DONE**                         | 45m  | w3/m17/t001, w3/m17/t002, w3/m17/t003, w3/m17/t005 |
+| t007 | Close out milestone — **DONE**                              | 15m  | w3/m17/t006                                        |
 
 ## Definition of done
 
@@ -32,4 +32,9 @@
 
 ## Validation evidence
 
-Not yet run.
+2026-10-15. `@agentclientprotocol/sdk` 1.8.0, `@muse-code/sdk` 1.4.8.
+
+- Muse 1.4.8-R6256.1 loopback suite, all capabilities required: 21/21 files, 68/68 (65/68 at `adae363` before this milestone). GitHub CI [run 38724727770](https://github.com/bex-co/muse-code-acp/actions/runs/38724727770) on the identical tree: 1.4.8 leg 68/68, 1.1.1 leg 63 + 5 capability skips, build and standalone green.
+- `npm run check`, `build`, `test:coverage` (510/510), shuffled run, `test:pack-smoke`: passed.
+- Wire changes, both deliberate: the API-key auth method is now a standard agent method (ACP removed `env_var`); an incoming message over the SDK's 32 MiB limit now exits 1 with the reason instead of exiting 0 silently.
+- Findings routed elsewhere: `turn/modelRetryScheduled` observed on 1.4.8 (new inbox w3/010, w1/006 trigger met); ACP 1.8 state/stop-reason types are unstable child-session types, so w3/m19's premise does not hold (t003).

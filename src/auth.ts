@@ -57,12 +57,13 @@ export function museAuthMethods(options: { includeTerminal?: boolean } = {}): Au
       },
     });
   }
+  // ACP removed its unstable `env_var` method type, so this is an agent method:
+  // `authenticate` checks that META_API_KEY is already in the adapter environment.
   methods.push({
-    type: "env_var",
     id: META_API_KEY_METHOD_ID,
     name: "Meta API key",
-    description: "Set META_API_KEY for headless/CI use (muse env precedence applies).",
-    vars: [{ name: "META_API_KEY", label: "Meta API key", secret: true }],
+    description:
+      "Set META_API_KEY in the adapter's environment for headless/CI use (muse env precedence applies).",
   });
   return methods;
 }
