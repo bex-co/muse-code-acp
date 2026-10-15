@@ -31,7 +31,8 @@ skill or ship code does not authorize publication.
 4. Run the checks in `.github/workflows/ci.yml`: formatting, lint, build, unit
    tests, packed-install smoke, and required real Muse loopback suites. Use
    `MUSE_CODE_ACP_REQUIRE_MUSE=1` for loopback tests so missing Muse cannot silently
-   pass. If the required host is unavailable locally, explicitly leave that
+   pass, and `MUSE_CODE_ACP_REQUIRE_HOST_FEATURES=all` on a host that supports every
+   gated capability (CI's newest-host leg) so its suites cannot silently skip. If the required host is unavailable locally, explicitly leave that
    verification to the required CI job. Fix failures before publication; never
    weaken checks to release. Paid-provider tests require existing authorization.
 

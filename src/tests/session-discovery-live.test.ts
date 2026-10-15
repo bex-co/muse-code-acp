@@ -38,24 +38,35 @@ describe.skipIf(!available)("real Muse public session discovery", () => {
       const { connection } = await host.initialize({
         clientInfo: { name: "discovery_test", version: "1" },
       });
-      const started = await connection.command("session/start", {
-        workspaceRoot: cwd,
-        modelId: "fake-model",
-      });
-      const source = (started.session as { sessionId: string }).sessionId;
-      const finished = Promise.withResolvers<void>();
-      connection.onNotification((n) => {
-        if (n.method === "turn/completed") finished.resolve();
-      });
-      await connection.command("turn/start", {
-        sessionId: source,
-        input: [{ type: "text", text: "discovery original marker" }],
-      });
-      await finished.promise;
+      // Muse discards a session with no completed turn when its host closes, and
+      // other processes see such sessions only partially while it runs (observed
+      // on 1.1.1 and 1.4.7). Every listed session is therefore durable: one turn,
+      // or a fork of a session that has one. Muse 1.1.1 holds about 32 loaded
+      // sessions per host, so a second host creates half of them.
+      type MspConnection = typeof connection;
+      const completions = new Map<string, () => void>();
+      const durableSession = async (conn: MspConnection, text: string) => {
+        conn.onNotification((n) => {
+          if (n.method === "turn/completed")
+            completions.get((n.params as { sessionId: string }).sessionId)?.();
+        });
+        const started = await conn.command("session/start", {
+          workspaceRoot: cwd,
+          modelId: "fake-model",
+        });
+        const sessionId = (started.session as { sessionId: string }).sessionId;
+        const completed = new Promise<void>((resolve) => completions.set(sessionId, resolve));
+        await conn.command("turn/start", { sessionId, input: [{ type: "text", text }] });
+        await completed;
+        return sessionId;
+      };
+      const forks = async (conn: MspConnection, sessionId: string, count: number) => {
+        for (let i = 0; i < count; i++) await conn.command("session/fork", { sessionId });
+      };
+      const source = await durableSession(connection, "discovery original marker");
       const fork = await connection.command("session/fork", { sessionId: source });
       const forkId = (fork.session as { sessionId: string }).sessionId;
-      for (let i = 0; i < 25; i++)
-        await connection.command("session/start", { workspaceRoot: cwd, modelId: "fake-model" });
+      await forks(connection, source, 25);
       extraHost = spawnMspConnection({
         command: museCliPath(),
         args: ["serve"],
@@ -66,28 +77,24 @@ describe.skipIf(!available)("real Muse public session discovery", () => {
       const extra = await extraHost.initialize({
         clientInfo: { name: "discovery_fixture", version: "1" },
       });
-      for (let i = 0; i < 25; i++)
-        await extra.connection.command("session/start", {
-          workspaceRoot: cwd,
-          modelId: "fake-model",
-        });
-      await expect
-        .poll(
-          async () => {
-            const r = await connection.request("session/list", { workspaceRoot: cwd, limit: 200 });
-            return (r.sessions as unknown[]).length;
-          },
-          { timeout: 10_000 },
-        )
-        .toBe(52);
+      await forks(extra.connection, await durableSession(extra.connection, "second host"), 24);
+      // Close the writers so everything is persisted. Each adapter listing starts
+      // a fresh discovery host; poll until Muse's eventually consistent index
+      // (docs/session-discovery.md) includes every session.
+      await extraHost.close();
+      await host.close();
+      const settle = { timeout: 30_000, interval: 500 };
       const ctx = await initialized(client, { _meta: { "muse/fork": 1 } });
-      const first = await ctx.request(methods.agent.session.list, { cwd });
-      expect(first.sessions).toHaveLength(50);
-      expect(first.nextCursor).toBeTruthy();
-      const second = await ctx.request(methods.agent.session.list, {
-        cwd,
-        cursor: first.nextCursor,
-      });
+      const list = (cursor?: string | null) =>
+        ctx.request(methods.agent.session.list, { cwd, ...(cursor ? { cursor } : {}) });
+      let first = await list();
+      await expect
+        .poll(async () => {
+          first = await list();
+          return first.nextCursor ? first.sessions.length : 0;
+        }, settle)
+        .toBe(50);
+      const second = await list(first.nextCursor);
       expect(second.sessions).toHaveLength(2);
       expect(second.nextCursor).toBeUndefined();
       const all = [...first.sessions, ...second.sessions];
@@ -97,7 +104,6 @@ describe.skipIf(!available)("real Muse public session discovery", () => {
         "muse/fork": { sourceSessionId: source },
       });
       const before = provider.requests().length;
-      await host.close();
       await ctx.request(methods.agent.session.load, { sessionId: source, cwd, mcpServers: [] });
       expect(
         client.updates.filter((n) => n.update.sessionUpdate === "user_message_chunk"),
@@ -117,5 +123,5 @@ describe.skipIf(!available)("real Muse public session discovery", () => {
       await provider.close();
       rmSync(provider.root, { recursive: true, force: true });
     }
-  }, 60_000);
+  }, 120_000);
 });

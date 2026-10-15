@@ -2,9 +2,9 @@ import { methods } from "@agentclientprotocol/sdk";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { execSupportsPermissionProfile, probeSdkHost } from "../muse-host.js";
+import { execSupportsPermissionProfile } from "../muse-host.js";
 import { expectLegacyContinuation, expectLegacyLoad } from "./acp-real-host-helpers.js";
-import { connectTestClient, initialized, museAvailable } from "./helpers.js";
+import { connectTestClient, hostSupports, initialized, museAvailable } from "./helpers.js";
 import { startLoopbackProvider } from "./loopback-provider.js";
 
 const available = museAvailable();
@@ -71,68 +71,69 @@ describe.skipIf(!available)("exec permission profiles", () => {
   }, 90_000);
 });
 
-// Muse's automated approval reviewer is verified from 1.4.4; Muse 1.1.1 (CI)
-// has none, so a reviewed tool call there can never be decided headlessly.
-const reviewerHost = () => {
-  const [major = 0, minor = 0, patch = 0] = (probeSdkHost().version ?? "0").split(".").map(Number);
-  return major > 1 || (major === 1 && (minor > 4 || (minor === 4 && patch >= 4)));
-};
-
-describe.skipIf(!available || !reviewerHost())("exec Default-mode approval review", () => {
-  it.each(["approve", "escalate"] as const)(
-    "settles a reviewed tool call when the reviewer answers %s",
-    async (reviewerOutcome) => {
-      const marker = `exec-review-${reviewerOutcome}`;
-      const provider = await startLoopbackProvider({
-        holdMs: 20,
-        reviewerOutcome,
-        scriptedToolCallWhen: [],
-        scriptedToolCallCommand: "",
-        scriptedToolCallForRequest: (request) => {
-          const body = JSON.stringify(request.input);
-          return body.includes(marker) &&
-            !body.includes("function_call_output") &&
-            JSON.stringify(request.tools).includes('"name":"write_file"')
-            ? {
-                name: "bash",
-                arguments: { command: `printf x > ${marker}.txt`, description: "write" },
-              }
-            : undefined;
-        },
-      });
-      const cwd = join(provider.root, "workspace");
-      mkdirSync(cwd);
-      const env = {
-        PATH: process.env.PATH,
-        HOME: provider.home,
-        XDG_CONFIG_HOME: join(provider.root, "config"),
-        XDG_DATA_HOME: join(provider.root, "data"),
-        TBH_CREDENTIAL_BACKEND: "file",
-        TBH_DISABLE_TELEMETRY: "1",
-        MUSE_CODE_ACP_EXEC_APPROVAL_STALL_MS: "5000",
-      };
-      const client = connectTestClient({ backend: "exec", provider: "meta", env });
-      try {
-        const ctx = await initialized(client);
-        const { sessionId } = await ctx.request(methods.agent.session.new, { cwd, mcpServers: [] });
-        const prompt = ctx.request(methods.agent.session.prompt, {
-          sessionId,
-          prompt: [{ type: "text", text: `${marker} write the marker` }],
+// Muse 1.1.1 has no automated approval reviewer, so a reviewed tool call there
+// can never be decided headlessly.
+describe.skipIf(!available || !hostSupports("exec-reviewer"))(
+  "exec Default-mode approval review",
+  () => {
+    it.each(["approve", "escalate"] as const)(
+      "settles a reviewed tool call when the reviewer answers %s",
+      async (reviewerOutcome) => {
+        const marker = `exec-review-${reviewerOutcome}`;
+        const provider = await startLoopbackProvider({
+          holdMs: 20,
+          reviewerOutcome,
+          scriptedToolCallWhen: [],
+          scriptedToolCallCommand: "",
+          scriptedToolCallForRequest: (request) => {
+            const body = JSON.stringify(request.input);
+            return body.includes(marker) &&
+              !body.includes("function_call_output") &&
+              JSON.stringify(request.tools).includes('"name":"write_file"')
+              ? {
+                  name: "bash",
+                  arguments: { command: `printf x > ${marker}.txt`, description: "write" },
+                }
+              : undefined;
+          },
         });
-        if (reviewerOutcome === "approve") {
-          await expect(prompt).resolves.toEqual({ stopReason: "end_turn" });
-          expect(existsSync(join(cwd, `${marker}.txt`))).toBe(true);
-        } else {
-          // Headless exec cannot receive an escalated decision; fail, never hang.
-          await expect(prompt).rejects.toThrow("waited for an approval decision");
-          expect(existsSync(join(cwd, `${marker}.txt`))).toBe(false);
+        const cwd = join(provider.root, "workspace");
+        mkdirSync(cwd);
+        const env = {
+          PATH: process.env.PATH,
+          HOME: provider.home,
+          XDG_CONFIG_HOME: join(provider.root, "config"),
+          XDG_DATA_HOME: join(provider.root, "data"),
+          TBH_CREDENTIAL_BACKEND: "file",
+          TBH_DISABLE_TELEMETRY: "1",
+          MUSE_CODE_ACP_EXEC_APPROVAL_STALL_MS: "5000",
+        };
+        const client = connectTestClient({ backend: "exec", provider: "meta", env });
+        try {
+          const ctx = await initialized(client);
+          const { sessionId } = await ctx.request(methods.agent.session.new, {
+            cwd,
+            mcpServers: [],
+          });
+          const prompt = ctx.request(methods.agent.session.prompt, {
+            sessionId,
+            prompt: [{ type: "text", text: `${marker} write the marker` }],
+          });
+          if (reviewerOutcome === "approve") {
+            await expect(prompt).resolves.toEqual({ stopReason: "end_turn" });
+            expect(existsSync(join(cwd, `${marker}.txt`))).toBe(true);
+          } else {
+            // Headless exec cannot receive an escalated decision; fail, never hang.
+            await expect(prompt).rejects.toThrow("waited for an approval decision");
+            expect(existsSync(join(cwd, `${marker}.txt`))).toBe(false);
+          }
+        } finally {
+          await client.agent.dispose();
+          await provider.close();
+          rmSync(provider.root, { recursive: true, force: true });
         }
-      } finally {
-        await client.agent.dispose();
-        await provider.close();
-        rmSync(provider.root, { recursive: true, force: true });
-      }
-    },
-    60_000,
-  );
-});
+      },
+      60_000,
+    );
+  },
+);

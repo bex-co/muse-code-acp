@@ -24,7 +24,7 @@ const EXEC_PROFILE_MIN_HOST = [1, 4, 4];
 const GOAL_CONTROL_MIN_HOST = [1, 4, 6];
 
 /** Whether a probed `x.y.z` host version is at least `minimum`. */
-function atLeast(version: string | null | undefined, minimum: number[]): boolean {
+export function atLeast(version: string | null | undefined, minimum: number[]): boolean {
   const parts = version?.split(".").map(Number);
   if (!parts) return false;
   for (const [i, part] of minimum.entries()) {

@@ -2,15 +2,14 @@ import { methods } from "@agentclientprotocol/sdk";
 import { rmSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { probeSdkHost, supportsGoalControls } from "../muse-host.js";
-import { connectTestClient, initialized, museAvailable } from "./helpers.js";
+import { connectTestClient, hostSupports, initialized, museAvailable } from "./helpers.js";
 import { startLoopbackProvider } from "./loopback-provider.js";
 
 const available = museAvailable();
 if (!available && process.env.MUSE_CODE_ACP_REQUIRE_MUSE === "1")
   throw new Error("Muse required for goal control acceptance");
 
-describe.skipIf(!available || !supportsGoalControls(probeSdkHost().version))(
+describe.skipIf(!available || !hostSupports("goal-controls"))(
   "native goal controls (real Muse host)",
   () => {
     it("sets, edits, resumes and clears the native goal through /goal", async () => {

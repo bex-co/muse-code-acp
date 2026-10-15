@@ -285,7 +285,12 @@ MUSE_CODE_ACP_REQUIRE_MUSE=1 npm run test:muse-loopback
 ```
 
 These tests use a local loopback provider and are required in CI. The required
-flag prevents a missing host from silently skipping acceptance. `npm run test:run`
+flag prevents a missing host from silently skipping acceptance. Suites for newer
+host features (for example native goal controls from Muse 1.4.6) skip on older
+hosts; set `MUSE_CODE_ACP_REQUIRE_HOST_FEATURES=all`, or a comma-separated list
+such as `goal-controls,session-commands`, to make those skips fail instead. CI
+runs the loopback suites on the 1.1.1-R2514.1 baseline and on 1.4.7-R6101.1 with
+every capability required. `npm run test:run`
 builds and runs the full local Vitest suite; paid-provider tests are opt-in via
 `npm run test:integration` and require credentials.
 

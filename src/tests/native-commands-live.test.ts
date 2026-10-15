@@ -2,15 +2,14 @@ import { methods } from "@agentclientprotocol/sdk";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { probeSdkHost, supportsSessionCommands } from "../muse-host.js";
-import { connectTestClient, initialized, museAvailable } from "./helpers.js";
+import { connectTestClient, hostSupports, initialized, museAvailable } from "./helpers.js";
 import { startLoopbackProvider } from "./loopback-provider.js";
 
 const available = museAvailable();
 if (!available && process.env.MUSE_CODE_ACP_REQUIRE_MUSE === "1")
   throw new Error("Muse required for native command acceptance");
 
-describe.skipIf(!available || !supportsSessionCommands(probeSdkHost().version))(
+describe.skipIf(!available || !hostSupports("session-commands"))(
   "native recap and rename (real Muse host)",
   () => {
     it("returns Muse's recap and sets its normalized session name", async () => {

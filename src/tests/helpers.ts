@@ -16,6 +16,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createAgentConnection, Logger, MuseAcpAgent, MuseAgentOptions } from "../acp-agent.js";
 import { museCliPath } from "../muse-cli.js";
+import {
+  atLeast,
+  probeSdkHost,
+  supportsGoalControls,
+  supportsSessionCommands,
+  supportsTaskControls,
+} from "../muse-host.js";
 
 const agents = new Set<MuseAcpAgent>();
 afterEach(async () => {
@@ -43,6 +50,37 @@ export function museAvailable(): boolean {
   } catch {
     return false;
   }
+}
+
+/** Host capabilities that gate live suites, with the version each was verified from. */
+const HOST_CAPABILITIES = {
+  // Muse's automated approval reviewer decides exec tool calls from 1.4.4.
+  "exec-reviewer": (version: string | null | undefined) => atLeast(version, [1, 4, 4]),
+  "goal-controls": supportsGoalControls,
+  "session-commands": supportsSessionCommands,
+  "task-controls": supportsTaskControls,
+};
+export type HostCapability = keyof typeof HOST_CAPABILITIES;
+
+/**
+ * Whether a capability-gated live suite runs on the installed host. Unsupported
+ * capabilities skip, unless MUSE_CODE_ACP_REQUIRE_HOST_FEATURES names them
+ * (comma-separated, or `all`): then the run fails instead, so a CI leg cannot
+ * pass with the suites it exists to verify silently skipped.
+ */
+export function hostSupports(
+  name: HostCapability,
+  version: string | null | undefined = museAvailable() ? probeSdkHost().version : null,
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  if (HOST_CAPABILITIES[name](version)) return true;
+  const required = (env.MUSE_CODE_ACP_REQUIRE_HOST_FEATURES ?? "").split(",").map((s) => s.trim());
+  if (required.includes("all") || required.includes(name))
+    throw new Error(
+      `Muse host ${version ?? "(not found)"} lacks required capability "${name}" ` +
+        "(MUSE_CODE_ACP_REQUIRE_HOST_FEATURES)",
+    );
+  return false;
 }
 
 /** The blocking fake `muse exec` used by deterministic cancellation tests. */

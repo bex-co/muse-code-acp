@@ -208,6 +208,8 @@ mutation or a model turn, with an actionable alternative.
 | ------------------------------------ | ------------------------------------------------------------------------ |
 | `npm run test:unit`                  | Deterministic fake-MSP/wire contracts; no Muse binary                    |
 | `npm run test:muse-loopback`         | Real Muse + loopback: live, approval, multi-stage approval, ACP restart  |
+| `npm run test:coverage`              | `test:unit` with enforced coverage floors (CI build job)                 |
+| `npm run test:unit:shuffle`          | `test:unit` in random order; logs the seed (CI build job)                |
 | `npm run test:pack-smoke`            | `npm pack` → clean install → stdio initialize/new/prompt/stream/end_turn |
 | `RUN_INTEGRATION_TESTS=true`         | Optional external-provider acceptance (separate from CI)                 |
 | `src/tests/session-history.test.ts`  | Export replay completeness / schema reject                               |
@@ -218,8 +220,12 @@ mutation or a model turn, with an actionable alternative.
 | `src/tests/muse-sdk-gap.test.ts`     | Recoverable and failed view/page fills                                   |
 | `src/tests/acp-wire.test.ts`         | Spawned `dist/index.js` NDJSON wire                                      |
 
-CI installs the public Linux Muse **1.1.1-R2514.1** artifact and verifies its
-pinned SHA-256. Real-host tests run on Ubuntu 22.04: Muse 1.1.1's bundled
+CI runs the real-host suites twice, each on a public Linux Muse artifact checked
+against the SHA-256 in Meta's release manifest: the **1.1.1-R2514.1** baseline,
+where capability-gated suites skip, and **1.4.7-R6101.1** with
+`MUSE_CODE_ACP_REQUIRE_HOST_FEATURES=all`, where the exec-reviewer,
+goal-control, task-control and session-command suites must run (a skip fails
+the job). Real-host tests run on Ubuntu 22.04: Muse 1.1.1's bundled
 Bubblewrap fails to create its loopback namespace under Ubuntu 24.04's default
 AppArmor policy (`Failed RTM_NEWADDR: Operation not permitted`). This is a host
 sandbox limitation; ACP reports the failed tool result. CI keeps the sandbox

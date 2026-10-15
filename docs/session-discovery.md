@@ -12,7 +12,12 @@ consistent: newly created sessions and recent turns may appear only after the
 index catches up. Pages are not a frozen snapshot. Concurrent activity can move a
 session ahead of an existing cursor; refresh from the first page to observe it.
 Do not parse the native cursor or infer exact current turn counts from list rows.
-The real-host acceptance traverses 52 sessions, including a source and native fork.
+Each listing starts a fresh discovery host, so it sees what Muse has persisted. A
+session that another Muse process started but never prompted may be missing, and
+Muse discards it when that process exits (observed on 1.1.1 and 1.4.7). Sessions
+with a completed turn, and their forks, are durable.
+The real-host acceptance traverses 52 such sessions, created by two Muse
+processes, including a source and native fork.
 
 Titles use a nonempty host title when supplied. The tested public host schema has
 no title field or rename event, so the compatibility fallback reads at most 64 KiB

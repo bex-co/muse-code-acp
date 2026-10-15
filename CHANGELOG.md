@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Compatibility
+
+- Release CI now runs the real-host suites on Muse 1.4.7-R6101.1 as well as the 1.1.1-R2514.1 baseline, and fails if a suite for a 1.4.x capability (goal controls, task controls, native session commands, exec reviewer) would skip there.
+
 ## [0.10.0](https://github.com/bex-co/muse-code-acp/compare/v0.9.1...v0.10.0) (2026-10-12)
 
 ### Features
