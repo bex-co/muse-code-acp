@@ -1,6 +1,6 @@
 <div align="center">
 
-![muse-code-acp — Muse Code for any ACP client](.github/social-preview.png)
+![muse-code-acp — Muse Code for any ACP client](.github/social-preview.webp)
 
 # Use Muse Code inside Zed — and any ACP editor
 
