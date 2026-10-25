@@ -5,7 +5,12 @@ import { randomUUID } from "node:crypto";
 import { methods } from "@agentclientprotocol/sdk";
 import { describe, expect, it } from "vitest";
 import { connectTestClient, initialized, museAvailable } from "./helpers.js";
-import { forkCutLatestOnly, spawnAcpAgent } from "./acp-real-host-helpers.js";
+import {
+  FORK_BIRTH_TIME_ERROR,
+  forkCutLatestOnly,
+  forkUnavailable,
+  spawnAcpAgent,
+} from "./acp-real-host-helpers.js";
 import { ALTERNATE_MODEL_ID, startLoopbackProvider } from "./loopback-provider.js";
 
 const available = museAvailable();
@@ -63,6 +68,13 @@ describe.skipIf(!available)("native Muse fork continuity", () => {
       await prompt(sessionId, "m12-source-second");
       const latestTurn = turnIds()[1];
       expect(latestTurn).toBeTypeOf("string");
+      // A host that cannot fork at all gets Muse's reason, and nothing more runs.
+      if (forkUnavailable()) {
+        await expect(ctx.request(methods.agent.session.fork, { sessionId, cwd })).rejects.toThrow(
+          FORK_BIRTH_TIME_ERROR,
+        );
+        return;
+      }
       await expect(
         ctx.request(methods.agent.session.fork, {
           sessionId,

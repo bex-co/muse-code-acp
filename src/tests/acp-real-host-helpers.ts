@@ -49,6 +49,14 @@ const FORK_CUT_LATEST_ONLY = [
   "(1.4.8-R6256.1)",
   "(1.4.11-R6667.1)",
 ];
+/**
+ * Muse 1.4.12 on Linux fails every `session/fork` with -32603 "resolve branch
+ * creation time: file birth time is unavailable", even where the kernel reports
+ * birth times (reproduced on ubuntu-22.04 CI and a Debian container).
+ */
+export const FORK_BIRTH_TIME_ERROR = "file birth time is unavailable";
+export const forkUnavailable = () =>
+  process.platform === "linux" && museVersion().includes("(1.4.12-R6909.1)");
 export const forkCutLatestOnly = () =>
   FORK_CUT_LATEST_ONLY.some((build) => museVersion().includes(build));
 const museVersion = () =>

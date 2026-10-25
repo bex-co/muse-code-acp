@@ -4,6 +4,7 @@ import { methods } from "@agentclientprotocol/sdk";
 import { realpathSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { museCliPath } from "../muse-cli.js";
+import { FORK_BIRTH_TIME_ERROR, forkUnavailable } from "./acp-real-host-helpers.js";
 import { startLoopbackProvider } from "./loopback-provider.js";
 import { connectTestClient, initialized, museAvailable, silentLogger } from "./helpers.js";
 const available = museAvailable();
@@ -64,6 +65,12 @@ describe.skipIf(!available)("real Muse public session discovery", () => {
         for (let i = 0; i < count; i++) await conn.command("session/fork", { sessionId });
       };
       const source = await durableSession(connection, "discovery original marker");
+      if (forkUnavailable()) {
+        await expect(connection.command("session/fork", { sessionId: source })).rejects.toThrow(
+          FORK_BIRTH_TIME_ERROR,
+        );
+        return;
+      }
       const fork = await connection.command("session/fork", { sessionId: source });
       const forkId = (fork.session as { sessionId: string }).sessionId;
       await forks(connection, source, 25);

@@ -94,7 +94,12 @@ export async function forkMuseSession(options: {
           );
         if (["sessionNotFound", "notFound", "forkBoundaryInvalid"].includes(error.kind))
           throw RequestError.invalidParams(undefined, `Muse fork rejected: ${error.kind}`);
-        throw RequestError.invalidRequest(undefined, `Muse fork unavailable (MSP ${error.code})`);
+        // Muse's own words, bounded: e.g. Muse 1.4.12 on Linux cannot read file
+        // birth times and fails every fork as an internal error.
+        throw RequestError.invalidRequest(
+          undefined,
+          `Muse fork unavailable (MSP ${error.code}: ${error.message.slice(0, 300)})`,
+        );
       }
       throw error;
     }
