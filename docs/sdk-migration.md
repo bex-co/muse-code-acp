@@ -314,7 +314,7 @@ dummy credentials and a local loopback endpoint; no paid provider was called.
 | Embedded context     | ACP resource-only prompt traversed the real SDK/host; captured provider input decoded to the exact unsaved text, URI and MIME attribution.                                                                                             |
 | Reasoning summaries  | Public item schema declares `reasoning.summary` and indexed summary deltas. Actual summary events are not yet verified or forwarded; private/encrypted reasoning is not accessed.                                                      |
 | Usage/context        | Public schema declares usage/context data. End-to-end ACP reporting is unverified and remains unadvertised until m9.                                                                                                                   |
-| Compaction, steering | Public schema declares session/compact and turn/steer. Accepted/terminal lifecycle and provider effects are not verified by m8; implementation remains in m9/m10.                                                                      |
+| Compaction, steering | Steering shipped in w1/m10. `/compact` uses public session/compact on Muse 1.4.12+ (w3/m9); the exec backend has no compaction. Real-provider completion verified; the loopback provider is refused.                                   |
 | Subagents, fork      | Public schema declares worker lifecycle/control and session/fork. Worker routing and permission isolation remain unverified m11 work. m12 delivers native forks with independent restart continuity; see [branching](session-fork.md). |
 
 Schema presence is a discovery lead, not delivery evidence. Later milestones must

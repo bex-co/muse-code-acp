@@ -70,6 +70,7 @@ Slash commands can appear in any top-level text block alongside editor context.
 | `/goal <task>`                           | Run a task once; `/goal set <objective>` for a persistent native goal (1.4.6+) |
 | `/models`                                | Refresh the model catalog before a turn                                        |
 | `/recap` · `/rename`                     | Native session recap / rename on Muse 1.4.7+                                   |
+| `/compact`                               | Native context compaction on Muse 1.4.12+                                      |
 | `/skills` · `/plugins` · `/hooks`        | Inspect, enable/disable, and import skills; list/install plugins (1.4.7+)      |
 | `/status` · `/mcp <question>`            | Session + subscription usage; MCP diagnostics combined with a normal task      |
 | `/feedback bug\|bad\|good\|other <note>` | Send feedback to Muse (session record only with `--with-session`)              |
@@ -77,7 +78,7 @@ Slash commands can appear in any top-level text block alongside editor context.
 <details>
 <summary><strong>Full slash-command notes</strong></summary>
 
-On Muse 1.4.7 or newer, `/recap` asks Muse for a short recap of the session (a model side-call that adds nothing to history) and `/rename` also sets Muse's own session name. `/skills enable|disable <skill>` changes a skill's activation in the scope it comes from, `/skills import claude|codex` previews importing foreign skills (`--apply` imports), and `/feedback bug|bad|good|other <note>` sends feedback to Muse with no files attached (the session record only with `--with-session`). `/status` also shows Muse's own subscription usage when Muse reports it. `/plugins` and `/hooks` list installed Muse plugins and hooks, and `/plugins install <folder>` installs a local plugin, only on that explicit command.
+On Muse 1.4.7 or newer, `/recap` asks Muse for a short recap of the session (a model side-call that adds nothing to history) and `/rename` also sets Muse's own session name. `/skills enable|disable <skill>` changes a skill's activation in the scope it comes from, `/skills import claude|codex` previews importing foreign skills (`--apply` imports), and `/feedback bug|bad|good|other <note>` sends feedback to Muse with no files attached (the session record only with `--with-session`). `/status` also shows Muse's own subscription usage when Muse reports it. On Muse 1.4.12 or newer, `/compact` asks Muse to compact the session's context and reports the outcome (clients advertising `session.compaction` also get standard compaction updates); Muse's refusals are reported verbatim. `/plugins` and `/hooks` list installed Muse plugins and hooks, and `/plugins install <folder>` installs a local plugin, only on that explicit command.
 
 Planning and review preserve attachments. `/goal <task>` runs the task once without creating a goal; `/goal set <objective>`, `edit`, `pause`, `resume` and `clear` control Muse's native goal on Muse 1.4.6 or newer (see [goal controls](docs/goal-extension.md#native-goal-controls)). Local status queries do not send attachments to a model; an additional explicit task is handled after the status response. `/mcp <question>` combines local diagnostics with a normal task in the current mode, without claiming native MCP control.
 
@@ -193,7 +194,7 @@ SDK failures never silently switch to exec. The legacy backend was introduced fo
 | Muse host           | **1.1.1-R2514.1** baseline (`muse serve`); select via `MUSE_CODE_EXECUTABLE`                       |
 | Also verified       | 1.2.1-R2847.1 (session load/resume, multi-stage allow/deny, HTTP MCP); CI also runs 1.4.12-R6909.1 |
 | Muse SDK            | `@muse-code/sdk@1.4.12` (pinned dependency; does not include the Muse binary)                      |
-| Newer-host features | Native goals 1.4.6+; `/recap`, skills import, plugins/hooks 1.4.7+                                 |
+| Newer-host features | Native goals 1.4.6+; `/recap`, skills import, plugins/hooks 1.4.7+; `/compact` 1.4.12+             |
 | Auth                | Browser login or `META_API_KEY`                                                                    |
 
 > **Keep the default SDK backend when sessions must stay resumable on hosts before 1.4.6** — see the `:auto-review` note below. Don't point `MUSE_CODE_EXECUTABLE` at an old launcher cache (the launcher removes superseded binaries); keep the verified binary at a separate path. CI's public 1.1.1 artifacts, exact macOS ARM64/Linux URLs, and SHA-256 checks are in [CI](.github/workflows/ci.yml).

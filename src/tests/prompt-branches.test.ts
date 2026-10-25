@@ -84,6 +84,16 @@ describe("prompt() branches", () => {
     );
     await expect(prompt("/goal set ship it")).resolves.toEqual({ stopReason: "end_turn" });
     expect(replies().at(-1)).toContain("Native goal controls are verified from Muse 1.4.6");
+    await expect(prompt("/compact")).resolves.toEqual({ stopReason: "end_turn" });
+    expect(replies().at(-1)).toContain("Native compaction is verified from Muse 1.4.12");
+    const advertised = () =>
+      client.updates.flatMap((n) =>
+        n.update.sessionUpdate === "available_commands_update"
+          ? n.update.availableCommands.map((c) => c.name)
+          : [],
+      );
+    await expect.poll(advertised).toContain("recap");
+    expect(advertised()).not.toContain("compact");
     expect(requests().filter((r) => r.method !== "initialize")).toEqual([]);
   });
 

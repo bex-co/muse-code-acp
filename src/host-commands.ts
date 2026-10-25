@@ -1,11 +1,20 @@
+import type { SessionUpdate } from "@agentclientprotocol/sdk";
 import { MspError } from "@muse-code/sdk";
-import type { MuseSdkHost } from "./muse-sdk-host.js";
+import type { CompactionItem, MuseSdkHost } from "./muse-sdk-host.js";
 import type { NativeCommand } from "./slash-commands.js";
+
+/** Where a host command sends updates besides its reply text. */
+export interface HostCommandOutput {
+  emit(update: SessionUpdate): void;
+  /** The client advertised `clientCapabilities.session.compaction`. */
+  compactionUpdates: boolean;
+}
 
 /** A native host command: its reply text, or undefined when cancelled. */
 export type HostCommand = (
   owner: MuseSdkHost,
   isCancelled: () => boolean,
+  output: HostCommandOutput,
 ) => Promise<string | undefined>;
 
 /** Run a call and turn a Muse refusal into reply text instead of a failure. */
@@ -29,6 +38,69 @@ export const recapCommand: HostCommand = (owner, isCancelled) =>
     return recap.outcome === "completed"
       ? `${recap.title ? `${recap.title}\n` : ""}${recap.text ?? ""}`
       : `Muse could not produce a recap (${recap.outcome}${recap.reason ? `: ${recap.reason}` : ""}).`;
+  });
+
+const ACP_COMPACTION_STATUS: Record<string, string> = {
+  inProgress: "in_progress",
+  completed: "completed",
+  cancelled: "cancelled",
+};
+
+function compactionReport(item: CompactionItem): string {
+  const tokens =
+    item.tokensBefore !== undefined && item.tokensAfter !== undefined
+      ? ` (${item.tokensBefore} → ${item.tokensAfter} tokens)`
+      : "";
+  if (item.status === "completed" && item.outcome === "compacted")
+    return `Muse compacted this session's context${tokens}.`;
+  const outcome = item.outcome ?? item.status;
+  return `Muse did not compact the context (${outcome}${item.reason ? `: ${item.reason}` : ""}).`;
+}
+
+/**
+ * Native `session/compact`. The reply text reports the outcome to every client;
+ * clients advertising `session.compaction` also get standard compaction updates.
+ */
+export const compactCommand: HostCommand = (owner, isCancelled, output) =>
+  answer("the compaction", async () => {
+    const update = (item: CompactionItem) => {
+      if (!output.compactionUpdates) return;
+      // Muse's open item status maps onto ACP's open compaction status; a
+      // compaction that ends without compacting is reported as failed.
+      const status =
+        item.status === "completed" && item.outcome !== "compacted"
+          ? "failed"
+          : (ACP_COMPACTION_STATUS[item.status] ?? "failed");
+      output.emit({
+        sessionUpdate: "compaction_update",
+        compactionId: item.itemId,
+        status,
+        ...(status === "failed" ? { error: compactionReport(item) } : {}),
+        _meta: {
+          "muse/compaction": {
+            trigger: item.trigger ?? null,
+            outcome: item.outcome ?? null,
+            tokensBefore: item.tokensBefore ?? null,
+            tokensAfter: item.tokensAfter ?? null,
+          },
+        },
+      });
+    };
+    const settled = await owner.requestCompaction(isCancelled, update);
+    switch (settled.outcome) {
+      case "noop":
+        return `Nothing to compact${settled.reason ? ` (${settled.reason})` : ""}.`;
+      case "settled":
+        return compactionReport(settled.item);
+      case "cancelled":
+        return undefined;
+      case "closed":
+        return "The Muse host closed before the compaction finished; its outcome is unknown.";
+      case "timedOut":
+        return "Muse did not finish the compaction in time; it may still complete on the host.";
+      default:
+        throw new Error(`unknown compaction outcome ${JSON.stringify(settled satisfies never)}`);
+    }
   });
 
 /** Enable or disable one skill in the scope it comes from, per `skill/list`. */
@@ -160,6 +232,8 @@ export function hostCommandFor(native: NativeCommand): HostCommand {
   switch (native.kind) {
     case "recap":
       return recapCommand;
+    case "compact":
+      return compactCommand;
     case "pluginList":
       return pluginListCommand;
     case "pluginInstall":

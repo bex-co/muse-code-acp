@@ -52,6 +52,7 @@ import {
   type GoalObservation,
 } from "./goal-state.js";
 import { Pushable } from "./utils.js";
+import type { HostCommand } from "./host-commands.js";
 import { PendingWorkWatchdog, stallLimitMs, type PendingWorkItem } from "./pending-watchdog.js";
 
 export interface MuseSdkOptions {
@@ -89,7 +90,7 @@ export interface MuseSdkOptions {
    * Run a native host command instead of submitting `input`; its text is
    * streamed as the reply. Resolving undefined means it was cancelled.
    */
-  hostCommand?: (owner: MuseSdkHost, isCancelled: () => boolean) => Promise<string | undefined>;
+  hostCommand?: HostCommand;
   /** A rename recorded while no host was open, applied once this turn acquires one. */
   nativeName?: string;
   /** Called with Muse's canonical name after `nativeName` is applied. */
@@ -335,7 +336,14 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
           );
       operation.enter("submitting", submitMs);
       if (options.hostCommand) {
-        const text = await options.hostCommand(owner, () => cancelled || !!options.isCancelled?.());
+        const text = await options.hostCommand(
+          owner,
+          () => cancelled || !!options.isCancelled?.(),
+          {
+            emit: (update) => updates.push({ sessionId: options.sessionId, update }),
+            compactionUpdates: !!options.clientCapabilities?.session?.compaction,
+          },
+        );
         if (text === undefined) return { stopReason: "cancelled" };
         updates.push({
           sessionId: options.sessionId,

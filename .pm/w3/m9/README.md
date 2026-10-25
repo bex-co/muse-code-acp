@@ -1,15 +1,15 @@
 # w3 · m9 — Native session compaction
 
-**Worker:** worker1 **Goal:** A `/compact` command compacts the session through public `session/compact` where the host completes it, and reports refusals truthfully. **Status:** blocked — no host observed completing compaction
+**Worker:** worker1 **Goal:** A `/compact` command compacts the session through public `session/compact` where the host completes it, and reports refusals truthfully. **Status:** in progress — host completion observed 2026-10-25; CI closeout pending
 
 ## Tasks (in order)
 
 | id   | title                                                             | est | depends_on              |
 | ---- | ----------------------------------------------------------------- | --- | ----------------------- |
 | t001 | Verify native session compaction on the installed host — **DONE** | 1h  | w3/m7/t006              |
-| t002 | Implement native session compaction                               | 2h  | w3/m9/t001, w3/m17/t001 |
-| t003 | Adoption surface                                                  | 30m | w3/m9/t001, w3/m9/t002  |
-| t004 | Simplify milestone changes                                        | 30m | w3/m9/t003              |
+| t002 | Implement native session compaction — **DONE**                    | 2h  | w3/m9/t001, w3/m17/t001 |
+| t003 | Adoption surface — **DONE**                                       | 30m | w3/m9/t001, w3/m9/t002  |
+| t004 | Simplify milestone changes — **DONE**                             | 30m | w3/m9/t003              |
 | t005 | CI and behavior coverage                                          | 45m | w3/m9/t004              |
 | t006 | Close out milestone                                               | 15m | w3/m9/t005              |
 
@@ -54,3 +54,7 @@ SDK 1.4.8 leaves `SessionCompactParams`/`SessionCompactResult` unchanged and sti
 Muse 1.4.12-R6909.1 with `@muse-code/sdk` 1.4.12, same three-provider probe: identical results (`missing_run` empty, `compaction_unavailable` after three turns, no compaction item, next turn completes). Also refused with model id `muse-wonder-full-1.0` and 900k reported input tokens. Hypothesis (unproven): the loopback's bundled-catalog model has `contextLimit: null`, which may disable compaction. CLI help and the SDK still do not document availability.
 
 New public evidence: [muse-code-sdk#112](https://github.com/meta-models/muse-code-sdk/issues/112) reports `session/compact` completing with a real `muse-wonder-full-1.0` provider on 1.4.11/1.4.12, but MCP is lost after resuming the compacted session ("MCP startup audit failed"). Resume condition (a), one user-approved real-provider probe, is now more likely to succeed. If it does, t002 must handle the #112 resume defect (warn, or re-check MCP after a compacted resume). Still blocked.
+
+### Blocker resolved — 2026-10-25
+
+User-approved real-provider probe (`muse-spark-1.3`, Muse 1.4.12-R6909.1, throwaway workspace): `session/compact` was accepted and the manual compaction item completed (`compacted`, 30585 → 23051 tokens); continuation and resume worked. Resume condition (a) is met, so t002 is implemented and gated to Muse 1.4.12+. The loopback provider is still refused, which the live suite now asserts. #112 (MCP lost after resuming a compacted session) was not reproduced: no MCP servers were configured in the probe.

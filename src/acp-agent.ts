@@ -80,6 +80,7 @@ import {
   probeSdkHost,
   assertSdkSafetySupport,
   execSupportsPermissionProfile,
+  supportsCompaction,
   supportsGoalControls,
   supportsSessionCommands,
 } from "./muse-host.js";
@@ -415,6 +416,15 @@ export class MuseAcpAgent {
     );
   }
 
+  /** Native compaction: SDK backend on a host where it was observed completing. */
+  compactionAvailable(): boolean {
+    return (
+      this.backend === "sdk" &&
+      (this.options.skipSdkHostCheck ||
+        supportsCompaction(probeSdkHost(this.options.env, this.options.museBinary).version))
+    );
+  }
+
   /** Native goal controls: SDK backend on a host verified for them. */
   goalControlsAvailable(): boolean {
     return (
@@ -539,7 +549,12 @@ export class MuseAcpAgent {
         if (this.disposed || !this.sessions.has(sessionId)) {
           return;
         }
-        const builtInCommands = this.backend === "sdk" ? BUILTIN_COMMANDS : [];
+        const builtInCommands =
+          this.backend === "sdk"
+            ? BUILTIN_COMMANDS.filter(
+                (command) => command.name !== "compact" || this.compactionAvailable(),
+              )
+            : [];
         const reservedNames = new Set(builtInCommands.map((command) => command.name));
         const availableCommands = [
           ...builtInCommands,
@@ -743,6 +758,12 @@ export class MuseAcpAgent {
         await say(status);
         if (!command.stop)
           parts.unshift({ type: "text", text: `Observed ${command.status} status:\n${status}` });
+      }
+      if (command?.native?.kind === "compact" && !this.compactionAvailable()) {
+        await say(
+          "Native compaction is verified from Muse 1.4.12; this host is not supported. Nothing was sent.",
+        );
+        return { stopReason: "end_turn" };
       }
       if (command?.native && !this.sessionCommandsAvailable()) {
         await say(

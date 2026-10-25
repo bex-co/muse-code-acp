@@ -1,8 +1,8 @@
 # Observed usage, plans and output
 
 The SDK backend reports public host observations. Muse 1.1.1-R2514.1 and
-1.2.1-R2847.1 are verified against local provider fixtures. Native durable
-compaction is a separate unavailable operation and does not gate these reports.
+1.2.1-R2847.1 are verified against local provider fixtures. Native compaction
+(`/compact`, Muse 1.4.12+) is a separate operation and does not gate these reports.
 Legacy exec retains its existing output path.
 
 `/status` is an idle local command. It reports requested model/provider/effort/mode,

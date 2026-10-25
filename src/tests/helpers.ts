@@ -19,6 +19,7 @@ import { museCliPath } from "../muse-cli.js";
 import {
   atLeast,
   probeSdkHost,
+  supportsCompaction,
   supportsGoalControls,
   supportsSessionCommands,
   supportsTaskControls,
@@ -56,6 +57,7 @@ export function museAvailable(): boolean {
 const HOST_CAPABILITIES = {
   // Muse's automated approval reviewer decides exec tool calls from 1.4.4.
   "exec-reviewer": (version: string | null | undefined) => atLeast(version, [1, 4, 4]),
+  compaction: supportsCompaction,
   "goal-controls": supportsGoalControls,
   "session-commands": supportsSessionCommands,
   "task-controls": supportsTaskControls,

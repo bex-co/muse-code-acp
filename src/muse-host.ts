@@ -43,6 +43,11 @@ export function supportsSessionCommands(version: string | null | undefined): boo
   return atLeast(version, [1, 4, 7]);
 }
 
+/** Native `session/compact` was observed completing from Muse 1.4.12 (w3/m9). */
+export function supportsCompaction(version: string | null | undefined): boolean {
+  return atLeast(version, [1, 4, 12]);
+}
+
 /** Workflow pause and task background/stop are verified from Muse 1.4.6. */
 export function supportsTaskControls(version: string | null | undefined): boolean {
   return atLeast(version, [1, 4, 6]);

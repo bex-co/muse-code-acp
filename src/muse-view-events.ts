@@ -87,7 +87,8 @@ export const ITEM_KIND_CONSUMERS: Readonly<Record<string, string>> = {
   workflow:
     "Handled by retained worker cards; negotiated 1.2.1/1.3.0 workflow cancellation; 1.1.1 workflow lifecycle/control unverified.",
   reminderChild: "Handled child attribution cards; child history remains w1/005.",
-  compaction: "Native durable compaction rejects on 1.1.1/1.2.1; future w1/004.",
+  compaction:
+    "muse-sdk-host.ts requestCompaction follows the manual item for /compact (w3/m9); automatic compactions are not shown.",
   hookRun:
     "SDK 1.4.4 addition; muse-sdk-events.ts renders a generic card titled by the hook label and event.",
   sideChat:

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Features
+
+- `/compact` compacts the session's context through Muse's public `session/compact` on Muse 1.4.12 or newer, without a model turn from the adapter, and replies with the outcome (for example `30528 → 23084 tokens`). Clients advertising `session.compaction` also receive standard ACP `compaction_update` notifications. Muse's refusals and noops are reported verbatim. Compaction completes with real providers; Muse refuses it with `compaction_unavailable` on a local test provider. ACP cancel stops waiting, but Muse has no way to cancel a compaction already under way. On older hosts `/compact` is not advertised and sends nothing.
+
 ### Dependencies
 
 - Bump `@agentclientprotocol/sdk` from 1.3.0 to 1.8.0. Elicitation and terminal authentication are now stable protocol features; the adapter's wire behavior is otherwise unchanged.

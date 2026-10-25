@@ -88,6 +88,23 @@ export interface RecapSettlement {
   reason?: string;
 }
 
+/** A Muse `compaction` item as observed on the wire (tdd SS4.5.10). */
+export interface CompactionItem {
+  itemId: string;
+  status: string;
+  trigger?: string;
+  outcome?: string;
+  reason?: string;
+  tokensBefore?: number;
+  tokensAfter?: number;
+}
+
+/** How a manual compaction ended; `noop` is Muse's admission answer, not an item. */
+export type CompactionSettlement =
+  | { outcome: "noop"; reason?: string }
+  | { outcome: "timedOut" | "cancelled" | "closed"; item?: CompactionItem }
+  | { outcome: "settled"; item: CompactionItem };
+
 /** A single ACP session owns this process and its spawn-time configuration. */
 export class MuseSdkHost {
   readonly generation = randomUUID();
@@ -152,6 +169,67 @@ export class MuseSdkHost {
       }, 100);
       this.recapWaiters.set(ack.commandId, finish);
     });
+  }
+
+  private compactionWatch: ((item: CompactionItem) => void) | undefined;
+  private observeItem(params: unknown) {
+    const { sessionId, item } = (params ?? {}) as {
+      sessionId?: unknown;
+      item?: CompactionItem & { kind?: unknown };
+    };
+    if (sessionId === this.options.sessionId && item?.kind === "compaction")
+      this.compactionWatch?.(item);
+  }
+
+  /**
+   * Public `session/compact`: admission, then the manual `compaction` item to
+   * its terminal status. Muse has no compaction cancel method, so ACP cancel or
+   * the deadline only stops waiting; the host may still finish.
+   */
+  async requestCompaction(
+    isCancelled: () => boolean,
+    onProgress: (item: CompactionItem) => void,
+    timeoutMs = 300_000,
+  ): Promise<CompactionSettlement> {
+    if (!this.lease) throw new Error("Muse SDK host is not open");
+    const connection = this.lease.host.connection;
+    let latest: CompactionItem | undefined;
+    let settle: ((settled: CompactionSettlement) => void) | undefined;
+    // Watch before admission: the item can arrive ahead of the ack.
+    this.compactionWatch = (item) => {
+      if (item.trigger !== undefined && item.trigger !== "manual") return;
+      if (latest && latest.itemId !== item.itemId) return;
+      latest = item;
+      onProgress(item);
+      if (item.status !== "inProgress") settle?.({ outcome: "settled", item });
+    };
+    try {
+      const ack = (await connection.command("session/compact", {
+        sessionId: this.options.sessionId,
+      })) as { status?: string; reason?: string };
+      if (ack.status === "noop")
+        return { outcome: "noop", ...(ack.reason ? { reason: ack.reason } : {}) };
+      if (latest && latest.status !== "inProgress") return { outcome: "settled", item: latest };
+      return await new Promise<CompactionSettlement>((resolve) => {
+        const started = Date.now();
+        const watch = setInterval(() => {
+          const outcome = isCancelled()
+            ? "cancelled"
+            : this.stopped
+              ? "closed"
+              : Date.now() - started >= timeoutMs
+                ? "timedOut"
+                : undefined;
+          if (outcome) settle!({ outcome, ...(latest ? { item: latest } : {}) });
+        }, 100);
+        settle = (settled) => {
+          clearInterval(watch);
+          resolve(settled);
+        };
+      });
+    } finally {
+      this.compactionWatch = undefined;
+    }
   }
 
   /** Public `session/rename`; returns the canonical name Muse settled. */
@@ -493,6 +571,7 @@ export class MuseSdkHost {
     host.connection.onNotification = (handler) =>
       subscribe((notification) => {
         if (notification.method === "recap/completed") this.settleRecap(notification.params);
+        if (notification.method.startsWith("item/")) this.observeItem(notification.params);
         handler(notification);
       });
     const client = new MuseClient(host.connection, {

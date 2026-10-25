@@ -31,7 +31,7 @@ describe("slash command selection", () => {
     "quoted /plan work",
     "> /goal clear",
     "```\n/plan work\n```",
-    "/compact",
+    "/compactify",
     "/skill task",
   ])("does not reinterpret %s", (input) => {
     expect(parseSlashCommand([context, text(input)])).toBeUndefined();
@@ -71,6 +71,8 @@ describe("slash command selection", () => {
     expect(parseSlashCommand([text("/goal set")])?.stop).toBe(true);
     expect(parseSlashCommand([text("/recap")])?.native).toEqual({ kind: "recap" });
     expect(parseSlashCommand([text("/recap please")])?.stop).toBe(true);
+    expect(parseSlashCommand([text("/compact")])?.native).toEqual({ kind: "compact" });
+    expect(parseSlashCommand([text("/compact now")])?.stop).toBe(true);
     expect(parseSlashCommand([text("/skills")])?.local).toEqual({ kind: "skills", argument: "" });
     expect(parseSlashCommand([text("/skills disable lint")])?.native).toEqual({
       kind: "skill",

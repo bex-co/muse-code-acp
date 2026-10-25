@@ -10,6 +10,7 @@ export const BUILTIN_COMMANDS: AvailableCommand[] = [
   },
   { name: "tasks", description: "List running Muse background tasks without a model request" },
   { name: "recap", description: "Ask Muse for a short recap of this session" },
+  { name: "compact", description: "Ask Muse to compact this session's context" },
   {
     name: "plugins",
     description: "List installed Muse plugins, or install one from a local folder",
@@ -73,6 +74,7 @@ const names = new Set(BUILTIN_COMMANDS.map((command) => command.name));
 export type GoalVerb = "set" | "edit" | "pause" | "resume" | "clear";
 export type NativeCommand =
   | { kind: "recap" }
+  | { kind: "compact" }
   | { kind: "pluginList" }
   | { kind: "pluginInstall"; path: string }
   | { kind: "hookList" }
@@ -254,6 +256,8 @@ export function parseSlashCommand(prompt: Blocks): SlashCommand | undefined {
 /** Parse native host commands: a command, a usage notice, or undefined when not one. */
 function nativeCommand(name: string, args: string): NativeCommand | string | undefined {
   if (name === "recap") return args ? "Send /recap without arguments." : { kind: "recap" };
+  if (name === "compact")
+    return args ? "Send /compact without arguments. Nothing was sent." : { kind: "compact" };
   if (name === "hooks") return args ? "Send /hooks without arguments." : { kind: "hookList" };
   if (name === "plugins") {
     if (!args) return { kind: "pluginList" };

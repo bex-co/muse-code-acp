@@ -727,6 +727,25 @@ rl.on("line", async (line) => {
     case "feedback/submit":
       reply({ outcome: "recorded", bundlePath: "/tmp/fake-feedback.md", sessionRecordAttached: !!params.attachSessionRecord, sessionRecordTruncated: false });
       break;
+    case "session/compact": {
+      const compact = process.env.FAKE_MSP_COMPACT ?? "completed";
+      if (compact === "reject") {
+        write({ id, error: { code: -32040, message: "session/compact rejected: compaction_unavailable", data: { kind: "commandRejected", reason: "compaction_unavailable", retryable: false } } });
+        break;
+      }
+      if (compact === "noop") {
+        reply({ commandId: params.commandId, status: "noop", reason: "no_compactable_history" });
+        break;
+      }
+      const item = { itemId: "fake-compaction", kind: "compaction", turnId: "fake-turn", revision: 1, status: "inProgress", fallbackText: "Context compaction", trigger: "manual", tokensBefore: 3000 };
+      // The item can precede the ack; an auto compaction is someone else's.
+      notify("item/started", { item: { ...item, itemId: "auto-compaction", trigger: "auto" } });
+      notify("item/started", { item });
+      reply({ commandId: params.commandId, status: "accepted" });
+      if (compact === "hang") break;
+      setTimeout(() => notify("item/completed", { item: { ...item, revision: 2, ...(compact === "failed" ? { status: "completed", outcome: "failed", reason: "summarizer_failed" } : { status: "completed", outcome: "compacted", strategyId: "summary-preserved-suffix/v1", tokensAfter: 1200 }) } }), 50);
+      break;
+    }
     case "recap/request":
       reply({ commandId: params.commandId, status: "accepted" });
       setTimeout(() => write({ method: "recap/completed", params: { sessionId, commandId: params.commandId, outcome: "completed", text: "fake recap of the session" } }), 50);
