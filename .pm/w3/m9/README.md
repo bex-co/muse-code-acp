@@ -48,3 +48,9 @@ Muse 1.4.8-R6256.1 through the public SDK connection (`@muse-code/sdk` 1.4.7 cli
 | Built-in `muse serve --provider echo`                                      | `commandRejected` `missing_run` | `commandRejected` `compaction_unavailable` | none            | completes |
 
 SDK 1.4.8 leaves `SessionCompactParams`/`SessionCompactResult` unchanged and still does not document when compaction is available. The blocker and resume conditions above stand. This also answers w3/m17/t002's `session/compact` re-probe: behavior unchanged on 1.4.8.
+
+### Blocker re-check — 2026-10-23
+
+Muse 1.4.12-R6909.1 with `@muse-code/sdk` 1.4.12, same three-provider probe: identical results (`missing_run` empty, `compaction_unavailable` after three turns, no compaction item, next turn completes). Also refused with model id `muse-wonder-full-1.0` and 900k reported input tokens. Hypothesis (unproven): the loopback's bundled-catalog model has `contextLimit: null`, which may disable compaction. CLI help and the SDK still do not document availability.
+
+New public evidence: [muse-code-sdk#112](https://github.com/meta-models/muse-code-sdk/issues/112) reports `session/compact` completing with a real `muse-wonder-full-1.0` provider on 1.4.11/1.4.12, but MCP is lost after resuming the compacted session ("MCP startup audit failed"). Resume condition (a), one user-approved real-provider probe, is now more likely to succeed. If it does, t002 must handle the #112 resume defect (warn, or re-check MCP after a compacted resume). Still blocked.

@@ -49,7 +49,15 @@ export const IGNORED_VIEW_EVENTS: Readonly<Record<string, string>> = {
   "turn/foregroundCompleted":
     "SDK 1.4.4 addition; non-terminal by contract, so the ACP prompt still settles on the turn terminal. Early-answer signalling not scheduled.",
   "turn/modelRetryScheduled":
-    "SDK 1.4.8 addition: model-attempt backoff before the turn ends; non-terminal. Rendering it is the turn/retryScheduled question (future w1/006).",
+    "SDK 1.4.8 addition: model-attempt backoff before the turn ends; non-terminal. Rendering it as an ACP notice is not scheduled (w3/010; future w1/006).",
+  "approval/reviewing":
+    "SDK 1.4.12 addition: the native reviewer holds an approval before any decide is open; nothing to answer, and the ACP permission request still waits for approval/requested. A reviewing status is not scheduled (w3/011).",
+  "monitor/inboxItemAdmitted":
+    "SDK 1.4.12 addition: monitor inbox facts arrive outside the active turn, like monitorFeed items; not scheduled.",
+  "monitor/inboxItemDrained":
+    "SDK 1.4.12 addition: monitor inbox facts arrive outside the active turn, like monitorFeed items; not scheduled.",
+  "monitor/inboxItemVoided":
+    "SDK 1.4.12 addition: monitor inbox facts arrive outside the active turn, like monitorFeed items; not scheduled.",
 };
 
 /** Every classified method. A method may appear in exactly one table. */
@@ -88,4 +96,11 @@ export const ITEM_KIND_CONSUMERS: Readonly<Record<string, string>> = {
     "SDK 1.4.6 addition with no documented fields; muse-sdk-events.ts renders a generic Web search card. The model's web_search tool still arrives as a toolCall (Muse 1.4.6 probe).",
   monitorFeed:
     "SDK 1.4.8 addition; always outside a turn (turnId null), and the adapter streams only the active turn's items, so monitor output is not shown. Not scheduled.",
+  damagedRange:
+    "SDK 1.4.12 addition; always outside a turn (turnId null), so a damaged log range is not shown during a turn. Not scheduled.",
+  scheduledFire:
+    "SDK 1.4.12 addition; a cron fire inside the active turn renders as a generic card (muse-sdk-events.ts fallbackText). Not scheduled.",
+  backgroundTerminalCompletion:
+    "SDK 1.4.12 addition; renders as a generic card from fallbackText; background task lifecycle stays w2/m9.",
+  overdueNotice: "SDK 1.4.12 addition; renders as a generic card from fallbackText. Not scheduled.",
 };

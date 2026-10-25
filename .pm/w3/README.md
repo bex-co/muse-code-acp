@@ -29,6 +29,10 @@
 - [006](006.md) — Computer-use settings and setup (deferred)
 - [009](009.md) — Assess stricter TypeScript compiler flags (after m18)
 - [010](010.md) — Show native model retries as ACP notices (Muse 1.4.8; from w1/006)
+- [011](011.md) — Show Muse reviewer activity while an approval is held (SDK 1.4.12)
+- [012](012.md) — Make the loopback live suite reliable under local file parallelism
+- [013](013.md) — Verify additional workspace roots on Muse 1.4.12 (from w1/008)
+- [014](014.md) — Reconcile stale w1 future watches
 
 001 and 002 were promoted to m4, 003 to m5 (2026-10-08) and 004 to m6 (2026-10-09).
 

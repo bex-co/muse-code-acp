@@ -14,7 +14,15 @@ import { MIN_MUSE_HOST_FOR_SDK, SDK_PACKAGE } from "./muse-host.js";
  * Muse hosts this adapter has been exercised against end to end. Membership is
  * evidence of testing, not a support promise, and never gates a connection.
  */
-export const VERIFIED_MUSE_HOSTS = ["1.1.1", "1.2.1", "1.4.4", "1.4.6", "1.4.7", "1.4.8"] as const;
+export const VERIFIED_MUSE_HOSTS = [
+  "1.1.1",
+  "1.2.1",
+  "1.4.4",
+  "1.4.6",
+  "1.4.7",
+  "1.4.8",
+  "1.4.12",
+] as const;
 
 export interface HostCompatibility {
   /** The pinned SDK package this adapter speaks MSP through. */

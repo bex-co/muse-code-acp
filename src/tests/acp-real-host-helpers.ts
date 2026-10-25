@@ -47,6 +47,7 @@ const FORK_CUT_LATEST_ONLY = [
   "(1.4.6-R6000.1)",
   "(1.4.7-R6101.1)",
   "(1.4.8-R6256.1)",
+  "(1.4.11-R6667.1)",
 ];
 export const forkCutLatestOnly = () =>
   FORK_CUT_LATEST_ONLY.some((build) => museVersion().includes(build));

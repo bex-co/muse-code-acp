@@ -187,14 +187,14 @@ SDK failures never silently switch to exec. The legacy backend was introduced fo
 
 ## 🧩 Compatibility
 
-| Piece               | Verified / required                                                                               |
-| ------------------- | ------------------------------------------------------------------------------------------------- |
-| Node.js             | **22+** (npm install)                                                                             |
-| Muse host           | **1.1.1-R2514.1** baseline (`muse serve`); select via `MUSE_CODE_EXECUTABLE`                      |
-| Also verified       | 1.2.1-R2847.1 (session load/resume, multi-stage allow/deny, HTTP MCP); CI also runs 1.4.8-R6256.1 |
-| Muse SDK            | `@muse-code/sdk@1.4.8` (pinned dependency; does not include the Muse binary)                      |
-| Newer-host features | Native goals 1.4.6+; `/recap`, skills import, plugins/hooks 1.4.7+                                |
-| Auth                | Browser login or `META_API_KEY`                                                                   |
+| Piece               | Verified / required                                                                                |
+| ------------------- | -------------------------------------------------------------------------------------------------- |
+| Node.js             | **22+** (npm install)                                                                              |
+| Muse host           | **1.1.1-R2514.1** baseline (`muse serve`); select via `MUSE_CODE_EXECUTABLE`                       |
+| Also verified       | 1.2.1-R2847.1 (session load/resume, multi-stage allow/deny, HTTP MCP); CI also runs 1.4.12-R6909.1 |
+| Muse SDK            | `@muse-code/sdk@1.4.12` (pinned dependency; does not include the Muse binary)                      |
+| Newer-host features | Native goals 1.4.6+; `/recap`, skills import, plugins/hooks 1.4.7+                                 |
+| Auth                | Browser login or `META_API_KEY`                                                                    |
 
 > **Keep the default SDK backend when sessions must stay resumable on hosts before 1.4.6** — see the `:auto-review` note below. Don't point `MUSE_CODE_EXECUTABLE` at an old launcher cache (the launcher removes superseded binaries); keep the verified binary at a separate path. CI's public 1.1.1 artifacts, exact macOS ARM64/Linux URLs, and SHA-256 checks are in [CI](.github/workflows/ci.yml).
 
