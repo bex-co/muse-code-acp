@@ -1,6 +1,6 @@
 # w3 · m9 — Native session compaction
 
-**Worker:** worker1 **Goal:** A `/compact` command compacts the session through public `session/compact` where the host completes it, and reports refusals truthfully. **Status:** in progress — host completion observed 2026-10-25; CI closeout pending
+**Worker:** worker1 **Goal:** A `/compact` command compacts the session through public `session/compact` where the host completes it, and reports refusals truthfully. **Status:** done
 
 ## Tasks (in order)
 
@@ -10,8 +10,8 @@
 | t002 | Implement native session compaction — **DONE**                    | 2h  | w3/m9/t001, w3/m17/t001 |
 | t003 | Adoption surface — **DONE**                                       | 30m | w3/m9/t001, w3/m9/t002  |
 | t004 | Simplify milestone changes — **DONE**                             | 30m | w3/m9/t003              |
-| t005 | CI and behavior coverage                                          | 45m | w3/m9/t004              |
-| t006 | Close out milestone                                               | 15m | w3/m9/t005              |
+| t005 | CI and behavior coverage — **DONE**                               | 45m | w3/m9/t004              |
+| t006 | Close out milestone — **DONE**                                    | 15m | w3/m9/t005              |
 
 ## Definition of done
 
