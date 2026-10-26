@@ -63,9 +63,15 @@ it("keeps background output alive past prompt completion and ends one original t
     expect(new Set(cards().map((c) => c.toolCallId)).size).toBe(1);
     await ctx.request(methods.agent.session.close, { sessionId });
     await ctx.request(methods.agent.session.load, { sessionId, cwd: p.root, mcpServers: [] });
-    expect(client.updates.some((n) => JSON.stringify(n.update).includes("reminderChild"))).toBe(
-      true,
+    // Restored worker cards never show the raw item kind: blocking reminders
+    // are named ("Muse reminder: …"), background ones are not shown (w3/m20).
+    const titles = client.updates.flatMap((n) =>
+      n.update.sessionUpdate === "tool_call" ? [n.update.title] : [],
     );
+    expect(titles.filter((t) => t.startsWith("reminderChild"))).toEqual([]);
+    expect(
+      titles.filter((t) => /reminder/i.test(t)).every((t) => t.startsWith("Muse reminder")),
+    ).toBe(true);
   } finally {
     await client.agent.dispose();
     await p.close();
