@@ -175,6 +175,23 @@ describe("SDK backend over ACP", () => {
     }
   });
 
+  it("waits briefly for Muse to release a session held by a replaced host", async () => {
+    process.env.FAKE_MSP_IN_USE_ONCE = "1";
+    try {
+      const client = sdkClient();
+      const { ctx, sessionId } = await newTestSession(client);
+      await expect(
+        ctx.request(methods.agent.session.prompt, {
+          sessionId,
+          prompt: [{ type: "text", text: "test" }],
+        }),
+      ).resolves.toEqual({ stopReason: "end_turn" });
+      expect(client.requests().filter((r) => r.method === "session/resume")).toHaveLength(2);
+    } finally {
+      delete process.env.FAKE_MSP_IN_USE_ONCE;
+    }
+  });
+
   it("continues a session Muse still reports as running after a compaction", async () => {
     const client = sdkClient("phantomActive");
     const { ctx, sessionId } = await newTestSession(client);

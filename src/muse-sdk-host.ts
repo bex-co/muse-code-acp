@@ -62,6 +62,9 @@ interface HostLease {
   session: Session;
 }
 
+/** How long a resume waits for Muse to release a session from a replaced host. */
+const SESSION_RELEASE_WAIT_MS = 5_000;
+
 /** Hosts whose public workflow/cancel was verified against a real observed run. */
 export const WORKFLOW_CANCEL_HOSTS = [
   "1.2.1",
@@ -551,6 +554,30 @@ export class MuseSdkHost {
     if (this.stopped) throw new Error("Muse SDK host closed during startup");
   }
 
+  /**
+   * `session/resume`, retried briefly while Muse still holds the session for a
+   * host this adapter just replaced: Muse releases the lease shortly after
+   * that process is told to close (seen on 1.1.1). A session another client
+   * keeps open still fails with Muse's own `sessionInUse` after the bound.
+   */
+  private async resumeReleased(client: MuseClient): Promise<Session> {
+    const deadline = Date.now() + SESSION_RELEASE_WAIT_MS;
+    for (;;) {
+      try {
+        return await client.resumeSession({
+          sessionId: this.options.sessionId,
+          excludeItems: true,
+        });
+      } catch (error) {
+        if (!(error instanceof MspError) || error.code !== -32021 || Date.now() >= deadline)
+          throw error;
+        this.ensureOpen();
+        await new Promise((resolve) => setTimeout(resolve, 250));
+        this.ensureOpen();
+      }
+    }
+  }
+
   private async open(preparing: () => void): Promise<HostLease> {
     const options = this.options;
     // Only probed when the host check runs: spawning the real binary for a
@@ -616,7 +643,7 @@ export class MuseSdkHost {
     let session: Session;
     const requestedPolicy = options.safety?.nativeApprovalPolicy ?? "onRequest";
     try {
-      session = await client.resumeSession({ sessionId: options.sessionId, excludeItems: true });
+      session = await this.resumeReleased(client);
     } catch (error) {
       if (isLegacyAutoReviewRefusal(error))
         throw new Error(LEGACY_AUTO_REVIEW_MESSAGE, { cause: error });

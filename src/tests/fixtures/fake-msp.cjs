@@ -366,6 +366,12 @@ rl.on("line", async (line) => {
       reply({session: {sessionId: params.sessionId, workspaceRoot: process.cwd(), modelId: currentModelId, providerId: currentProviderId, activeTurnId: null}, pendingRequests: []});
       break;
     case "session/resume":
+      // A replaced host's lease not yet released: busy once, then free.
+      if (process.env.FAKE_MSP_IN_USE_ONCE && !global.inUseOnceSent) {
+        global.inUseOnceSent = true;
+        write({ id, error: { code: -32021, message: "session is in use", data: { kind: "sessionInUse" } } });
+        break;
+      }
       if (mode === "autoReviewUnavailable") {
         write({ id, error: { code: -32603,
           message: "internal error: compose session permission profile: permission profile ':auto-review' cannot be used: the automated reviewer is unavailable on this host",
