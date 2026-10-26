@@ -30,7 +30,8 @@ adapter then names the latest turn ID, and forking at it or without a boundary
 still works. Earlier boundaries are not emulated. Muse 1.4.12-R6909.1 accepts an earlier
 completed turn as the boundary and copies history only up to it. On Linux, Muse 1.4.12-R6909.1
 fails every fork with an internal error ("file birth time is unavailable"); the
-adapter reports Muse's message and creates nothing. Turn IDs can be observed through the separately negotiated
+adapter reports Muse's message and creates nothing
+([muse-code-sdk#120](https://github.com/meta-models/muse-code-sdk/issues/120)). Turn IDs can be observed through the separately negotiated
 `muse/steering` extension; they are native turn IDs, not ACP request IDs or counts.
 The fork response includes its new `sessionId`, configuration, and default mode.
 Negotiated metadata includes source identity, the host's opaque `cutCursor`, and

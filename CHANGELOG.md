@@ -18,7 +18,7 @@
 - ACP messages over 32 MiB are now refused by the ACP SDK, which closes the connection; the adapter exits with status 1 and reports the limit on stderr instead of exiting silently.
 - Workflow `cancel` is advertised on Muse 1.4.8 after verifying it against a real run. Forking at an earlier turn still fails on 1.4.7 and 1.4.8 ([muse-code-sdk#97](https://github.com/meta-models/muse-code-sdk/issues/97)).
 - Workflow `cancel` is also advertised on Muse 1.4.11 and 1.4.12, verified against real runs. Muse 1.4.12 accepts an earlier completed turn as a fork boundary; 1.4.11 still accepts only the latest ([muse-code-sdk#97](https://github.com/meta-models/muse-code-sdk/issues/97)).
-- Muse 1.4.12 on Linux fails every session fork ("resolve branch creation time: file birth time is unavailable"), even where the kernel reports file birth times; macOS is unaffected. The adapter now includes Muse's own message when a fork is unavailable, and the real-host suites record this host limitation.
+- Muse 1.4.12 on Linux fails every session fork ("resolve branch creation time: file birth time is unavailable"), even where the kernel reports file birth times; macOS is unaffected ([muse-code-sdk#120](https://github.com/meta-models/muse-code-sdk/issues/120)). The adapter now includes Muse's own message when a fork is unavailable, and the real-host suites record this host limitation.
 - Release CI now runs the newest verified host as Muse 1.4.12-R6909.1 (was 1.4.8-R6256.1).
 - Release CI now runs the real-host suites on Muse 1.4.8-R6256.1 as well as the 1.1.1-R2514.1 baseline, and fails if a suite for a 1.4.x capability (goal controls, task controls, native session commands, exec reviewer) would skip there.
 
