@@ -1,13 +1,13 @@
 import { methods } from "@agentclientprotocol/sdk";
-import { chmodSync, mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { connectTestClient, fixturesDir, newTestSession } from "./helpers.js";
+import { connectTestClient, fixturesDir, newTestSession, ensureExecutable } from "./helpers.js";
 
 function sdkClient(mode: string) {
   const binary = join(fixturesDir, "fake-msp.cjs");
-  chmodSync(binary, 0o755);
+  ensureExecutable(binary);
   const capture = join(mkdtempSync(join(tmpdir(), "muse-gap-")), "requests.jsonl");
   const testClient = connectTestClient({
     backend: "sdk",

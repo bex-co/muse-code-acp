@@ -373,11 +373,15 @@ rl.on("line", async (line) => {
         } });
         break;
       }
-      if (mode === "busy" || mode === "wrongWorkspace") {
+      if (mode === "busy" || mode === "phantomActive" || mode === "pendingInput" || mode === "wrongWorkspace") {
+        // Muse 1.4.12/1.4.13 report a finished turn as active after compaction
+        // (phantomActive) yet admit new turns; busy also refuses turn/start.
+        sessionId = params.sessionId;
         reply({ session: {
           sessionId: params.sessionId, modelId: "muse-spark-1.2",
-          ...(mode === "busy" ? { activeTurnId: "earlier-turn" } : { workspaceRoot: require("node:path").dirname(process.cwd()) }),
-        } });
+          ...(mode === "wrongWorkspace" ? { workspaceRoot: require("node:path").dirname(process.cwd()) } : { workspaceRoot: process.cwd() }),
+          ...(mode === "busy" || mode === "phantomActive" ? { activeTurnId: "earlier-turn" } : {}),
+        }, viewCursor: "", pendingRequests: mode === "pendingInput" ? [{ kind: "approval", approvalId: "earlier-approval" }] : [] });
         break;
       }
       write({
@@ -410,6 +414,10 @@ rl.on("line", async (line) => {
       });
       break;
     case "turn/start": {
+      if (mode === "busy") {
+        write({ id, error: { code: -32040, message: "turn/start rejected: turn_in_progress", data: { kind: "commandRejected", reason: "turn_in_progress", retryable: true } } });
+        break;
+      }
       if (process.env.FAKE_MSP_OBSERVE === "1") {
         notify("session/modelChanged", { modelId: "host-model", providerId: "meta", source: "policy", sourceRange: { start: 0, end: 0 } });
         notify("session/approvalModeChanged", { mode: "denyUnmatched", source: "approvalReconfigure", clientName: "probe", commandId: "change", sourceRange: { start: 0, end: 0 } });

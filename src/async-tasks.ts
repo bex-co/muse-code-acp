@@ -77,6 +77,23 @@ export async function sendTaskControl(
 }
 
 /** Public item fields only; child usage remains separate from root totals. */
+/**
+ * Muse 1.4.13 spawns reminder children on every turn. Non-blocking ones run
+ * beside the turn and change nothing the user sees; blocking ones hold the
+ * turn open until they settle (`blocking`, ADR 41191 D4), so only those get a
+ * card, named from `reminderAgentId` as the schema directs.
+ */
+export function isBackgroundReminder(item: FoldedItem): boolean {
+  return item.kind === "reminderChild" && item.blocking !== true;
+}
+
+export function reminderTitle(item: FoldedItem): string {
+  const agent = String(item.reminderAgentId ?? "reminder").replace(/-reminder$/, "");
+  return `Muse reminder: ${agent}`.slice(0, 1024);
+}
+
+export const REMINDER_TEXT = "Muse runs this check before it finishes the turn.";
+
 export function workerText(item: FoldedItem): string {
   return [
     item.fallbackText,
@@ -131,7 +148,7 @@ export async function readLatestItems(
 export function taskItems(items: FoldedItem[]) {
   return items.filter(
     (i) =>
-      workerKinds.has(String(i.kind)) ||
+      (workerKinds.has(String(i.kind)) && !isBackgroundReminder(i)) ||
       (i.status === "inProgress" && ["toolCall", "userShell"].includes(String(i.kind))),
   );
 }
@@ -145,7 +162,7 @@ export function restoredTaskUpdates(
     update: {
       sessionUpdate: workerKinds.has(String(item.kind)) ? "tool_call" : "tool_call_update",
       toolCallId: item.callId ?? item.itemId,
-      title: `${item.kind}: ${item.status === "inProgress" ? "live state unknown" : item.status}`,
+      title: `${item.kind === "reminderChild" ? reminderTitle(item) : item.kind}: ${item.status === "inProgress" ? "live state unknown" : item.status}`,
       kind: "other",
       status: item.status === "completed" ? "completed" : "failed",
       content: [

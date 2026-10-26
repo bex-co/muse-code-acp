@@ -99,7 +99,7 @@ import { convertPromptContent } from "./prompt-content.js";
 import { discoverSessions } from "./session-discovery.js";
 import { listMuseSkills, skillsToCommands } from "./skills.js";
 import { runLocalCommand } from "./local-commands.js";
-import { runSdkTurn } from "./sdk-prompt-turn.js";
+import { prewarmSdkHost, runSdkTurn } from "./sdk-prompt-turn.js";
 import { runExecTurn } from "./exec-prompt-turn.js";
 import { initializeResponse } from "./agent-capabilities.js";
 import { inspectGoal, statusText } from "./session-status.js";
@@ -438,14 +438,18 @@ export class MuseAcpAgent {
     return refreshModels(this, sessionId, session);
   }
 
-  publishCatalog(
+  async publishCatalog(
     sessionId: string,
     session: SessionState,
     identity: string,
     result: ModelDiscoveryResult,
     cache = true,
   ): Promise<boolean> {
-    return publishCatalog(this, sessionId, session, identity, result, cache);
+    const published = await publishCatalog(this, sessionId, session, identity, result, cache);
+    // A catalog can settle the session's route (e.g. a profile); an idle
+    // prewarmed host opened before it is then reopened with the settled route.
+    if (published) this.prewarm(sessionId);
+    return published;
   }
 
   inspectGoal(sessionId: string, session: SessionState): Promise<string> {
@@ -522,12 +526,30 @@ export class MuseAcpAgent {
         throw error;
       }
       this.advertiseCommands(sessionId, cwd);
+      this.prewarm(sessionId);
       return {
         sessionId,
         modes: this.sessionModes("default"),
         configOptions: this.sessionConfigOptions(this.sessions.get(sessionId)!),
       };
     });
+  }
+
+  /** Prewarm after a session or configuration change succeeds. */
+  private async thenPrewarm<T>(sessionId: string, work: Promise<T>): Promise<T> {
+    const response = await work;
+    this.prewarm(sessionId);
+    return response;
+  }
+
+  /** Background-open the session's Muse host on the SDK backend (see prewarmSdkHost). */
+  prewarm(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    if (this.backend !== "sdk" || !session || this.disposed || this.options.prewarm === false)
+      return;
+    const task = prewarmSdkHost(this, sessionId, session, this.providerEnv(sessionId));
+    this.backgroundTasks.add(task);
+    void task.finally(() => this.backgroundTasks.delete(task));
   }
 
   /**
@@ -616,7 +638,10 @@ export class MuseAcpAgent {
 
   async loadSession(params: LoadSessionRequest): Promise<LoadSessionResponse> {
     requireSingleWorkspace(params.additionalDirectories);
-    return this.withSessionBinding(params.sessionId, () => loadSessionState(this, params));
+    return this.thenPrewarm(
+      params.sessionId,
+      this.withSessionBinding(params.sessionId, () => loadSessionState(this, params)),
+    );
   }
 
   async withSessionBinding<T>(sessionId: string, bind: () => Promise<T>): Promise<T> {
@@ -649,21 +674,26 @@ export class MuseAcpAgent {
   }
 
   async forkSession(params: ForkSessionRequest): Promise<ForkSessionResponse> {
-    return forkSessionState(this, params);
+    const response = await forkSessionState(this, params);
+    this.prewarm(response.sessionId);
+    return response;
   }
 
   async resumeSession(params: ResumeSessionRequest): Promise<ResumeSessionResponse> {
-    return this.withSessionBinding(params.sessionId, () => resumeSessionState(this, params));
+    return this.thenPrewarm(
+      params.sessionId,
+      this.withSessionBinding(params.sessionId, () => resumeSessionState(this, params)),
+    );
   }
 
   async setSessionConfigOption(
     params: SetSessionConfigOptionRequest,
   ): Promise<SetSessionConfigOptionResponse> {
-    return setSessionConfigOption(this, params);
+    return this.thenPrewarm(params.sessionId, setSessionConfigOption(this, params));
   }
 
   async setSessionMode(params: SetSessionModeRequest): Promise<SetSessionModeResponse> {
-    return setSessionMode(this, params);
+    return this.thenPrewarm(params.sessionId, setSessionMode(this, params));
   }
 
   async compatibleSteer(

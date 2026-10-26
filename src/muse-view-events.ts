@@ -86,7 +86,8 @@ export const ITEM_KIND_CONSUMERS: Readonly<Record<string, string>> = {
   subagent: "Handled by retained MuseSdkTranslator worker cards; native child controls: w1/005.",
   workflow:
     "Handled by retained worker cards; negotiated 1.2.1/1.3.0 workflow cancellation; 1.1.1 workflow lifecycle/control unverified.",
-  reminderChild: "Handled child attribution cards; child history remains w1/005.",
+  reminderChild:
+    "Blocking reminders render as 'Muse reminder: <agent>' cards; non-blocking ones run beside the turn and are not shown (w3/m20). Child history remains w1/005.",
   compaction:
     "muse-sdk-host.ts requestCompaction follows the manual item for /compact (w3/m9); automatic compactions are not shown.",
   hookRun:

@@ -1,7 +1,7 @@
 import { expect, it, vi } from "vitest";
 import { methods } from "@agentclientprotocol/sdk";
 import { Connection, SessionFold, type Session } from "@muse-code/sdk";
-import { chmodSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -9,14 +9,14 @@ import {
   SESSION_STATE_EXTENSION,
   type SessionStateObservation,
 } from "../session-state-observer.js";
-import { connectTestClient, fixturesDir, newTestSession } from "./helpers.js";
+import { connectTestClient, fixturesDir, newTestSession, ensureExecutable } from "./helpers.js";
 
 it.each([false, true])(
   "reports observed state and post-resolve persistence over ACP (negotiated: %s)",
   async (negotiated) => {
     const root = mkdtempSync(join(tmpdir(), "muse-observe-"));
     const binary = join(fixturesDir, "fake-msp.cjs");
-    chmodSync(binary, 0o755);
+    ensureExecutable(binary);
     const capture = join(root, "requests.jsonl");
     const client = connectTestClient({
       backend: "sdk",

@@ -1,10 +1,10 @@
 import { spawn } from "node:child_process";
-import { chmodSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { DEFAULT_MAX_MESSAGE_BYTES, methods, PROTOCOL_VERSION } from "@agentclientprotocol/sdk";
 import { describe, expect, it } from "vitest";
 import { agentEntrypoint, createWireFixture } from "./acp-wire-helpers.js";
-import { fixturesDir } from "./helpers.js";
+import { fixturesDir, ensureExecutable } from "./helpers.js";
 
 describe("ACP stdio wire contracts", () => {
   it("uses the built entrypoint over NDJSON for initialize/new/prompt", async () => {
@@ -154,7 +154,7 @@ describe("ACP stdio wire contracts", () => {
 
   it("exits with the reason when a message exceeds the SDK's size limit", async () => {
     const fakeMsp = join(fixturesDir, "fake-msp.cjs");
-    chmodSync(fakeMsp, 0o755);
+    ensureExecutable(fakeMsp);
     const child = spawn(process.execPath, [agentEntrypoint], {
       env: { ...process.env, MUSE_CODE_EXECUTABLE: fakeMsp },
       stdio: ["pipe", "ignore", "pipe"],

@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "vitest";
-import { chmodSync, copyFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -8,7 +8,7 @@ import {
   spawnMuseSdkTurn,
   type MuseSdkOptions,
 } from "../muse-sdk.js";
-import { fixturesDir, silentLogger } from "./helpers.js";
+import { fixturesDir, silentLogger, ensureExecutable } from "./helpers.js";
 
 const cleanup: (() => Promise<void>)[] = [];
 afterEach(async () => {
@@ -18,7 +18,7 @@ function fixture(mode = "complete", idleTimeoutMs = 60_000, maxTurns = 32, obser
   const root = mkdtempSync(join(tmpdir(), "muse-reuse-"));
   const binary = join(root, "host.cjs");
   copyFileSync(join(fixturesDir, "fake-msp.cjs"), binary);
-  chmodSync(binary, 0o755);
+  ensureExecutable(binary);
   const capture = join(root, "requests");
   let closed = 0;
   const options: MuseSdkOptions = {

@@ -63,36 +63,27 @@ export interface SdkTurnRequest {
 }
 
 /**
- * One prompt turn on the SDK backend: resolves the model route, reuses or
- * replaces the session's Muse host, streams the turn and records its outcome.
+ * Reuse the session's Muse host when its configuration still matches, or
+ * create one (unopened). Shared by prompt turns and the background prewarm.
  */
-export async function runSdkTurn(
+export async function ensureSdkHost(
   ctx: SdkTurnContext,
-  req: SdkTurnRequest,
-): Promise<PromptResponse> {
-  const {
-    sessionId,
-    session,
-    meta,
-    parts,
-    command,
-    workflow,
-    readOnly,
-    baseEnv,
-    say,
-    publishReview,
-  } = req;
-  if (ctx.options.provider === "echo") {
-    throw RequestError.invalidParams(
-      undefined,
-      "The SDK backend requires a configured Muse provider; use the exec backend for echo",
-    );
-  }
-  session.builtInModel = false;
+  sessionId: string,
+  session: SessionState,
+  opts: {
+    readOnly: boolean;
+    workflow?: SlashCommand["workflow"];
+    baseEnv: Record<string, string | undefined>;
+    /** Checked after a stale host is dropped; false means cancelled. */
+    beforeOpen?: () => boolean;
+    /** False for a prewarm: the session's configuration is left untouched. */
+    commitRoute?: boolean;
+  },
+): Promise<{ providerId: string; profileId: string | null; cancelled?: true }> {
   const { providerId, profileId: discoveredProfileId } = resolvedModel(
     session.config,
     session.modelDiscovery,
-    readMuseSettings(baseEnv, ctx.logger).provider ?? "meta",
+    readMuseSettings(opts.baseEnv, ctx.logger).provider ?? "meta",
   );
   const profileId = discoveredProfileId ?? null;
   const boundProvider = ctx.boundProvider(sessionId);
@@ -101,34 +92,33 @@ export async function runSdkTurn(
       undefined,
       "Saved model provider does not match the explicitly configured gateway; no fallback was attempted",
     );
-  // Catalog updates may arrive during a turn. Retain its explicit requested route.
-  session.config = { ...session.config, providerId, profileId: profileId ?? null };
+  // Catalog updates may arrive during a turn. Retain its explicit requested
+  // route; a prewarm computes the same identity without committing it.
+  const routed = { ...session.config, providerId, profileId: profileId ?? null };
+  if (opts.commitRoute !== false) session.config = routed;
   const identity = sdkHostConfiguration(
     session.cwd,
-    session.config,
-    `${session.modeId}:${readOnly}`,
+    routed,
+    `${session.modeId}:${opts.readOnly}`,
     session.mcpServers,
-    baseEnv,
+    opts.baseEnv,
     ctx.options.museBinary,
   );
   if (
     session.sdkHost &&
     (session.sdkHost.identity !== identity || !session.sdkHost.owner.reusable)
   ) {
+    ctx.logger.log(
+      `muse-sdk: replacing host (${session.sdkHost.identity !== identity ? "configuration changed" : session.sdkHost.owner.closed ? "closed" : "busy"})`,
+    );
     await session.sdkHost.owner.close();
     session.sdkHost = undefined;
   }
-  if (session.cancelRequested || ctx.isDisposed) return { stopReason: "cancelled" };
-  // Goal controls are how a user pauses or clears host-owned goal work.
-  if (session.sdkHost?.owner.hasActiveTurn && !command?.goal)
-    throw RequestError.invalidRequest(
-      undefined,
-      "Muse is executing a host-owned turn; retry after it finishes or close the session to stop the host",
-    );
+  if (!(opts.beforeOpen?.() ?? true)) return { providerId, profileId, cancelled: true };
   if (!session.sdkHost) {
-    const overlay = createMuseMcpOverlay(session.mcpServers, baseEnv, session.config);
+    const overlay = createMuseMcpOverlay(session.mcpServers, opts.baseEnv, routed);
     if (
-      (workflow || session.modeId === "plan") &&
+      (opts.workflow || session.modeId === "plan") &&
       Object.keys(readConfiguredMcpServers(overlay.env)).length
     ) {
       overlay.cleanup();
@@ -137,15 +127,15 @@ export async function runSdkTurn(
         "MCP configuration changed while preparing the planning or review host",
       );
     }
-    const catalogIdentity = ctx.catalogIdentity(session, baseEnv);
+    const catalogIdentity = ctx.catalogIdentity(session, opts.baseEnv);
     const owner = new MuseSdkHost({
       sessionId: session.museSessionId,
       cwd: session.cwd,
-      model: session.config.model,
+      model: routed.model,
       providerId,
       profileId,
-      readOnly,
-      safety: session.config.safety,
+      readOnly: opts.readOnly,
+      safety: routed.safety,
       museBinary: ctx.options.museBinary,
       env: overlay.env,
       logger: ctx.logger,
@@ -192,6 +182,79 @@ export async function runSdkTurn(
     });
     session.sdkHost = { owner, identity, overlay };
   }
+  return { providerId, profileId };
+}
+
+/**
+ * Start the session's Muse host in the background with its current settings,
+ * so the first prompt does not wait for Muse's startup and the model catalog
+ * arrives early. Never disturbs a host that is serving a turn.
+ */
+export async function prewarmSdkHost(
+  ctx: SdkTurnContext,
+  sessionId: string,
+  session: SessionState,
+  baseEnv: Record<string, string | undefined>,
+): Promise<void> {
+  if (ctx.options.provider === "echo" || ctx.isDisposed) return;
+  if (session.activeTurn || session.turnFinished || session.safetyChanging) return;
+  if (session.sdkHost && !session.sdkHost.owner.reusable) return;
+  try {
+    const { cancelled } = await ensureSdkHost(ctx, sessionId, session, {
+      readOnly: session.modeId === "readOnly" || session.modeId === "plan",
+      baseEnv,
+      commitRoute: false,
+      beforeOpen: () => !ctx.isDisposed && !session.activeTurn && !session.turnFinished,
+    });
+    if (!cancelled) session.sdkHost?.owner.prewarm();
+  } catch (error) {
+    ctx.logger.log(`muse-sdk: prewarm skipped: ${String(error)}`);
+  }
+}
+
+/**
+ * One prompt turn on the SDK backend: resolves the model route, reuses or
+ * replaces the session's Muse host, streams the turn and records its outcome.
+ */
+export async function runSdkTurn(
+  ctx: SdkTurnContext,
+  req: SdkTurnRequest,
+): Promise<PromptResponse> {
+  const {
+    sessionId,
+    session,
+    meta,
+    parts,
+    command,
+    workflow,
+    readOnly,
+    baseEnv,
+    say,
+    publishReview,
+  } = req;
+  if (ctx.options.provider === "echo") {
+    throw RequestError.invalidParams(
+      undefined,
+      "The SDK backend requires a configured Muse provider; use the exec backend for echo",
+    );
+  }
+  session.builtInModel = false;
+  const { providerId, profileId, cancelled } = await ensureSdkHost(ctx, sessionId, session, {
+    readOnly,
+    workflow,
+    baseEnv,
+    beforeOpen: () => {
+      if (session.cancelRequested || ctx.isDisposed) return false;
+      // Goal controls are how a user pauses or clears host-owned goal work.
+      if (session.sdkHost?.owner.hasActiveTurn && !command?.goal)
+        throw RequestError.invalidRequest(
+          undefined,
+          "Muse is executing a host-owned turn; retry after it finishes or close the session to stop the host",
+        );
+      return true;
+    },
+  });
+  if (cancelled || !session.sdkHost) return { stopReason: "cancelled" };
   session.activeMcpOverlay = session.sdkHost.overlay;
   await publishReview("started");
   if (session.cancelRequested || ctx.isDisposed) {

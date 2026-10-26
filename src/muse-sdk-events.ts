@@ -2,6 +2,9 @@ import { OUTPUT_EXTENSION, outputMetadata } from "./stored-output.js";
 import {
   ASYNC_TASKS,
   taskActions,
+  isBackgroundReminder,
+  reminderTitle,
+  REMINDER_TEXT,
   workerKinds,
   workerText,
   type TaskAction,
@@ -112,7 +115,7 @@ export class MuseSdkTranslator {
     const previous = this.items.get(item.itemId);
     if (previous && previous.revision >= item.revision) return [];
     this.items.set(item.itemId, item);
-    if (item.kind === "userMessage") return [];
+    if (item.kind === "userMessage" || isBackgroundReminder(item)) return [];
     if (item.kind === "agentMessage")
       return [
         ...this.snapshot(item.itemId, item.text ?? "", false),
@@ -127,6 +130,7 @@ export class MuseSdkTranslator {
       return [...updates, ...this.truncated(item, true)];
     }
     const text =
+      (item.kind === "reminderChild" ? REMINDER_TEXT : undefined) ??
       (workerKinds.has(String(item.kind)) ? workerText(item) : undefined) ??
       item.visibleOutput ??
       this.output.get(item.itemId) ??
@@ -226,11 +230,13 @@ export class MuseSdkTranslator {
           ? title.slice(0, 1024)
           : regular
             ? tool
-            : item.kind === "hookRun" && item.label
-              ? `Hook ${item.event ?? "run"}: ${item.label}`.slice(0, 1024)
-              : item.kind === "webSearch"
-                ? `Web search: ${item.status}`
-                : `${item.kind}: ${item.status}`,
+            : item.kind === "reminderChild"
+              ? reminderTitle(item)
+              : item.kind === "hookRun" && item.label
+                ? `Hook ${item.event ?? "run"}: ${item.label}`.slice(0, 1024)
+                : item.kind === "webSearch"
+                  ? `Web search: ${item.status}`
+                  : `${item.kind}: ${item.status}`,
       kind: TOOL_KINDS[tool] ?? (item.kind === "userShell" ? "execute" : "other"),
       status:
         item.status === "inProgress"

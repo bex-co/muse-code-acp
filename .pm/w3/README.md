@@ -22,6 +22,7 @@
 - [x] [**m16** — Real-host CI on the newest verified Muse](done/m16/README.md) (7 tasks) ← 2026-10-15 code-quality brainstorm
 - [x] [**m17** — Catch up to ACP SDK 1.8.0 and Muse SDK 1.4.8](done/m17/README.md) (7 tasks) ← 2026-10-15 code-quality brainstorm
 - [x] [**m18** — Split acp-agent.ts without changing behavior](done/m18/README.md) (8 tasks) ← 2026-10-15 code-quality brainstorm
+- [ ] [**m20** — Release readiness from the Bex dogfood](m20/README.md) (11 tasks) ← 2026-10-25 Bex dogfood of the 0.11.0 RC; absorbs 015
 
 ## Inbox
 
@@ -33,7 +34,6 @@
 - [012](012.md) — Make the loopback live suite reliable under local file parallelism
 - [013](013.md) — Verify additional workspace roots on Muse 1.4.12 (from w1/008)
 - [014](014.md) — Reconcile stale w1 future watches
-- [015](015.md) — Verify Muse 1.4.13 and re-check the Linux fork failure (#120)
 
 001 and 002 were promoted to m4, 003 to m5 (2026-10-08) and 004 to m6 (2026-10-09).
 

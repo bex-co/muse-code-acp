@@ -72,6 +72,7 @@ export const WORKFLOW_CANCEL_HOSTS = [
   "1.4.8",
   "1.4.11",
   "1.4.12",
+  "1.4.13",
 ];
 
 export interface SubscriptionUsageView {
@@ -333,6 +334,7 @@ export class MuseSdkHost {
   private busy = false;
   private completedTurns = 0;
   private idleTimer?: ReturnType<typeof setTimeout>;
+  private acquired = false;
   private finalStderr = "";
   private failActive?: (error: unknown) => void;
   private goalTimer?: ReturnType<typeof setInterval>;
@@ -391,6 +393,30 @@ export class MuseSdkHost {
     return this.handshake?.child.stderrTail.join("\n").trim() ?? this.finalStderr;
   }
 
+  /**
+   * Open the host before the first turn so Muse's startup overlaps the user
+   * typing. The next acquire reuses the opening; a failed opening is dropped
+   * so that acquire opens again and reports its own failure. An unused host
+   * closes after `idleMs`.
+   */
+  prewarm(idleMs = 600_000): void {
+    if (this.initialized || !this.reusable) return;
+    const opening = this.open(() => {});
+    this.initialized = opening;
+    opening.then(
+      () => {
+        if (this.busy || this.stopped) return;
+        clearTimeout(this.idleTimer);
+        this.idleTimer = setTimeout(() => void this.close(), idleMs);
+        this.idleTimer.unref();
+      },
+      (error: unknown) => {
+        if (this.initialized === opening) this.initialized = undefined;
+        this.options.logger.log(`muse-sdk: prewarm failed: ${String(error)}`);
+      },
+    );
+  }
+
   async acquire(
     options: MuseSdkOptions,
     fail: (error: unknown) => void,
@@ -412,10 +438,15 @@ export class MuseSdkHost {
     this.busy = true;
     this.failActive = fail;
     clearTimeout(this.idleTimer);
-    const reusing = !!this.initialized;
+    // A prewarmed host is opened with this exact configuration but has not
+    // served a turn: its startup policy still stands.
+    const prewarmed = !!this.initialized && !this.acquired;
+    const reusing = !!this.initialized && this.acquired;
+    this.acquired = true;
     this.initialized ??= this.open(preparing);
     const lease = await this.initialized;
     if (this.stopped) throw new Error("Muse SDK host closed during startup");
+    if (prewarmed) preparing();
     if (reusing) {
       preparing();
       // A goal control is meant to act on host-owned goal work, and leaves the
@@ -609,9 +640,17 @@ export class MuseSdkHost {
       throw new Error("Muse SDK cannot switch a saved session to a different workspace");
     const pending =
       opening?.verb === "session/resume" ? (opening.result.pendingRequests ?? []) : [];
-    if (saved.activeTurnId || pending.length)
+    // Pending approvals or questions are real gated waits that only Muse's own
+    // client can settle. A reported active turn alone is not: Muse 1.4.12/1.4.13
+    // keep reporting an earlier, finished turn as running after a compaction,
+    // yet admit new turns. Muse decides admission, queueing behind a live turn.
+    if (pending.length)
       throw new Error(
-        "The saved Muse session has an unfinished turn or pending input; resolve it in Muse before continuing",
+        "The saved Muse session has pending input; resolve it in Muse before continuing",
+      );
+    if (saved.activeTurnId)
+      options.logger.log(
+        `muse-sdk: resumed session reports active turn ${saved.activeTurnId}; new turns follow Muse's admission`,
       );
     await this.applyPolicy(host);
     this.ensureOpen();

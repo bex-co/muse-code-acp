@@ -5,6 +5,14 @@
 ### Features
 
 - `/compact` compacts the session's context through Muse's public `session/compact` on Muse 1.4.12 or newer, without a model turn from the adapter, and replies with the outcome (for example `30528 → 23084 tokens`). Clients advertising `session.compaction` also receive standard ACP `compaction_update` notifications. Muse's refusals and noops are reported verbatim. Compaction completes with real providers; Muse refuses it with `compaction_unavailable` on a local test provider. ACP cancel stops waiting, but Muse has no way to cancel a compaction already under way. On older hosts `/compact` is not advertised and sends nothing.
+- Opening, restoring or forking a thread now starts Muse in the background, so the first prompt no longer waits for Muse's own startup (about 12 seconds with a large session history), and the model picker lists Muse's catalog without `/models`. Changing the model, mode or safety settings before a prompt reopens it in the background too. An unused background host closes after 10 minutes.
+
+### Fixes
+
+- A session compacted after a tool call can be continued after an editor restart. Muse 1.4.12 and 1.4.13 then report an earlier, finished turn as still running ([muse-code-sdk#121](https://github.com/meta-models/muse-code-sdk/issues/121)); the adapter no longer refuses on that report and lets Muse decide whether to admit the prompt. Pending approvals or questions still have to be resolved in Muse first.
+- Muse 1.4.13's reminder helpers no longer add raw "reminderChild" cards to every turn: reminders that hold the turn open appear as "Muse reminder: verify" (or similar), and background ones are not shown.
+- Restored history keeps each prompt and reply as its own message (ACP `messageId`), separates consecutive replies, and says when a prompt has no recorded reply, instead of joining them in clients such as Zed.
+- A skill available in two scopes appears once in the command list.
 
 ### Dependencies
 
@@ -19,7 +27,7 @@
 - Workflow `cancel` is advertised on Muse 1.4.8 after verifying it against a real run. Forking at an earlier turn still fails on 1.4.7 and 1.4.8 ([muse-code-sdk#97](https://github.com/meta-models/muse-code-sdk/issues/97)).
 - Workflow `cancel` is also advertised on Muse 1.4.11 and 1.4.12, verified against real runs. Muse 1.4.12 accepts an earlier completed turn as a fork boundary; 1.4.11 still accepts only the latest ([muse-code-sdk#97](https://github.com/meta-models/muse-code-sdk/issues/97)).
 - Muse 1.4.12 on Linux fails every session fork ("resolve branch creation time: file birth time is unavailable"), even where the kernel reports file birth times; macOS is unaffected ([muse-code-sdk#120](https://github.com/meta-models/muse-code-sdk/issues/120)). The adapter now includes Muse's own message when a fork is unavailable, and the real-host suites record this host limitation.
-- Release CI now runs the newest verified host as Muse 1.4.12-R6909.1 (was 1.4.8-R6256.1).
+- Release CI now runs the newest verified host as Muse 1.4.13-R6996.1 (was 1.4.8-R6256.1). Muse 1.4.13 is verified with the full real-host suite and workflow `cancel`; on Linux it still fails every session fork ([muse-code-sdk#120](https://github.com/meta-models/muse-code-sdk/issues/120)).
 - Release CI now runs the real-host suites on Muse 1.4.8-R6256.1 as well as the 1.1.1-R2514.1 baseline, and fails if a suite for a 1.4.x capability (goal controls, task controls, native session commands, exec reviewer) would skip there.
 
 ## [0.10.0](https://github.com/bex-co/muse-code-acp/compare/v0.9.1...v0.10.0) (2026-10-12)

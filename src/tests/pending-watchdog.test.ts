@@ -4,7 +4,7 @@
  * instead of hanging (w2/m1 t003).
  */
 import { methods } from "@agentclientprotocol/sdk";
-import { chmodSync, mkdtempSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -14,7 +14,7 @@ import {
   stallLimitMs,
   type PendingWorkItem,
 } from "../pending-watchdog.js";
-import { connectTestClient, fixturesDir, newTestSession } from "./helpers.js";
+import { connectTestClient, fixturesDir, newTestSession, ensureExecutable } from "./helpers.js";
 
 function item(overrides: Partial<PendingWorkItem> = {}): PendingWorkItem {
   return {
@@ -86,7 +86,7 @@ describe("pending work watchdog", () => {
 
 function stallingClient(script: string) {
   const binary = join(fixturesDir, "fake-msp.cjs");
-  chmodSync(binary, 0o755);
+  ensureExecutable(binary);
   mkdtempSync(join(tmpdir(), "muse-stall-"));
   return connectTestClient({
     backend: "sdk",

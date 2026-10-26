@@ -1,13 +1,12 @@
 import { methods } from "@agentclientprotocol/sdk";
-import { chmodSync } from "node:fs";
 import { join } from "node:path";
 import { expect, it } from "vitest";
-import { connectTestClient, fixturesDir, initialized } from "./helpers.js";
+import { connectTestClient, fixturesDir, initialized, ensureExecutable } from "./helpers.js";
 
 const binary = join(fixturesDir, "fake-msp.cjs");
 
 it("runs native goal controls and reports Muse's refusals", async () => {
-  chmodSync(binary, 0o755);
+  ensureExecutable(binary);
   const client = connectTestClient({
     backend: "sdk",
     museBinary: binary,
@@ -48,7 +47,7 @@ it("runs native goal controls and reports Muse's refusals", async () => {
 });
 
 it("advertises goal controls on SDK hosts that can run them", async () => {
-  chmodSync(binary, 0o755);
+  ensureExecutable(binary);
   const sdk = connectTestClient({ backend: "sdk", museBinary: binary, skipSdkHostCheck: true });
   const sdkInit = await (
     await sdk.connect()

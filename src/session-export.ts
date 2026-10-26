@@ -56,6 +56,19 @@ export function exportToUpdates(
   const toolTasks = new Map<string, { callId: string; toolName: string }>();
 
   const push = (update: SessionNotification["update"]) => updates.push({ sessionId, update });
+  // Clients join adjacent chunks of one role into one message. Each prompt and
+  // committed reply gets its own ACP messageId, consecutive replies are
+  // separated, and a prompt with no recorded reply is said to have none.
+  let messages = 0;
+  let previous: "user" | "agent" | "tool" | undefined;
+  const noReply = () => {
+    if (previous === "user")
+      push({
+        sessionUpdate: "agent_message_chunk",
+        messageId: `replay-${++messages}`,
+        content: { type: "text", text: "_No reply was recorded for this prompt._" },
+      });
+  };
 
   for (const wrapped of doc.events ?? []) {
     const payload = wrapped.envelope?.payload;
@@ -65,15 +78,20 @@ export function exportToUpdates(
     }
     if (payload.kind === "run") {
       if (event.kind === "started" && typeof event.prompt === "string" && event.prompt) {
+        noReply();
         push({
           sessionUpdate: "user_message_chunk",
+          messageId: `replay-${++messages}`,
           content: { type: "text", text: event.prompt },
         });
+        previous = "user";
       } else if (event.kind === "assistant_message_committed" && typeof event.text === "string") {
         push({
           sessionUpdate: "agent_message_chunk",
-          content: { type: "text", text: event.text },
+          messageId: `replay-${++messages}`,
+          content: { type: "text", text: (previous === "agent" ? "\n\n" : "") + event.text },
         });
+        previous = "agent";
       }
     } else if (payload.kind === "task") {
       const taskId = typeof payload.task_id === "string" ? payload.task_id : "";
@@ -86,6 +104,7 @@ export function exportToUpdates(
         const key = typeof event.idempotency_key === "string" ? event.idempotency_key : taskId;
         const callId = key.startsWith("tool:") ? key.slice("tool:".length) : key;
         toolTasks.set(taskId, { callId, toolName });
+        previous = "tool";
         push({
           sessionUpdate: "tool_call",
           toolCallId: callId,
@@ -100,6 +119,7 @@ export function exportToUpdates(
         event.operation.startsWith("tool:")
       ) {
         // Completion-only tool items (intent lost) still surface once.
+        previous = "tool";
         const toolName = event.operation.slice("tool:".length);
         const callId =
           typeof event.idempotency_key === "string" && event.idempotency_key.startsWith("tool:")
@@ -125,5 +145,6 @@ export function exportToUpdates(
       }
     }
   }
+  noReply();
   return updates;
 }

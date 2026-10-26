@@ -3,13 +3,19 @@ import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { connectTestClient, fakeMuseBinary, fixturesDir, initialized } from "./helpers.js";
+import {
+  connectTestClient,
+  fakeMuseBinary,
+  fixturesDir,
+  initialized,
+  ensureExecutable,
+} from "./helpers.js";
 
 // Characterizes prompt() branches that other suites do not reach in process.
 const fakeMsp = join(fixturesDir, "fake-msp.cjs");
 
 function sdkClient(extraEnv: Record<string, string> = {}, museBinary = fakeMsp, skipCheck = true) {
-  chmodSync(fakeMsp, 0o755);
+  ensureExecutable(fakeMsp);
   const root = mkdtempSync(join(tmpdir(), "prompt-branches-"));
   const capture = join(root, "msp.jsonl");
   const client = connectTestClient({
@@ -94,7 +100,10 @@ describe("prompt() branches", () => {
       );
     await expect.poll(advertised).toContain("recap");
     expect(advertised()).not.toContain("compact");
-    expect(requests().filter((r) => r.method !== "initialize")).toEqual([]);
+    // The session's host may be prewarmed; no gated command or turn reaches it.
+    expect(
+      requests().filter((r) => /^(recap\/|goal\/|session\/compact|turn\/start)/.test(r.method)),
+    ).toEqual([]);
   });
 
   it("prefixes the planning instruction to every prompt in plan mode", async () => {
@@ -108,7 +117,7 @@ describe("prompt() branches", () => {
   });
 
   it("rejects the echo provider on the SDK backend before starting a host", async () => {
-    chmodSync(fakeMsp, 0o755);
+    ensureExecutable(fakeMsp);
     const root = mkdtempSync(join(tmpdir(), "prompt-branches-"));
     const client = connectTestClient({
       backend: "sdk",

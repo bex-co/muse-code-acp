@@ -6,6 +6,37 @@ import { silentLogger } from "./helpers.js";
 const wrap = (payload: Record<string, unknown>) => ({ envelope: { payload } });
 
 describe("session history replay", () => {
+  it("keeps message boundaries clients would otherwise join", () => {
+    const doc = {
+      export_schema_version: 1,
+      events: [
+        wrap({ kind: "run", event: { kind: "started", prompt: "cancelled essay" } }),
+        wrap({ kind: "run", event: { kind: "started", prompt: "next question" } }),
+        wrap({ kind: "run", event: { kind: "assistant_message_committed", text: "Trying." } }),
+        wrap({ kind: "run", event: { kind: "assistant_message_committed", text: "Done." } }),
+        wrap({ kind: "run", event: { kind: "started", prompt: "last, unanswered" } }),
+      ],
+    };
+    const updates = exportToUpdates("s1", doc, silentLogger()).map((n) => n.update);
+    expect(updates).toMatchObject([
+      { sessionUpdate: "user_message_chunk", content: { text: "cancelled essay" } },
+      {
+        sessionUpdate: "agent_message_chunk",
+        content: { text: expect.stringMatching(/No reply/) },
+      },
+      { sessionUpdate: "user_message_chunk", content: { text: "next question" } },
+      { sessionUpdate: "agent_message_chunk", content: { text: "Trying." } },
+      { sessionUpdate: "agent_message_chunk", content: { text: "\n\nDone." } },
+      { sessionUpdate: "user_message_chunk", content: { text: "last, unanswered" } },
+      {
+        sessionUpdate: "agent_message_chunk",
+        content: { text: expect.stringMatching(/No reply/) },
+      },
+    ]);
+    const ids = updates.map((u) => (u as { messageId?: string }).messageId);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   it("replays multi-turn history with tools and Unicode once, in order", () => {
     const doc = {
       export_schema_version: 1,

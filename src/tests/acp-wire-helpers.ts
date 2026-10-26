@@ -10,12 +10,12 @@ import {
   SessionNotification,
 } from "@agentclientprotocol/sdk";
 import { ChildProcessWithoutNullStreams, spawn } from "node:child_process";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, copyFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, copyFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Readable, Writable } from "node:stream";
 import { fileURLToPath } from "node:url";
-import { fixturesDir } from "./helpers.js";
+import { ensureExecutable, fixturesDir } from "./helpers.js";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 export const agentEntrypoint = join(repoRoot, "dist/index.js");
@@ -52,7 +52,7 @@ export async function createWireFixture(options: WireOptions = {}): Promise<Wire
   const capture = join(workspace, "msp-requests.jsonl");
   const fakeMsp = join(workspace, "fake-msp.cjs");
   copyFileSync(join(fixturesDir, "fake-msp.cjs"), fakeMsp);
-  chmodSync(fakeMsp, 0o755);
+  ensureExecutable(fakeMsp);
 
   const updates: SessionNotification[] = [];
   const acpInbound: string[] = [];

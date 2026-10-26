@@ -57,7 +57,8 @@ it("handles /mcp locally, reserves its name and rejects malformed inputs before 
       }),
     ).resolves.toEqual({ stopReason: "end_turn" });
     expect(JSON.stringify(client.updates)).toContain("No MCP servers configured");
-    expect(client.agent.sessions.get(sessionId)?.sdkHost).toBeUndefined();
+    // Local: no turn ran (the session's host may already be prewarmed).
+    expect(client.agent.sessions.get(sessionId)?.activeTurn).toBeNull();
     await expect
       .poll(() =>
         client.updates.some(
@@ -76,7 +77,7 @@ it("handles /mcp locally, reserves its name and rejects malformed inputs before 
         ],
       }),
     ).resolves.toEqual({ stopReason: "end_turn" });
-    expect(client.agent.sessions.get(sessionId)?.sdkHost).toBeUndefined();
+    expect(client.agent.sessions.get(sessionId)?.activeTurn).toBeNull();
     await expect(
       ctx.request(methods.agent.session.new, {
         cwd: root,

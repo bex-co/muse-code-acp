@@ -57,13 +57,18 @@ export async function listMuseSkills(
 const DESCRIPTION_MAX = 200;
 
 export function skillsToCommands(skills: MuseSkill[]): AvailableCommand[] {
-  return skills
-    .filter((skill) => skill.activation === "on")
-    .map((skill) => ({
-      name: skill.id,
-      description: truncate(skill.description || `${skill.scope} muse skill`, DESCRIPTION_MAX),
-      input: { hint: "input for the skill" },
-    }));
+  const seen = new Set<string>();
+  return (
+    skills
+      .filter((skill) => skill.activation === "on")
+      // The same id can come from two scopes; a command name is advertised once.
+      .filter((skill) => !seen.has(skill.id) && !!seen.add(skill.id))
+      .map((skill) => ({
+        name: skill.id,
+        description: truncate(skill.description || `${skill.scope} muse skill`, DESCRIPTION_MAX),
+        input: { hint: "input for the skill" },
+      }))
+  );
 }
 
 function truncate(text: string, max: number): string {

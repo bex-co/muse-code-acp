@@ -220,7 +220,10 @@ it("returns 16 sessions without catalog hosts against populated history and disc
       contexts.map((c) => c.request(methods.agent.session.new, { cwd: f.p.root, mcpServers: [] })),
     );
     const newSessionMs = Date.now() - start;
-    expect(f.pids()).toHaveLength(0);
+    // Returning never waits for a host. Each session's execution host may
+    // already be starting in the background (prewarm), but no catalog-only
+    // host exists: the count below is append-only and must end at one per session.
+    expect(f.pids().length).toBeLessThanOrEqual(16);
     expect(newSessionMs).toBeLessThan(5000);
     await Promise.all(
       contexts.map((c, i) =>

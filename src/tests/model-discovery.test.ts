@@ -1,6 +1,6 @@
+import { ensureExecutable } from "./helpers.js";
 import { afterEach, expect, test, vi } from "vitest";
 import {
-  chmodSync,
   copyFileSync,
   mkdtempSync,
   mkdirSync,
@@ -36,7 +36,7 @@ function setup(
   };
   const binary = join(root, "fake-msp.cjs");
   copyFileSync(resolve("src/tests/fixtures/fake-msp.cjs"), binary);
-  chmodSync(binary, 0o755);
+  ensureExecutable(binary);
   const discovery = new MuseModelDiscovery({
     env,
     museBinary: binary,

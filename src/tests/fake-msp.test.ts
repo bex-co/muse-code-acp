@@ -6,10 +6,9 @@
  * shape fails here instead of quietly weakening the reconciler's tests.
  */
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { chmodSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { fixturesDir } from "./helpers.js";
+import { fixturesDir, ensureExecutable } from "./helpers.js";
 
 interface Frame {
   id?: number;
@@ -31,7 +30,7 @@ class FixtureHost {
 
   constructor(script?: string) {
     const binary = join(fixturesDir, "fake-msp.cjs");
-    chmodSync(binary, 0o755);
+    ensureExecutable(binary);
     this.child = spawn(process.execPath, [binary, "serve"], {
       env: { ...process.env, ...(script ? { FAKE_MSP_SCRIPT: script } : {}) },
       stdio: ["pipe", "pipe", "pipe"],

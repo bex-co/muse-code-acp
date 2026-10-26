@@ -192,7 +192,7 @@ SDK failures never silently switch to exec. The legacy backend was introduced fo
 | ------------------- | -------------------------------------------------------------------------------------------------- |
 | Node.js             | **22+** (npm install)                                                                              |
 | Muse host           | **1.1.1-R2514.1** baseline (`muse serve`); select via `MUSE_CODE_EXECUTABLE`                       |
-| Also verified       | 1.2.1-R2847.1 (session load/resume, multi-stage allow/deny, HTTP MCP); CI also runs 1.4.12-R6909.1 |
+| Also verified       | 1.2.1-R2847.1 (session load/resume, multi-stage allow/deny, HTTP MCP); CI also runs 1.4.13-R6996.1 |
 | Muse SDK            | `@muse-code/sdk@1.4.12` (pinned dependency; does not include the Muse binary)                      |
 | Newer-host features | Native goals 1.4.6+; `/recap`, skills import, plugins/hooks 1.4.7+; `/compact` 1.4.12+             |
 | Auth                | Browser login or `META_API_KEY`                                                                    |

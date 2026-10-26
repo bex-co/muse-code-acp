@@ -221,3 +221,30 @@ it("renders SDK 1.4.4–1.4.6 hook runs, side chats and web searches as generic 
   });
   expect(search.update).toMatchObject({ title: "Web search: completed", kind: "other" });
 });
+
+it("names blocking reminder children and drops background ones", () => {
+  const translator = new MuseSdkTranslator("root", { log() {}, error() {} });
+  const reminder = {
+    kind: "reminderChild",
+    turnId: "turn",
+    revision: 1,
+    status: "inProgress",
+    fallbackText: "Reminder child session",
+  } as const;
+  expect(
+    translator.fromItem({ ...reminder, itemId: "skill", reminderAgentId: "skill-reminder" }),
+  ).toEqual([]);
+  const [verify] = translator.fromItem({
+    ...reminder,
+    itemId: "verify",
+    reminderAgentId: "verify-reminder",
+    blocking: true,
+  });
+  expect(verify.update).toMatchObject({
+    sessionUpdate: "tool_call",
+    title: "Muse reminder: verify",
+    status: "in_progress",
+  });
+  expect(JSON.stringify(verify.update)).toContain("before it finishes the turn");
+  expect(JSON.stringify(verify.update)).not.toContain("Reminder child session");
+});

@@ -76,4 +76,6 @@ export interface MuseAgentOptions {
   env?: Record<string, string | undefined>;
   /** Tests with fake-msp skip the real `muse serve --help` probe. */
   skipSdkHostCheck?: boolean;
+  /** Open each session's Muse host in the background (default true). */
+  prewarm?: boolean;
 }

@@ -1,4 +1,5 @@
-import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
+import { ensureExecutable } from "./helpers.js";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -8,7 +9,7 @@ function scriptBinary(body: string): string {
   const dir = mkdtempSync(join(tmpdir(), "muse-run-test-"));
   const binary = join(dir, "muse");
   writeFileSync(binary, `#!/bin/sh\n${body}\n`);
-  chmodSync(binary, 0o755);
+  ensureExecutable(binary);
   return binary;
 }
 

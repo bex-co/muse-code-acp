@@ -1,14 +1,20 @@
 import { methods } from "@agentclientprotocol/sdk";
-import { chmodSync, existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { MuseSdkTranslator } from "../muse-sdk-events.js";
-import { connectTestClient, fixturesDir, newTestSession, silentLogger } from "./helpers.js";
+import {
+  connectTestClient,
+  fixturesDir,
+  newTestSession,
+  silentLogger,
+  ensureExecutable,
+} from "./helpers.js";
 
 function sdkClient(mode = "complete") {
   const binary = join(fixturesDir, "fake-msp.cjs");
-  chmodSync(binary, 0o755);
+  ensureExecutable(binary);
   const capture = join(mkdtempSync(join(tmpdir(), "muse-sdk-test-")), "requests.jsonl");
   const testClient = connectTestClient({
     backend: "sdk",
@@ -149,7 +155,8 @@ describe("SDK backend over ACP", () => {
     ["exit", /disconnected|connection reached EOF|exited abnormally/],
     ["disabled", /experimental SDK tier is disabled/],
     ["inUse", /session is in use/],
-    ["busy", /unfinished turn or pending input/],
+    ["busy", /turn_in_progress/],
+    ["pendingInput", /pending input; resolve it in Muse/],
     ["wrongWorkspace", /different workspace/],
   ])("reports %s instead of hanging or creating a replacement session", async (mode, message) => {
     const client = sdkClient(mode);
@@ -161,10 +168,30 @@ describe("SDK backend over ACP", () => {
       }),
     ).rejects.toMatchObject({ message: expect.stringMatching(message) });
     expect(client.agent.sessions.get(sessionId)?.activeTurn).toBeNull();
-    if (["inUse", "busy", "wrongWorkspace"].includes(mode)) {
+    if (["inUse", "busy", "pendingInput", "wrongWorkspace"].includes(mode)) {
       expect(client.requests().some((r) => r.method === "session/start")).toBe(false);
-      expect(client.requests().some((r) => r.method === "turn/start")).toBe(false);
+      // Only Muse's own admission refuses a reported active turn.
+      expect(client.requests().some((r) => r.method === "turn/start")).toBe(mode === "busy");
     }
+  });
+
+  it("continues a session Muse still reports as running after a compaction", async () => {
+    const client = sdkClient("phantomActive");
+    const { ctx, sessionId } = await newTestSession(client);
+    await expect(
+      ctx.request(methods.agent.session.prompt, {
+        sessionId,
+        prompt: [{ type: "text", text: "test" }],
+      }),
+    ).resolves.toEqual({ stopReason: "end_turn" });
+    // The retained host keeps serving: the stale report does not resurface.
+    await expect(
+      ctx.request(methods.agent.session.prompt, {
+        sessionId,
+        prompt: [{ type: "text", text: "again" }],
+      }),
+    ).resolves.toEqual({ stopReason: "end_turn" });
+    expect(client.requests().filter((r) => r.method === "turn/start")).toHaveLength(2);
   });
 
   it("maps typed step-limit failures to ACP's turn limit", async () => {
@@ -182,7 +209,7 @@ describe("SDK backend over ACP", () => {
     const root = mkdtempSync(join(tmpdir(), "muse-sdk-mcp-"));
     const capture = join(root, "capture.json");
     const binary = join(fixturesDir, "fake-msp.cjs");
-    chmodSync(binary, 0o755);
+    ensureExecutable(binary);
     const client = connectTestClient({
       backend: "sdk",
       museBinary: binary,
@@ -268,7 +295,7 @@ describe("MSP tool translation", () => {
     };
     delete env.MUSE_CODE_ACP_BACKEND;
     const binary = join(fixturesDir, "fake-msp.cjs");
-    chmodSync(binary, 0o755);
+    ensureExecutable(binary);
     const client = connectTestClient({
       museBinary: binary,
       skipSdkHostCheck: true,

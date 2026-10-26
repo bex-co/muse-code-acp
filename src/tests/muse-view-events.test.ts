@@ -4,7 +4,7 @@
  */
 import { methods } from "@agentclientprotocol/sdk";
 import { EXPECTED_SCHEMA_FINGERPRINT } from "@muse-code/sdk";
-import { chmodSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -17,7 +17,7 @@ import {
 } from "../muse-view-events.js";
 import { hostCompatibility, servedFingerprint } from "../host-compatibility.js";
 import { SDK_PACKAGE } from "../muse-host.js";
-import { connectTestClient, fixturesDir, newTestSession } from "./helpers.js";
+import { connectTestClient, fixturesDir, newTestSession, ensureExecutable } from "./helpers.js";
 
 /** The method set the INSTALLED SDK can fold, read from its shipped types. */
 function foldedViewEvents(): string[] {
@@ -112,7 +112,7 @@ describe("host compatibility metadata", () => {
 
   it("announces once per host over ACP", async () => {
     const binary = join(fixturesDir, "fake-msp.cjs");
-    chmodSync(binary, 0o755);
+    ensureExecutable(binary);
     const client = connectTestClient({
       backend: "sdk",
       museBinary: binary,

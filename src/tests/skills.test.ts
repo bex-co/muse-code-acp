@@ -17,6 +17,14 @@ describe("skillsToCommands", () => {
     expect(commands[0].name).toBe("plan");
     expect(commands[0].description.length).toBeLessThanOrEqual(200);
   });
+
+  it("advertises a skill id found in two scopes once", () => {
+    const commands = skillsToCommands([
+      { id: "health", description: "project", scope: "project", activation: "on" },
+      { id: "health", description: "user", scope: "user", activation: "on" },
+    ]);
+    expect(commands.map((c) => [c.name, c.description])).toEqual([["health", "project"]]);
+  });
 });
 
 describe("listMuseSkills (fake binary)", () => {

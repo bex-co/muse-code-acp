@@ -57,7 +57,8 @@ const FORK_CUT_LATEST_ONLY = [
  */
 export const FORK_BIRTH_TIME_ERROR = "file birth time is unavailable";
 export const forkUnavailable = () =>
-  process.platform === "linux" && museVersion().includes("(1.4.12-R6909.1)");
+  process.platform === "linux" &&
+  ["(1.4.12-R6909.1)", "(1.4.13-R6996.1)"].some((build) => museVersion().includes(build));
 export const forkCutLatestOnly = () =>
   FORK_CUT_LATEST_ONLY.some((build) => museVersion().includes(build));
 const museVersion = () =>

@@ -10,7 +10,7 @@ import {
   SessionNotification,
 } from "@agentclientprotocol/sdk";
 import { afterEach } from "vitest";
-import { chmodSync, mkdtempSync } from "node:fs";
+import { chmodSync, mkdtempSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -86,9 +86,18 @@ export function hostSupports(
 }
 
 /** The blocking fake `muse exec` used by deterministic cancellation tests. */
+/**
+ * Make a fixture executable without touching it when it already is: chmod
+ * always bumps ctime, which is part of the Muse host identity, so a redundant
+ * chmod from a parallel suite would look like a changed binary.
+ */
+export function ensureExecutable(path: string): void {
+  if ((statSync(path).mode & 0o111) !== 0o111) chmodSync(path, 0o755);
+}
+
 export function fakeMuseBinary(): string {
   const fakeMuse = join(fixturesDir, "fake-muse.cjs");
-  chmodSync(fakeMuse, 0o755);
+  ensureExecutable(fakeMuse);
   return fakeMuse;
 }
 
@@ -148,7 +157,13 @@ export function connectTestClient(
     })
     .onConnect((conn) => resolveCtx(conn.agent));
 
-  const { agent } = createAgentConnection(clientApp, logger, options);
+  // Fake hosts (host check skipped) default to no background prewarm: it
+  // doubles fixture processes for every session, which starves suites with
+  // short probe deadlines. prewarm.test.ts and real-host suites exercise it.
+  const { agent } = createAgentConnection(clientApp, logger, {
+    ...options,
+    prewarm: options.prewarm ?? !options.skipSdkHostCheck,
+  });
   agents.add(agent);
   return {
     updates,

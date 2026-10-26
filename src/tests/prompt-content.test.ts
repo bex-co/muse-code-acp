@@ -1,4 +1,5 @@
-import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
+import { ensureExecutable } from "./helpers.js";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -13,7 +14,7 @@ describe("SDK host compatibility", () => {
       binary,
       '#!/bin/sh\nif [ "$1" = --version ]; then echo 0.2.1; exit 0; fi; exit 2\n',
     );
-    chmodSync(binary, 0o755);
+    ensureExecutable(binary);
     const probe = probeSdkHost({ PATH: dir }, binary);
     expect(probe.serveHelpOk).toBe(false);
     expect(() => assertSdkHostSupport({ PATH: dir }, binary)).toThrow(/muse serve/);

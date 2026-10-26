@@ -1,14 +1,14 @@
 import { methods } from "@agentclientprotocol/sdk";
-import { chmodSync, mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { elicitationToAnswers, userInputToElicitation } from "../muse-user-input.js";
-import { connectTestClient, fixturesDir, newTestSession } from "./helpers.js";
+import { connectTestClient, fixturesDir, newTestSession, ensureExecutable } from "./helpers.js";
 
 function sdkClient(mode = "userInput") {
   const binary = join(fixturesDir, "fake-msp.cjs");
-  chmodSync(binary, 0o755);
+  ensureExecutable(binary);
   const capture = join(mkdtempSync(join(tmpdir(), "muse-ui-")), "requests.jsonl");
   const testClient = connectTestClient({
     backend: "sdk",

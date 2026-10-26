@@ -1,13 +1,13 @@
 import { methods } from "@agentclientprotocol/sdk";
-import { chmodSync, mkdtempSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
-import { connectTestClient, fixturesDir, initialized } from "./helpers.js";
+import { connectTestClient, fixturesDir, initialized, ensureExecutable } from "./helpers.js";
 
 it("requests native recaps and syncs /rename to Muse's session name", async () => {
   const binary = join(fixturesDir, "fake-msp.cjs");
-  chmodSync(binary, 0o755);
+  ensureExecutable(binary);
   const client = connectTestClient({
     backend: "sdk",
     museBinary: binary,

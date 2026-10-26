@@ -1,9 +1,9 @@
-import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 import { spawnMuseExec } from "../muse-exec.js";
-import { silentLogger } from "./helpers.js";
+import { silentLogger, ensureExecutable } from "./helpers.js";
 
 const envelope = (sequence: number, payloadType: string, event: Record<string, unknown>) =>
   JSON.stringify({
@@ -26,7 +26,7 @@ function fakeExec(lines: string[], then: string): string {
     binary,
     `#!/bin/sh\n${lines.map((l) => `printf '%s\\n' '${l}'`).join("\n")}\n${then}\n`,
   );
-  chmodSync(binary, 0o755);
+  ensureExecutable(binary);
   return binary;
 }
 

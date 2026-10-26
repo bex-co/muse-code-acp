@@ -111,6 +111,17 @@ reported, not a provider-wire observation. Restoring reapplies the recorded sele
 another turn. Load/resume restore validated mode and safety choices; fork resets
 those safety controls. Muse session logs and global settings are not modified.
 
+Each ACP session's host is opened in the background as soon as the session is
+created, restored or forked, and again after an idle configuration change, so the
+first prompt reuses a started host (Muse's own `session/start` takes about 12 s
+with a large session history) and the model catalog is published without a turn.
+A catalog that settles the route (for example a profile) reopens it once. Hosts
+serving a turn are never replaced; an unused one closes after 10 minutes.
+
+A resumed session whose `activeTurnId` Muse still reports after a compaction
+(muse-code-sdk#121) is not refused by the adapter: only `pendingRequests` block,
+and Muse's own admission decides whether a new turn starts.
+
 Idle model/provider selections replace the execution host with an isolated public
 settings overlay. Muse resume metadata may already report the new settings while
 execution retains the previous model: the adapter therefore always calls public
@@ -222,7 +233,7 @@ mutation or a model turn, with an actionable alternative.
 
 CI runs the real-host suites twice, each on a public Linux Muse artifact checked
 against the SHA-256 in Meta's release manifest: the **1.1.1-R2514.1** baseline,
-where capability-gated suites skip, and **1.4.12-R6909.1** with
+where capability-gated suites skip, and **1.4.13-R6996.1** with
 `MUSE_CODE_ACP_REQUIRE_HOST_FEATURES=all`, where the exec-reviewer,
 goal-control, task-control and session-command suites must run (a skip fails
 the job). Real-host tests run on Ubuntu 22.04: Muse 1.1.1's bundled

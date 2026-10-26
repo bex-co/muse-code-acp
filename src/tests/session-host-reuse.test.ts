@@ -1,6 +1,5 @@
 import { methods, type McpServer } from "@agentclientprotocol/sdk";
 import {
-  chmodSync,
   copyFileSync,
   existsSync,
   mkdirSync,
@@ -12,7 +11,13 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
-import { capturingLogger, connectTestClient, fixturesDir, initialized } from "./helpers.js";
+import {
+  capturingLogger,
+  connectTestClient,
+  fixturesDir,
+  initialized,
+  ensureExecutable,
+} from "./helpers.js";
 
 const server = (credential: string): McpServer => ({
   name: "session-mcp",
@@ -25,7 +30,7 @@ async function fixture() {
   const root = mkdtempSync(join(tmpdir(), "muse-host-reuse-"));
   const binary = join(root, "fake-msp.cjs");
   copyFileSync(join(fixturesDir, "fake-msp.cjs"), binary);
-  chmodSync(binary, 0o755);
+  ensureExecutable(binary);
   const configHome = join(root, "config");
   mkdirSync(join(configHome, "muse"), { recursive: true });
   const settingsPath = join(configHome, "muse", "settings.json");
