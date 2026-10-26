@@ -71,4 +71,5 @@ Coverage thresholds in `vitest.config.ts` are floors measured without a Muse hos
 - Imports use `.js` extensions (NodeNext ESM).
 - Conventional commit subjects (`feat:`, `fix(scope):`, `chore(pm):`, …); PR titles are validated against the same types.
 - User-facing changes go under `## Unreleased` in `CHANGELOG.md`; feature design notes live in `docs/*.md` (e.g. `docs/sdk-migration.md` is the SDK backend reference).
+- Upstream blockers (Muse host/SDK issues, missing ACP surfaces) are indexed in `.pm/UPSTREAM_DEPENDENCIES.md`; re-check its open rows on every Muse or SDK bump and update statuses there.
 - Work is tracked on the `.pm/` board (workstreams `w*/`, milestones, tasks). Repository skills in `.agents/skills/` (symlinked into `.claude/skills/`): `pm`, `pm-brainstorm`, `loopx`, `ship` (push directly to `main`), `release` (npm publish only via GitHub Actions — never run `npm publish` locally).
