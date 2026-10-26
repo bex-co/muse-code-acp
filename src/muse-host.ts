@@ -57,6 +57,9 @@ export function supportsTaskControls(version: string | null | undefined): boolea
  * Whether `muse exec` accepts `--permission-profile` with the built-in
  * profiles: the flag must be in its help and the host at least 1.4.4.
  */
+/** Bounds each version/help probe of the Muse binary (normally ~40 ms). */
+const PROBE_TIMEOUT_MS = 15_000;
+
 export function execSupportsPermissionProfile(
   env: Record<string, string | undefined> = process.env,
   museBinary?: string,
@@ -68,12 +71,12 @@ export function execSupportsPermissionProfile(
   const help = spawnSync(binary, ["exec", "--help"], {
     encoding: "utf8",
     env: env as Record<string, string>,
-    timeout: 5_000,
+    timeout: PROBE_TIMEOUT_MS,
   });
   const supported =
     atLeast(version, EXEC_PROFILE_MIN_HOST) &&
     `${help.stdout ?? ""}`.includes("--permission-profile");
-  execProfiles.set(binary, supported);
+  if (!help.error && version !== null) execProfiles.set(binary, supported);
   return supported;
 }
 
@@ -94,12 +97,12 @@ export function probeSdkHost(
   const version = spawnSync(binary, ["--version"], {
     encoding: "utf8",
     env: env as Record<string, string>,
-    timeout: 5_000,
+    timeout: PROBE_TIMEOUT_MS,
   });
   const help = spawnSync(binary, ["serve", "--help"], {
     encoding: "utf8",
     env: env as Record<string, string>,
-    timeout: 5_000,
+    timeout: PROBE_TIMEOUT_MS,
   });
   const versionText = `${version.stdout ?? ""}${version.stderr ?? ""}`.trim();
   const match = versionText.match(/(\d+\.\d+\.\d+)/);
@@ -109,7 +112,9 @@ export function probeSdkHost(
     serveHelpOk: help.status === 0,
     serveHelp: `${help.stdout ?? ""}${help.stderr ?? ""}`,
   };
-  probed.set(binary, check);
+  // A probe that timed out or failed to spawn says nothing lasting about the
+  // host (a loaded machine, a launcher mid-update); the next call probes again.
+  if (!version.error && !help.error) probed.set(binary, check);
   return check;
 }
 

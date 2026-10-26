@@ -101,12 +101,17 @@ it("reopens in the background after an idle configuration change", async () => {
     mcpServers: [],
   });
   const poll = { timeout: 10_000 };
-  await expect.poll(methodsSent, poll).toContain("session/start");
+  const starts = () => methodsSent().filter((m) => m === "initialize").length;
+  const opened = () =>
+    methodsSent().lastIndexOf("session/setModel") > methodsSent().lastIndexOf("initialize");
+  // Let the catalog settle the route (one reopen), then change the mode.
+  await expect.poll(starts, poll).toBe(2);
+  await expect.poll(opened, poll).toBe(true);
   const first = client.agent.sessions.get(sessionId)!.sdkHost!.owner;
   await ctx.request(methods.agent.session.setMode, { sessionId, modeId: "readOnly" });
   await expect.poll(() => first.closed, poll).toBe(true);
-  // Twice for the catalog's settled route, then once for the mode change.
-  await expect.poll(() => methodsSent().filter((m) => m === "initialize").length, poll).toBe(3);
+  await expect.poll(starts, poll).toBe(3);
+  await expect.poll(opened, poll).toBe(true);
   const second = client.agent.sessions.get(sessionId)!.sdkHost!.owner;
   expect(second).not.toBe(first);
   await expect(

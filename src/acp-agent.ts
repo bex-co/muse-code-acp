@@ -127,6 +127,9 @@ export type { Logger } from "./logger.js";
 export type { AcpClient, MuseAgentOptions, SessionState } from "./agent-types.js";
 import type { AcpClient, MuseAgentOptions, SessionState } from "./agent-types.js";
 
+/** Lets a client restore several options after creating a session before Muse starts. */
+const PREWARM_DEBOUNCE_MS = 250;
+
 /**
  * Bridges {@link AcpClient} to the connection-scoped {@link AgentContext}. The
  * peer handle is valid for the entire connection lifetime, so it is captured
@@ -542,14 +545,26 @@ export class MuseAcpAgent {
     return response;
   }
 
-  /** Background-open the session's Muse host on the SDK backend (see prewarmSdkHost). */
+  private readonly prewarmTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+  /**
+   * Background-open the session's Muse host on the SDK backend (see
+   * prewarmSdkHost). Debounced: clients often restore several options right
+   * after creating a session, and each change would otherwise start a host.
+   */
   prewarm(sessionId: string): void {
-    const session = this.sessions.get(sessionId);
-    if (this.backend !== "sdk" || !session || this.disposed || this.options.prewarm === false)
-      return;
-    const task = prewarmSdkHost(this, sessionId, session, this.providerEnv(sessionId));
-    this.backgroundTasks.add(task);
-    void task.finally(() => this.backgroundTasks.delete(task));
+    if (this.backend !== "sdk" || this.disposed || this.options.prewarm === false) return;
+    clearTimeout(this.prewarmTimers.get(sessionId));
+    const timer = setTimeout(() => {
+      this.prewarmTimers.delete(sessionId);
+      const session = this.sessions.get(sessionId);
+      if (!session || this.disposed) return;
+      const task = prewarmSdkHost(this, sessionId, session, this.providerEnv(sessionId));
+      this.backgroundTasks.add(task);
+      void task.finally(() => this.backgroundTasks.delete(task));
+    }, PREWARM_DEBOUNCE_MS);
+    timer.unref();
+    this.prewarmTimers.set(sessionId, timer);
   }
 
   /**
@@ -1003,6 +1018,8 @@ export class MuseAcpAgent {
     if (this.disposal) return this.disposal;
     this.disposed = true;
     this.discoveryAbort.abort();
+    for (const timer of this.prewarmTimers.values()) clearTimeout(timer);
+    this.prewarmTimers.clear();
     const sessions = [...this.sessions.values()];
     this.sessions.clear();
     for (const session of sessions) {

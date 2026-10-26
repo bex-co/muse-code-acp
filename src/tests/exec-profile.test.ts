@@ -2,7 +2,7 @@ import { chmodSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
-import { execSupportsPermissionProfile } from "../muse-host.js";
+import { execSupportsPermissionProfile, probeSdkHost } from "../muse-host.js";
 import { MODES } from "../modes.js";
 
 function fakeMuse(version: string, execHelp: string): string {
@@ -30,4 +30,16 @@ it("selects :read-only only for the modes that already disable writes and shell"
     expect(mode.execProfile, mode.id).toBe(
       mode.id === "readOnly" || mode.id === "plan" ? ":read-only" : undefined,
     );
+});
+
+it("does not cache a host probe that could not run", () => {
+  const binary = join(mkdtempSync(join(tmpdir(), "muse-probe-retry-")), "muse");
+  // Missing binary: the spawn fails, which must not stick as "no host".
+  expect(probeSdkHost({}, binary).version).toBeNull();
+  writeFileSync(
+    binary,
+    `#!/bin/sh\nif [ "$1" = --version ]; then echo "Muse Code 1.4.13"; fi\nexit 0\n`,
+  );
+  chmodSync(binary, 0o755);
+  expect(probeSdkHost({}, binary).version).toBe("1.4.13");
 });

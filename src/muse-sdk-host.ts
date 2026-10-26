@@ -412,7 +412,11 @@ export class MuseSdkHost {
       },
       (error: unknown) => {
         if (this.initialized === opening) this.initialized = undefined;
-        this.options.logger.log(`muse-sdk: prewarm failed: ${String(error)}`);
+        this.options.logger.log(
+          this.stopped
+            ? "muse-sdk: prewarm superseded (host replaced or closed)"
+            : `muse-sdk: prewarm failed: ${String(error)}`,
+        );
       },
     );
   }
