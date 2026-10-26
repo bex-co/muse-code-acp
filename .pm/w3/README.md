@@ -33,6 +33,7 @@
 - [012](012.md) — Make the loopback live suite reliable under local file parallelism
 - [013](013.md) — Verify additional workspace roots on Muse 1.4.12 (from w1/008)
 - [014](014.md) — Reconcile stale w1 future watches
+- [015](015.md) — Verify Muse 1.4.13 and re-check the Linux fork failure (#120)
 
 001 and 002 were promoted to m4, 003 to m5 (2026-10-08) and 004 to m6 (2026-10-09).
 
