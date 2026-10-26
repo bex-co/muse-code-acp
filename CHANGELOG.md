@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.11.0](https://github.com/bex-co/muse-code-acp/compare/v0.10.0...v0.11.0) (2026-10-26)
+
 ### Features
 
 - `/compact` compacts the session's context through Muse's public `session/compact` on Muse 1.4.12 or newer, without a model turn from the adapter, and replies with the outcome (for example `30528 → 23084 tokens`). Clients advertising `session.compaction` also receive standard ACP `compaction_update` notifications. Muse's refusals and noops are reported verbatim. Compaction completes with real providers; Muse refuses it with `compaction_unavailable` on a local test provider. ACP cancel stops waiting, but Muse has no way to cancel a compaction already under way. On older hosts `/compact` is not advertised and sends nothing.
@@ -19,18 +21,16 @@
 ### Dependencies
 
 - Bump `@agentclientprotocol/sdk` from 1.3.0 to 1.8.0. Elicitation and terminal authentication are now stable protocol features; the adapter's wire behavior is otherwise unchanged.
-- Bump `@muse-code/sdk` from 1.4.8 to 1.4.12 and verify Muse 1.4.12-R6909.1: the full real-host suite passes with every capability-gated suite required. Muse's `approval/request` server requests are now acknowledged by the SDK instead of answered "method not found"; the adapter still decides approvals only through ACP permission requests. New reviewer (`approval/reviewing`), monitor-inbox and item kinds (`scheduledFire`, `backgroundTerminalCompletion`, `overdueNotice`, `damagedRange`) are classified. Item kinds that occur inside a turn render as generic cards.
-- Bump `@muse-code/sdk` from 1.4.7 to 1.4.8 and verify Muse 1.4.8-R6256.1: the full real-host suite passes. The new `monitorFeed` item arrives outside turns and is not shown; `turn/modelRetryScheduled` is classified but not yet shown.
+- Bump `@muse-code/sdk` from 1.4.7 to 1.4.12 and verify Muse 1.4.8, 1.4.12 and 1.4.13: the full real-host suite passes with every capability-gated suite required. Muse's `approval/request` server requests are now acknowledged by the SDK instead of answered "method not found"; the adapter still decides approvals only through ACP permission requests. New reviewer (`approval/reviewing`), monitor-inbox and item kinds (`scheduledFire`, `backgroundTerminalCompletion`, `overdueNotice`, `damagedRange`) are classified. Item kinds that occur inside a turn render as generic cards; `monitorFeed` items arrive outside turns and are not shown, and `turn/modelRetryScheduled` is classified but not yet shown.
 
 ### Compatibility
 
 - The `META_API_KEY` auth method is now a standard agent method (ACP 1.8.0 removed the unstable `env_var` type): `authenticate` checks that the key is set in the adapter's environment, as before, but clients no longer get a field to enter it.
 - ACP messages over 32 MiB are now refused by the ACP SDK, which closes the connection; the adapter exits with status 1 and reports the limit on stderr instead of exiting silently.
 - Workflow `cancel` is advertised on Muse 1.4.8 after verifying it against a real run. Forking at an earlier turn still fails on 1.4.7 and 1.4.8 ([muse-code-sdk#97](https://github.com/meta-models/muse-code-sdk/issues/97)).
-- Workflow `cancel` is also advertised on Muse 1.4.11 and 1.4.12, verified against real runs. Muse 1.4.12 accepts an earlier completed turn as a fork boundary; 1.4.11 still accepts only the latest ([muse-code-sdk#97](https://github.com/meta-models/muse-code-sdk/issues/97)).
+- Workflow `cancel` is also advertised on Muse 1.4.11, 1.4.12 and 1.4.13, verified against real runs. Muse 1.4.12 accepts an earlier completed turn as a fork boundary; 1.4.11 still accepts only the latest ([muse-code-sdk#97](https://github.com/meta-models/muse-code-sdk/issues/97)).
 - Muse 1.4.12 on Linux fails every session fork ("resolve branch creation time: file birth time is unavailable"), even where the kernel reports file birth times; macOS is unaffected ([muse-code-sdk#120](https://github.com/meta-models/muse-code-sdk/issues/120)). The adapter now includes Muse's own message when a fork is unavailable, and the real-host suites record this host limitation.
-- Release CI now runs the newest verified host as Muse 1.4.13-R6996.1 (was 1.4.8-R6256.1). Muse 1.4.13 is verified with the full real-host suite and workflow `cancel`; on Linux it still fails every session fork ([muse-code-sdk#120](https://github.com/meta-models/muse-code-sdk/issues/120)).
-- Release CI now runs the real-host suites on Muse 1.4.8-R6256.1 as well as the 1.1.1-R2514.1 baseline, and fails if a suite for a 1.4.x capability (goal controls, task controls, native session commands, exec reviewer) would skip there.
+- Release CI now runs the real-host suites on Muse 1.4.13-R6996.1 as well as the 1.1.1-R2514.1 baseline, and fails if a suite for a 1.4.x capability (goal controls, task controls, native session commands, exec reviewer) would skip on 1.4.13. On Linux, Muse 1.4.13 still fails every session fork ([muse-code-sdk#120](https://github.com/meta-models/muse-code-sdk/issues/120)).
 
 ## [0.10.0](https://github.com/bex-co/muse-code-acp/compare/v0.9.1...v0.10.0) (2026-10-12)
 
