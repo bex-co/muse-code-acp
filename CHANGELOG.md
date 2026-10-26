@@ -13,6 +13,8 @@
 - Muse 1.4.13's reminder helpers no longer add raw "reminderChild" cards to every turn: reminders that hold the turn open appear as "Muse reminder: verify" (or similar), and background ones are not shown.
 - Restored history keeps each prompt and reply as its own message (ACP `messageId`), separates consecutive replies, and says when a prompt has no recorded reply, instead of joining them in clients such as Zed.
 - A skill available in two scopes appears once in the command list.
+- Reopening a session right after its previous Muse host closed waits up to 5 seconds for Muse to release it instead of failing with "session is in use".
+- A Muse version probe that times out (for example on a heavily loaded machine) is no longer remembered as an unsupported host; probes allow 15 seconds instead of 5.
 
 ### Dependencies
 
