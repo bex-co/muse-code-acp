@@ -117,12 +117,23 @@ it("keeps effort changes on the same host and exposes their observed mapping", a
     // 1.2.1 sent ultra as provider max; from 1.3 max is its own tier and ultra is
     // gated (closed in this isolated home), so it falls back to xhigh.
     const efforts = ["none", "minimal", "low", "medium", "high", "xhigh"];
+    // Newer hosts list each model's efforts in the catalog; the adapter then
+    // offers only those. Wait for it so the run does not depend on its timing.
+    const session = client.agent.sessions.get(sessionId)!;
+    for (let i = 0; !legacy && !session.modelDiscovery?.models.length && i < 100; i++)
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    const offered = session.modelDiscovery?.models.find((m) => m.id === "fake-model")?.efforts;
     for (const effort of [...efforts, ...(legacy ? [] : ["max"]), "ultra"]) {
-      await ctx.request(methods.agent.session.setConfigOption, {
+      const select = ctx.request(methods.agent.session.setConfigOption, {
         sessionId,
         configId: "reasoningEffort",
         value: effort,
       });
+      if (offered && !offered.includes(effort)) {
+        await expect(select).rejects.toThrow(/not offered by the selected model/);
+        continue;
+      }
+      await select;
       const marker = `settings-main-${effort}`;
       await ctx.request(methods.agent.session.prompt, {
         sessionId,
