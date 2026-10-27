@@ -86,7 +86,7 @@ describe("ACP fork binding", () => {
     try {
       for (const request of [
         { sessionId, cwd, _meta: { "muse/fork": { lastTurnId: "turn" } } },
-        { sessionId, cwd, additionalDirectories: [cwd] },
+        { sessionId, cwd, additionalDirectories: ["relative/extra"] },
         { sessionId, cwd: tmpdir() },
         { sessionId: "unknown", cwd },
       ])

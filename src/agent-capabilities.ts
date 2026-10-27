@@ -29,6 +29,7 @@ import {
 /** Host checks the advertisement needs; each runs only where the original did. */
 export interface CapabilityHost {
   supportsFork(): boolean;
+  workspaceRootsAvailable(): boolean;
   goalControlsAvailable(): boolean;
   authStatus(): object;
 }
@@ -60,6 +61,7 @@ export function initializeResponse(
         close: {},
         resume: {},
         ...(forkSupported ? { fork: {} } : {}),
+        ...(host.workspaceRootsAvailable() ? { additionalDirectories: {} } : {}),
       },
       auth: { logout: {} },
     },

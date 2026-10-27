@@ -8,7 +8,13 @@ import { applySessionTitle, applyTitleUpdate } from "./session-title.js";
 import { ASYNC_TASKS, TASK_METHOD, parseTaskRequest } from "./async-tasks.js";
 import { observedFailure } from "./turn-failure.js";
 import { SessionProgress, USAGE_EXTENSION } from "./session-progress.js";
-import { requireAvailable, requireSingleWorkspace } from "./availability.js";
+import { requireAvailable } from "./availability.js";
+import {
+  normalizeAdditionalDirectories,
+  requireRootsSupport,
+  ROOTS_NOT_APPLIED,
+  sameRoots,
+} from "./workspace-roots.js";
 import {
   agent as acpAgent,
   AgentContext,
@@ -82,6 +88,7 @@ import {
   assertSdkSafetySupport,
   execSupportsPermissionProfile,
   supportsCompaction,
+  supportsWorkspaceRoots,
   supportsGoalControls,
   supportsSessionCommands,
 } from "./muse-host.js";
@@ -414,6 +421,15 @@ export class MuseAcpAgent {
     );
   }
 
+  /** ACP additional directories: SDK backend on a host that enforces workspaceRoots. */
+  workspaceRootsAvailable(): boolean {
+    return (
+      this.backend === "sdk" &&
+      (this.options.skipSdkHostCheck ||
+        supportsWorkspaceRoots(probeSdkHost(this.options.env, this.options.museBinary).version))
+    );
+  }
+
   /** Native compaction: SDK backend on a host where it was observed completing. */
   compactionAvailable(): boolean {
     return (
@@ -484,10 +500,15 @@ export class MuseAcpAgent {
   }
 
   async newSession(params: NewSessionRequest): Promise<NewSessionResponse> {
-    requireSingleWorkspace(params.additionalDirectories);
+    requireRootsSupport(params.additionalDirectories, this.workspaceRootsAvailable());
     this.assertRunning();
     this.validateMcp(params.mcpServers);
     const cwd = resolveWorkspace(params.cwd);
+    const additionalDirectories = normalizeAdditionalDirectories(
+      params.additionalDirectories,
+      cwd,
+      this.workspaceRootsAvailable(),
+    );
     // The ACP session id doubles as the muse `--session-id`. Muse creates its
     // on-disk session log lazily on the first turn; discovery only queries the host.
     const sessionId = this.backend === "sdk" ? createUuidV7Mint()() : randomUUID();
@@ -502,6 +523,7 @@ export class MuseAcpAgent {
       this.assertRunning();
       this.sessions.set(sessionId, {
         cwd,
+        additionalDirectories,
         museSessionId: sessionId,
         activeTurn: null,
         turnFinished: null,
@@ -647,7 +669,7 @@ export class MuseAcpAgent {
   }
 
   async loadSession(params: LoadSessionRequest): Promise<LoadSessionResponse> {
-    requireSingleWorkspace(params.additionalDirectories);
+    requireRootsSupport(params.additionalDirectories, this.workspaceRootsAvailable());
     return this.thenPrewarm(
       params.sessionId,
       this.withSessionBinding(params.sessionId, () => loadSessionState(this, params)),
@@ -815,6 +837,20 @@ export class MuseAcpAgent {
         await say(
           "Native goal controls are verified from Muse 1.4.6; this host is not supported. No goal was changed.",
         );
+        return { stopReason: "end_turn" };
+      }
+      // goal/set and goal/resume start turns that cannot carry workspaceRoots:
+      // they run with the roots Muse last applied, which must be this session's.
+      if (
+        (command?.goal?.verb === "set" || command?.goal?.verb === "resume") &&
+        this.workspaceRootsAvailable() &&
+        !sameRoots(
+          readSessionPreferences(params.sessionId, this.options.env ?? process.env).appliedRoots ??
+            [],
+          session.additionalDirectories,
+        )
+      ) {
+        await say(ROOTS_NOT_APPLIED);
         return { stopReason: "end_turn" };
       }
       if (command?.stop || session.cancelRequested || this.disposed)

@@ -91,6 +91,6 @@ merge precedence, credential isolation, invalid URLs/headers and local diagnosti
 Only dummy credentials and local fixtures are used; third-party OAuth services
 are not covered by this evidence.
 
-The adapter supports one canonical workspace and does not advertise ACP
-`additionalDirectories`. Remote MCP support does not broaden Muse's filesystem
+Extra workspace roots come only from ACP `additionalDirectories` (Muse 1.4.13+,
+see `docs/sdk-migration.md`). Remote MCP support does not broaden Muse's filesystem
 sandbox or permission scope.

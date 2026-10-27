@@ -48,6 +48,11 @@ export function supportsCompaction(version: string | null | undefined): boolean 
   return atLeast(version, [1, 4, 12]);
 }
 
+/** ACP additional directories → Muse `workspaceRoots`, verified on 1.4.13 (w3/013). */
+export function supportsWorkspaceRoots(version: string | null | undefined): boolean {
+  return atLeast(version, [1, 4, 13]);
+}
+
 /** Workflow pause and task background/stop are verified from Muse 1.4.6. */
 export function supportsTaskControls(version: string | null | undefined): boolean {
   return atLeast(version, [1, 4, 6]);

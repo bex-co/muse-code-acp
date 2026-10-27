@@ -92,6 +92,10 @@ export interface MuseSdkOptions {
    * streamed as the reply. Resolving undefined means it was cancelled.
    */
   hostCommand?: HostCommand;
+  /** `[cwd, ...additionalDirectories]` for hosts that enforce workspaceRoots. */
+  workspaceRoots?: string[];
+  /** Called once Muse admitted a turn that carried `workspaceRoots`. */
+  onRootsApplied?: () => void;
   /** A rename recorded while no host was open, applied once this turn acquires one. */
   nativeName?: string;
   /** Called with Muse's canonical name after `nativeName` is applied. */
@@ -399,6 +403,9 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
         turn = await operation.wait(
           session.sendUserTurn({
             input: options.input,
+            // Every turn carries the complete root set, so an empty list also
+            // clears roots Muse kept from an earlier configuration.
+            ...(options.workspaceRoots ? { workspaceRoots: options.workspaceRoots } : {}),
             ...(sdkReasoningEffort(options.reasoningEffort)
               ? { reasoningEffort: sdkReasoningEffort(options.reasoningEffort)! }
               : {}),
@@ -407,6 +414,7 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
       }
       adoptTurn(turn.turnId);
       acceptedTurn = true;
+      if (options.workspaceRoots && !options.goal) options.onRootsApplied?.();
       if (options.steering)
         updates.push({
           sessionId: options.sessionId,

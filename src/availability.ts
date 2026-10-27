@@ -58,12 +58,3 @@ export function nativePolicyAvailability(
 }
 
 /** The public host has one authorized workspaceRoot. Reject, never ignore extras. */
-export function requireSingleWorkspace(additionalDirectories?: readonly string[] | null): void {
-  if (additionalDirectories?.length)
-    requireAvailable(
-      unavailable(
-        "unsupported",
-        "Muse Code supports one workspace root; start a separate session for another workspace. No additional directory was authorized",
-      ),
-    );
-}

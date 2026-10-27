@@ -20,6 +20,7 @@ import {
   atLeast,
   probeSdkHost,
   supportsCompaction,
+  supportsWorkspaceRoots,
   supportsGoalControls,
   supportsSessionCommands,
   supportsTaskControls,
@@ -58,6 +59,7 @@ const HOST_CAPABILITIES = {
   // Muse's automated approval reviewer decides exec tool calls from 1.4.4.
   "exec-reviewer": (version: string | null | undefined) => atLeast(version, [1, 4, 4]),
   compaction: supportsCompaction,
+  "workspace-roots": supportsWorkspaceRoots,
   "goal-controls": supportsGoalControls,
   "session-commands": supportsSessionCommands,
   "task-controls": supportsTaskControls,

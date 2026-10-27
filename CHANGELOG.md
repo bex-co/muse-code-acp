@@ -4,6 +4,8 @@
 
 ### Features
 
+- Additional workspace directories: on Muse 1.4.13 or newer the adapter advertises ACP `additionalDirectories` for new, loaded, resumed and forked sessions and passes them to Muse as `workspaceRoots`. Muse enforces them with its workspace sandbox rules and grants them no Project Trust. Directories must be absolute and exist; a load or resume without them removes extra roots Muse kept. `/goal set` and `/goal resume` wait until a prompt has applied the current set. The exec backend and older hosts still refuse extra directories.
+
 - Clients that advertise ACP `session.notices` now see Muse's model retries ("Model request failed (server 503); retrying, attempt 2 of 10") and the built-in reviewer holding a tool call ("Muse's reviewer is checking bash before it runs") as standard notices during the turn. Other clients are unaffected. Muse 1.4.8+ (retries) and 1.4.12+ (reviewer).
 
 ### Dependencies

@@ -23,6 +23,7 @@ import { SESSION_STATE_EXTENSION } from "./session-state-observer.js";
 import type { SlashCommand } from "./slash-commands.js";
 import { supportsSteering } from "./steering-protocol.js";
 import { observedFailure } from "./turn-failure.js";
+import { workspaceRoots } from "./workspace-roots.js";
 
 /** What an SDK-backend prompt turn needs from the agent. */
 export interface SdkTurnContext {
@@ -47,6 +48,7 @@ export interface SdkTurnContext {
   progressFor(sessionId: string, session: SessionState): SessionProgress;
   publishAuth(sessionId: string, session: SessionState): Promise<void>;
   inspectGoal(sessionId: string, session: SessionState): Promise<string>;
+  workspaceRootsAvailable(): boolean;
 }
 
 export interface SdkTurnRequest {
@@ -270,6 +272,17 @@ export async function runSdkTurn(
     providerId,
     profileId,
     reasoningEffort: session.config.reasoningEffort,
+    ...(ctx.workspaceRootsAvailable()
+      ? {
+          workspaceRoots: workspaceRoots(session.cwd, session.additionalDirectories),
+          onRootsApplied: () =>
+            writeSessionPreferences(
+              sessionId,
+              { appliedRoots: session.additionalDirectories },
+              ctx.options.env ?? process.env,
+            ),
+        }
+      : {}),
     readOnly,
     safety: session.config.safety,
     automaticDecision: readOnly

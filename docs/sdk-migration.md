@@ -621,9 +621,17 @@ directly. This does not hide the independently implemented adapter automatic
 approval/rejection modes. Mode errors distinguish unknown values, backend mismatch
 and unmet root/opt-in guards; configuration busy errors identify temporary state.
 
-All session new/load/resume/fork requests reject nonempty `additionalDirectories`
-before binding or changing an existing session. A separate session is an explicit
-alternative, not authorization for another root in the current session.
+On Muse 1.4.13+ (SDK backend) the adapter advertises ACP
+`sessionCapabilities.additionalDirectories` and maps them to Muse `workspaceRoots`:
+every root gets Muse's workspace sandbox rules (extra roots get no Project Trust),
+and Muse persists the set. Paths must be absolute, existing directories; they are
+canonicalized, deduplicated, and the workspace itself is dropped. Every turn sends
+the complete set `[cwd, ...extra]`, so a load/resume/fork without the field clears
+extra roots Muse kept, as ACP specifies. Goal turns cannot carry roots, so
+`/goal set` and `/goal resume` are refused until a prompt has applied the
+session's current set (the applied set is stored in the adapter's session
+preferences; forks inherit the source's). The exec backend and older hosts
+reject nonempty `additionalDirectories` before binding or changing a session.
 
 ## Observed progress
 

@@ -24,6 +24,8 @@ type Preferences = {
   safety?: SafetySettings;
   providerBinding?: string;
   modelSelection?: { model: string; providerId?: string; profileId?: string | null };
+  /** The additional directories the last admitted turn sent to Muse (w3/013). */
+  appliedRoots?: string[];
 };
 export function readSessionPreferences(
   sessionId: string,
@@ -58,6 +60,9 @@ export function readSessionPreferences(
     (doc.providerBinding !== undefined &&
       (typeof doc.providerBinding !== "string" || !/^[a-f0-9]{64}$/.test(doc.providerBinding))) ||
     (doc.safety !== undefined && !validSafety(doc.safety)) ||
+    (doc.appliedRoots !== undefined &&
+      (!Array.isArray(doc.appliedRoots) ||
+        !doc.appliedRoots.every((root: unknown) => typeof root === "string"))) ||
     (doc.reasoningEffort !== undefined && !isReasoningEffort(doc.reasoningEffort)) ||
     (doc.modeId !== undefined &&
       !["default", "readOnly", "plan", "bypassApprovals", "rejectApprovals"].includes(doc.modeId))
@@ -75,7 +80,13 @@ export function writeSessionPreferences(
   sessionId: string,
   change: Pick<
     Preferences,
-    "reasoningEffort" | "modeId" | "safety" | "providerBinding" | "modelSelection" | "userTitle"
+    | "reasoningEffort"
+    | "modeId"
+    | "safety"
+    | "providerBinding"
+    | "modelSelection"
+    | "userTitle"
+    | "appliedRoots"
   >,
   env: Record<string, string | undefined>,
 ): void {

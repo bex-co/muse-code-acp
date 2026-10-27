@@ -58,16 +58,16 @@ it("reports temporary busy state separately without changing configuration", () 
   }
 });
 
-it("rejects extra roots at every session entry before provider or filesystem work", async () => {
+it("rejects extra roots at every session entry before provider or filesystem work where Muse cannot enforce them", async () => {
   const { connectTestClient, initialized } = await import("./helpers.js");
   const { methods } = await import("@agentclientprotocol/sdk");
-  const client = connectTestClient({ backend: "sdk", skipSdkHostCheck: true });
+  // The exec backend has no workspaceRoots; SDK hosts before 1.4.13 likewise.
+  const client = connectTestClient({ backend: "exec" });
   const ctx = await initialized(client);
   for (const method of [
     methods.agent.session.new,
     methods.agent.session.load,
     methods.agent.session.resume,
-    methods.agent.session.fork,
   ]) {
     await expect(
       ctx.request(method, {
@@ -78,6 +78,15 @@ it("rejects extra roots at every session entry before provider or filesystem wor
       } as never),
     ).rejects.toMatchObject({ code: -32602, data: { availability: "unsupported" } });
   }
+  // Fork itself is unsupported on exec and is refused before roots are considered.
+  await expect(
+    ctx.request(methods.agent.session.fork, {
+      sessionId: "nonexistent",
+      cwd: "/nonexistent",
+      mcpServers: [],
+      additionalDirectories: ["/also-nonexistent"],
+    } as never),
+  ).rejects.toMatchObject({ code: -32600 });
   expect(client.agent.sessions.size).toBe(0);
   expect(client.updates).toHaveLength(0);
 });

@@ -117,7 +117,7 @@ describe("session/resume", () => {
     });
   });
 
-  it("rejects additional workspace directories visibly", async () => {
+  it("rejects additional workspace directories visibly on the exec backend", async () => {
     const testClient = fakeClient();
     const { ctx, sessionId, cwd } = await newTestSession(testClient);
 
@@ -128,7 +128,10 @@ describe("session/resume", () => {
         additionalDirectories: [mkdtempSync(join(tmpdir(), "muse-resume-extra-"))],
         mcpServers: [],
       }),
-    ).rejects.toMatchObject({ code: -32602, message: expect.stringMatching(/one workspace root/) });
+    ).rejects.toMatchObject({
+      code: -32602,
+      message: expect.stringMatching(/SDK backend on Muse 1\.4\.13/),
+    });
   });
 
   it("rejects resume during a turn without changing MCP state", async () => {

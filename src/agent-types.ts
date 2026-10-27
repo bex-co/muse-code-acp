@@ -52,6 +52,8 @@ export interface SessionState {
   /** The model is the built-in default: no settings named one and no turn or selection used it. */
   builtInModel?: boolean;
   modelRefresh?: { dispose(): Promise<void> };
+  /** Canonical extra workspace roots (ACP additionalDirectories), sent with every turn. */
+  additionalDirectories: string[];
   /** ACP-provided MCP servers injected into Muse for each turn. */
   mcpServers: McpServer[];
   mcpFailure?: string;

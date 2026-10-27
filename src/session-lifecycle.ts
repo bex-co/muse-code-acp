@@ -16,7 +16,7 @@ import {
 } from "@agentclientprotocol/sdk";
 import type { AcpClient, MuseAgentOptions, SessionState } from "./agent-types.js";
 import { restoredTaskUpdates } from "./async-tasks.js";
-import { requireSingleWorkspace } from "./availability.js";
+import { normalizeAdditionalDirectories, requireRootsSupport } from "./workspace-roots.js";
 import { PROVIDER_EXTENSION, type ClientProvider } from "./client-provider.js";
 import type { SessionConfig } from "./config-options.js";
 import type { GoalObservation } from "./goal-state.js";
@@ -36,6 +36,8 @@ import { OUTPUT_EXTENSION, restoredOutputUpdates } from "./stored-output.js";
 
 /** What binding a stored session (load, resume, fork) needs from the agent. */
 export interface SessionLifecycleContext {
+  /** ACP additional directories can reach Muse (SDK backend on 1.4.13+). */
+  workspaceRootsAvailable(): boolean;
   readonly client: AcpClient;
   readonly logger: Logger;
   readonly options: MuseAgentOptions;
@@ -111,6 +113,11 @@ export async function loadSessionState(
       undefined,
       `session ${params.sessionId} belongs to a different workspace`,
     );
+  const additionalDirectories = normalizeAdditionalDirectories(
+    params.additionalDirectories,
+    cwd,
+    ctx.workspaceRootsAvailable(),
+  );
 
   await ctx.prepareProvider(params.sessionId, params._meta);
   env = ctx.providerEnv(params.sessionId);
@@ -168,6 +175,7 @@ export async function loadSessionState(
   ctx.assertRunning();
   ctx.sessions.set(params.sessionId, {
     cwd,
+    additionalDirectories,
     museSessionId: params.sessionId,
     activeTurn: null,
     turnFinished: null,
@@ -218,8 +226,13 @@ export async function forkSessionState(
       "Session fork requires supported Muse SDK host 1.1.1+",
     );
   ctx.validateMcp(params.mcpServers ?? []);
-  requireSingleWorkspace(params.additionalDirectories);
+  requireRootsSupport(params.additionalDirectories, ctx.workspaceRootsAvailable());
   const cwd = resolveWorkspace(params.cwd);
+  const additionalDirectories = normalizeAdditionalDirectories(
+    params.additionalDirectories,
+    cwd,
+    ctx.workspaceRootsAvailable(),
+  );
   const extension = params._meta?.[FORK_METADATA];
   let lastTurnId: string | undefined;
   if (extension !== undefined) {
@@ -303,13 +316,21 @@ export async function forkSessionState(
       await ctx.prepareProvider(sessionId, { [PROVIDER_EXTENSION]: sourceProvider });
     ctx.assertRunning();
     // A branch starts with default sandbox/approval policy, not inherited grants.
+    // Muse forks inherit the source's stored roots, so the fork starts with
+    // the source's applied set (the goal guard compares against it).
+    const sourceRoots = readSessionPreferences(params.sessionId, env).appliedRoots;
     writeSessionPreferences(
       sessionId,
-      { reasoningEffort: config.reasoningEffort, modeId: "default" },
+      {
+        reasoningEffort: config.reasoningEffort,
+        modeId: "default",
+        ...(sourceRoots ? { appliedRoots: sourceRoots } : {}),
+      },
       env,
     );
     ctx.sessions.set(sessionId, {
       cwd,
+      additionalDirectories,
       museSessionId: sessionId,
       activeTurn: null,
       turnFinished: null,
@@ -352,8 +373,8 @@ export async function resumeSessionState(
       `cwd must be an absolute path, got "${params.cwd}"`,
     );
   }
-  requireSingleWorkspace(params.additionalDirectories);
 
+  requireRootsSupport(params.additionalDirectories, ctx.workspaceRootsAvailable());
   const existing = ctx.sessions.get(params.sessionId);
   if (existing?.turnFinished) {
     throw RequestError.invalidRequest(
@@ -393,6 +414,12 @@ export async function resumeSessionState(
         ctx.providerEnv(params.sessionId),
       );
     existing.cwd = storedCwd;
+    // ACP resume carries the complete extra-root set; omitted means none.
+    existing.additionalDirectories = normalizeAdditionalDirectories(
+      params.additionalDirectories,
+      storedCwd,
+      ctx.workspaceRootsAvailable(),
+    );
     existing.mcpServers = mcpServers;
     existing.mcpFailure = undefined;
     return {
@@ -439,6 +466,11 @@ export async function resumeSessionState(
   ctx.assertRunning();
   ctx.sessions.set(params.sessionId, {
     cwd: storedCwd,
+    additionalDirectories: normalizeAdditionalDirectories(
+      params.additionalDirectories,
+      storedCwd,
+      ctx.workspaceRootsAvailable(),
+    ),
     museSessionId: params.sessionId,
     activeTurn: null,
     turnFinished: null,
