@@ -100,7 +100,7 @@ Muse 1.2.1 maps `none` to `minimal`, `ultra` to `max`, and passes the other
 five unchanged. From Muse 1.3, `max` is its own protocol tier and reaches the
 provider as `max`, while `ultra` is gated: with the gate closed, Muse 1.4.3 sends
 `xhigh`. Reminder requests are separate and do not prove main-turn effort.
-Other versions and per-model restrictions remain unverified. The option description
+Other versions remain unverified; the picker offers each model's catalog efforts. The option description
 reports these limits; effort changes preserve the idle host and apply per turn.
 
 Explicit effort and the last successful model/provider selection are saved in
@@ -321,7 +321,7 @@ dummy credentials and a local loopback endpoint; no paid provider was called.
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Initialize           | Observed server version 1.1.1, schema version 1, durable sessions, empty grantedCapabilities and experimentalApi false. These fields alone do not prove every declared method works.                                                   |
 | Model discovery      | `initialize` followed by `model/list {}` returned `bundledCatalog` with configured `fake-model`; provider discovery need not run and nullable catalog metadata is valid. ACP consumes the returned snapshot.                           |
-| Effort               | Seven requested tiers: main-provider captures show 1.1.1 omits effort; 1.2.1 maps none→minimal and ultra→max, passing the other five. Per-model restrictions remain unknown.                                                           |
+| Effort               | Seven requested tiers: main-provider captures show 1.1.1 omits effort; 1.2.1 maps none→minimal and ultra→max, passing the other five. Muse 1.4.13's `model/list` lists each model's efforts and default; the picker offers only those. |
 | Embedded context     | ACP resource-only prompt traversed the real SDK/host; captured provider input decoded to the exact unsaved text, URI and MIME attribution.                                                                                             |
 | Reasoning summaries  | Public item schema declares `reasoning.summary` and indexed summary deltas. Actual summary events are not yet verified or forwarded; private/encrypted reasoning is not accessed.                                                      |
 | Usage/context        | Public schema declares usage/context data. End-to-end ACP reporting is unverified and remains unadvertised until m9.                                                                                                                   |

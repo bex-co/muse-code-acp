@@ -10,6 +10,12 @@ export interface DiscoveredModel {
   providerId?: string;
   profileId?: string | null;
   isDefault?: boolean;
+  /** The efforts this model accepts (`variants`), when the catalog lists them. */
+  efforts?: readonly string[];
+  /** The catalog's default effort for this model. */
+  defaultEffort?: string;
+  /** Muse's own words for some efforts (`reasoningEffortVariants`). */
+  effortDescriptions?: Readonly<Record<string, string>>;
 }
 export type ModelDiscoveryResult =
   | { status: "available"; models: readonly DiscoveredModel[]; source: string }
@@ -44,10 +50,35 @@ function parseCatalog(value: unknown): ModelDiscoveryResult {
   const ids = new Set<string>();
   const result = models.map((row: unknown): DiscoveredModel => {
     if (!row || typeof row !== "object") throw new Error("malformed model/list row");
-    const { modelId, displayLabel, description, providerId, profileId, isDefault } = row as Record<
-      string,
-      unknown
-    >;
+    const {
+      modelId,
+      displayLabel,
+      description,
+      providerId,
+      profileId,
+      isDefault,
+      variants,
+      defaultReasoningEffort,
+      reasoningEffortVariants,
+    } = row as Record<string, unknown>;
+    // Effort metadata is optional catalog detail: malformed values are ignored,
+    // never a reason to reject the model row.
+    const efforts =
+      Array.isArray(variants) && variants.every((v) => typeof v === "string") && variants.length
+        ? Object.freeze([...(variants as string[])])
+        : undefined;
+    const effortDescriptions = Array.isArray(reasoningEffortVariants)
+      ? Object.freeze(
+          Object.fromEntries(
+            reasoningEffortVariants.flatMap((v: unknown) => {
+              const { tier, description: text } = (v ?? {}) as Record<string, unknown>;
+              return typeof tier === "string" && typeof text === "string" && text.trim()
+                ? [[tier, text.slice(0, 200)]]
+                : [];
+            }),
+          ),
+        )
+      : undefined;
     if (
       typeof modelId !== "string" ||
       !modelId.trim() ||
@@ -68,6 +99,13 @@ function parseCatalog(value: unknown): ModelDiscoveryResult {
       ...(profileId !== undefined ? { profileId: profileId as string | null } : {}),
       ...(typeof isDefault === "boolean" ? { isDefault } : {}),
       ...(typeof description === "string" ? { description } : {}),
+      ...(efforts ? { efforts } : {}),
+      ...(typeof defaultReasoningEffort === "string"
+        ? { defaultEffort: defaultReasoningEffort }
+        : {}),
+      ...(effortDescriptions && Object.keys(effortDescriptions).length
+        ? { effortDescriptions }
+        : {}),
     });
   });
   return Object.freeze({ status: "available", models: Object.freeze(result), source });

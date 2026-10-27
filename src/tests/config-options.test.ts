@@ -278,3 +278,78 @@ describe("exec effort choices", () => {
     await testClient.agent.dispose();
   });
 });
+
+describe("per-model reasoning efforts from Muse's catalog", () => {
+  const catalog = {
+    status: "available" as const,
+    source: "providerCatalog",
+    models: [
+      {
+        id: "big",
+        name: "Big",
+        providerId: "meta",
+        profileId: "tbh",
+        efforts: ["minimal", "low", "medium", "high", "xhigh", "max"],
+        defaultEffort: "max",
+      },
+      {
+        id: "small",
+        name: "Small",
+        providerId: "meta",
+        profileId: "tbh",
+        efforts: ["minimal", "low", "medium", "high", "xhigh"],
+        defaultEffort: "medium",
+        effortDescriptions: { xhigh: "Use this for deepest analysis." },
+      },
+    ],
+  };
+  const config = { model: "big", providerId: "meta", profileId: "tbh", reasoningEffort: "max" };
+
+  it("offers only the efforts the selected model accepts, with Muse's descriptions", async () => {
+    const { buildConfigOptions } = await import("../config-options.js");
+    const effort = (model: string) => {
+      const option = buildConfigOptions({ ...config, model }, "sdk", catalog).find(
+        (o) => o.id === "reasoningEffort",
+      );
+      return (option?.type === "select" ? option.options : []) as {
+        value: string;
+        description?: string | null;
+      }[];
+    };
+    expect(effort("big").map((o) => o.value)).toEqual([
+      "minimal",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max",
+    ]);
+    const small = effort("small");
+    expect(small.map((o) => o.value)).not.toContain("max");
+    expect(small.find((o) => o.value === "xhigh")).toMatchObject({
+      description: "Use this for deepest analysis.",
+    });
+  });
+
+  it("refuses an unsupported effort and clamps to the model default on a model switch", async () => {
+    const { applyConfigSelection, modelChoice, EFFORT_LEVELS } =
+      await import("../config-options.js");
+    const switched = applyConfigSelection(
+      config,
+      "model",
+      modelChoice({ id: "small", name: "Small", providerId: "meta", profileId: "tbh" }),
+      catalog,
+      EFFORT_LEVELS,
+    );
+    expect(switched).toMatchObject({ model: "small", reasoningEffort: "medium" });
+    expect(() =>
+      applyConfigSelection(switched, "reasoningEffort", "max", catalog, EFFORT_LEVELS),
+    ).toThrow(/not offered by the selected model/);
+    // Without catalog effort metadata every backend effort stays available.
+    expect(
+      applyConfigSelection(config, "reasoningEffort", "ultra", undefined, EFFORT_LEVELS),
+    ).toMatchObject({
+      reasoningEffort: "ultra",
+    });
+  });
+});

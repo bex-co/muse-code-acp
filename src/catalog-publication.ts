@@ -8,6 +8,7 @@ import {
 } from "./model-discovery.js";
 import { sdkDeadline } from "./sdk-operation.js";
 import { adoptCatalogDefault } from "./session-configuration.js";
+import { clampEffort } from "./config-options.js";
 
 /** What reading and publishing the model catalog needs from the agent. */
 export interface CatalogContext {
@@ -17,6 +18,8 @@ export interface CatalogContext {
   readonly sessions: ReadonlyMap<string, SessionState>;
   readonly isDisposed: boolean;
   readonly modelDiscovery: MuseModelDiscovery;
+  /** The efforts this backend can carry. */
+  readonly efforts: readonly string[];
   providerEnv(sessionId: string): Record<string, string | undefined>;
   catalogIdentity(session: SessionState, env: Record<string, string | undefined>): string;
   trackRead<T>(work: Promise<T>): Promise<T>;
@@ -49,6 +52,7 @@ export async function publishCatalog(
   const previous = ctx.sessionConfigOptions(session);
   session.modelDiscovery = result;
   adoptCatalogDefault(session);
+  session.config = clampEffort(session.config, result, ctx.efforts);
   const configOptions = ctx.sessionConfigOptions(session);
   if (JSON.stringify(previous) === JSON.stringify(configOptions)) return true;
   await ctx.client.sessionUpdate({

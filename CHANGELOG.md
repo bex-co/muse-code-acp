@@ -8,6 +8,8 @@
 
 - Clients that advertise ACP `session.notices` now see Muse's model retries ("Model request failed (server 503); retrying, attempt 2 of 10") and the built-in reviewer holding a tool call ("Muse's reviewer is checking bash before it runs") as standard notices during the turn. Other clients are unaffected. Muse 1.4.8+ (retries) and 1.4.12+ (reviewer).
 
+- The reasoning-effort picker follows the selected model's Muse catalog: it lists only the efforts that model supports, with Muse's descriptions, and switching to a model without the current effort falls back to that model's default. Choosing an effort the model does not offer is rejected.
+
 ### Dependencies
 
 - Bump `@muse-code/sdk` from 1.4.12 to 1.4.13 (additive schema: computer-use approval data facts, tool work IDs, queued inputs on read). Muse 1.4.13 hosts no longer log a schema-fingerprint warning.

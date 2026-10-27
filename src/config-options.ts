@@ -61,6 +61,54 @@ export function defaultSessionConfig(
   };
 }
 
+/** The catalog row a configuration names, when exactly one matches. */
+export function currentCatalogModel(
+  config: SessionConfig,
+  discovery?: ModelDiscoveryResult,
+): DiscoveredModel | undefined {
+  if (discovery?.status !== "available") return undefined;
+  const sameModel = discovery.models.filter(
+    (model) =>
+      model.id === config.model && (!config.providerId || model.providerId === config.providerId),
+  );
+  const exact = sameModel.filter(
+    (model) => config.profileId === undefined || (model.profileId ?? null) === config.profileId,
+  );
+  const current =
+    exact.length === 0 && config.profileId === null && sameModel.length === 1 ? sameModel : exact;
+  return current.length === 1 ? current[0] : undefined;
+}
+
+/** The efforts the selected model accepts, per Muse's catalog; all backend efforts otherwise. */
+export function modelEfforts<E extends string>(
+  config: SessionConfig,
+  discovery: ModelDiscoveryResult | undefined,
+  efforts: readonly E[],
+): readonly E[] {
+  const accepted = currentCatalogModel(config, discovery)?.efforts;
+  const narrowed = accepted ? efforts.filter((e) => accepted.includes(e)) : efforts;
+  return narrowed.length ? narrowed : efforts;
+}
+
+/**
+ * Keep the effort valid for the selected model: when the model does not accept
+ * it, use the catalog's default for that model, else its highest effort.
+ */
+export function clampEffort(
+  config: SessionConfig,
+  discovery: ModelDiscoveryResult | undefined,
+  efforts: readonly string[],
+): SessionConfig {
+  const allowed = modelEfforts(config, discovery, efforts);
+  if (allowed.includes(config.reasoningEffort)) return config;
+  const preferred = currentCatalogModel(config, discovery)?.defaultEffort;
+  const reasoningEffort =
+    preferred && allowed.includes(preferred)
+      ? preferred
+      : (allowed.at(-1) ?? config.reasoningEffort);
+  return { ...config, reasoningEffort };
+}
+
 export function buildConfigOptions(
   config: SessionConfig,
   backend: "sdk" | "exec" = "exec",
@@ -131,10 +179,14 @@ export function buildConfigOptions(
       type: "select",
       currentValue: config.reasoningEffort,
       description: effortDescription(backend, hostVersion),
-      options: efforts.map((effort) => ({
-        value: effort,
-        name: effort.charAt(0).toUpperCase() + effort.slice(1),
-      })),
+      options: modelEfforts(config, discovery, efforts).map((effort) => {
+        const description = currentCatalogModel(config, discovery)?.effortDescriptions?.[effort];
+        return {
+          value: effort,
+          name: effort.charAt(0).toUpperCase() + effort.slice(1),
+          ...(description ? { description } : {}),
+        };
+      }),
     },
   ];
 }
@@ -152,10 +204,16 @@ export function applyConfigSelection(
   }
   switch (configId) {
     case MODEL_CONFIG_ID:
-      return selectModel(config, value, discovery);
+      return clampEffort(selectModel(config, value, discovery), discovery, efforts);
     case EFFORT_CONFIG_ID:
-      if (!isReasoningEffort(value) || !efforts.includes(value)) {
+      if (!isReasoningEffort(value)) {
         throw RequestError.invalidParams(undefined, `unknown reasoning effort: ${value}`);
+      }
+      if (!modelEfforts(config, discovery, efforts).includes(value)) {
+        throw RequestError.invalidParams(
+          undefined,
+          `reasoning effort ${value} is not offered by the selected model`,
+        );
       }
       return { ...config, reasoningEffort: value };
     default:
