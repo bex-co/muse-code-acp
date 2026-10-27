@@ -24,7 +24,7 @@ known-issue list in `analyze.mjs` in step: a new scenario gets a row here.
 | ----- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | R1    | File-write tool turn                                                       | `end_turn`, file written; reminder cards named "Muse reminder: …" (analyzer)                                                                                                            |
 | R2    | Write to `$HOME` (sandbox-escaping) with Reject, then Allow once           | when Muse asks, Reject writes nothing and Allow once writes; when Muse settles it itself the scenario is `inconclusive` (the GUI pass G3 then covers Reject); test files always deleted |
-| R3-R4 | Tool turn, `/compact`, memory question, agent restart + load, prompt, fork | compaction reported; memory kept; prompt after restart `end_turn` (#121 path); fork refusal is known w3/016                                                                             |
+| R3-R4 | Tool turn, `/compact`, memory question, agent restart + load, prompt, fork | compaction reported; memory kept; prompt after restart `end_turn` (#121 path); fork succeeds (a refusal is a bug; on Linux, known #120)                                                 |
 | R5    | Stdio MCP server tool, `/compact`, restart + load, tool again              | tool works before; after resume known #112 if it fails                                                                                                                                  |
 | R6    | Long essay, cancel after 8 s                                               | `cancelled` within 8 s                                                                                                                                                                  |
 | R7    | New session, 20 s idle, prompt                                             | adapter wait before submission (`preparing` + `submitting`) < 2 s, i.e. the prewarmed host was used; first output is recorded as a metric (model time is Muse's)                        |
@@ -42,6 +42,6 @@ known-issue list in `analyze.mjs` in step: a new scenario gets a row here.
 ## Known issues (tagged, not refiled)
 
 From `.pm/UPSTREAM_DEPENDENCIES.md`: #120 Linux fork, #121 phantom active turn
-(prompt path fixed; fork path is w3/016), #112 MCP after compacted resume, the
+(worked around; `session/fork` is unaffected), #112 MCP after compacted resume, the
 loopback's `compaction_unavailable`, and the SDK-pin fingerprint warning. Update
 `KNOWN` in `analyze.mjs` when that file changes.

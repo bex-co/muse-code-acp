@@ -15,7 +15,6 @@ if (!QA) throw new Error("--qa-dir is required");
 /** Known, already-tracked behavior: a finding matching one is tagged, not filed again. */
 const KNOWN = [
   { re: /file birth time is unavailable/, id: "#120 (Linux fork)" },
-  { re: /Cannot fork an active session/, id: "w3/016 (#121 fork after compaction)" },
   { re: /MCP startup audit failed/, id: "#112" },
   {
     re: /fingerprint .* differs from the fingerprint this SDK pins/,

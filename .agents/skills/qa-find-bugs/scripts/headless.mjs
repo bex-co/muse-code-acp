@@ -799,11 +799,9 @@ const scenarios = [
           r.findings.push({
             title: "fork of a compacted session refused",
             actual: fork.error,
-            known: /active session|birth time/.test(fork.error)
-              ? /birth time/.test(fork.error)
-                ? "#120"
-                : "w3/016 (#121)"
-              : undefined,
+            // Forking a compacted session works (w3/016 disproved, 2026-10-27);
+            // only the Linux birth-time failure is a known host limitation.
+            known: /birth time/.test(fork.error) ? "#120" : undefined,
           });
       } finally {
         await b.close();
