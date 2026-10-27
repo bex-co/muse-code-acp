@@ -83,11 +83,12 @@ export const ITEM_KIND_CONSUMERS: Readonly<Record<string, string>> = {
     "muse-sdk-events.ts streams public summary parts; private reasoning is never requested.",
   userShell:
     "muse-sdk-events.ts renders generic shell output; background lifecycle/control: w2/m9.",
-  subagent: "Handled by retained MuseSdkTranslator worker cards; native child controls: w1/005.",
+  subagent:
+    "Handled by retained MuseSdkTranslator worker cards; native child controls: upstream #13 (.pm/UPSTREAM_DEPENDENCIES.md).",
   workflow:
     "Handled by retained worker cards; negotiated 1.2.1/1.3.0 workflow cancellation; 1.1.1 workflow lifecycle/control unverified.",
   reminderChild:
-    "Blocking reminders render as 'Muse reminder: <agent>' cards; non-blocking ones run beside the turn and are not shown (w3/m20). Child history remains w1/005.",
+    "Blocking reminders render as 'Muse reminder: <agent>' cards; non-blocking ones run beside the turn and are not shown (w3/m20). Child history: upstream #13.",
   compaction:
     "muse-sdk-host.ts requestCompaction follows the manual item for /compact (w3/m9); automatic compactions are not shown.",
   hookRun:

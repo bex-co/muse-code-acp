@@ -7,23 +7,15 @@ This is a queue policy, not a permanent component ownership boundary.
 
 ## Future enablement watches
 
-No current implementation milestones remain here. Each note has a concrete public
-support trigger, evidence boundary and acceptance after enablement. On support,
-move implementation into w2; do not create a duplicate queue or auto-poll unchanged APIs.
-
-- [Revisit public goal control support](002.md)
-- [Revisit host-owned MCP status support](003.md)
-- [004 — Future: Durable native compaction](004.md)
-- [005 — Future: Accessible native child sessions and isolated child controls](005.md)
-- [007 — Future: Native rich media preservation](007.md)
-- [008 — Future: Independently authorized additional workspace roots](008.md)
-- [009 — Future: Correlated URL elicitation](009.md)
-- [010 — Future: Native service tiers and per-model effort capability metadata](010.md)
-- [011 — Future: Authoritative account quota and rate limits](011.md)
-- [012 — Future: Native root-session deletion](012.md)
+Centralized on 2026-10-27: every capability still blocked on Muse or ACP, with
+its evidence, revisit trigger and acceptance, lives in
+[UPSTREAM_DEPENDENCIES.md](../UPSTREAM_DEPENDENCIES.md). Unblocked work moves to w3.
 
 ## Closed watches
 
+- [002 — Goal control support](done/002.md) — delivered by w3/m8.
+- [004 — Durable native compaction](done/004.md) — delivered by w3/m9.
+- [008 — Additional workspace roots](done/008.md) — delivered by w3/013 (2026-10-27).
 - [006 — Observable native scheduled retries](done/006.md) — delivered by w3/010 (2026-10-27).
 
 ## Completed milestones
@@ -56,6 +48,6 @@ move implementation into w2; do not create a duplicate queue or auto-poll unchan
 - **m21** — superseded by current w2 tasks and distinct future notes; [original scope](evidence/2026-09-14-superseded/m21.md). No task marked done by migration.
 - **m23** — superseded by current w2 tasks and distinct future notes; [original scope](evidence/2026-09-14-superseded/m23.md). No task marked done by migration.
 - **m25** — transferred to [w2/m4](../w2/done/m4/README.md), with complete source and ID migration map.
-- **001** — current documentation reconciliation moved to [w2/011](../w2/011.md).
+- **001** — current documentation reconciliation moved to [w2/011](../w2/done/011.md).
 
 [Exact task allocation and evidence](../ownership-2026-09-14.md) is authoritative.

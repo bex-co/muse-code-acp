@@ -52,7 +52,7 @@ verified workflow lifecycle/control delivery; public shell and
 reminder cards still work. A workflow tool result alone is not proof of an
 observable controllable workflow. `workflow/childControl` rejected the observed
 child target in the 1.2.1 probe, so it is not advertised. Direct native child
-controls/history remain [w1/005](../.pm/w1/005.md). The provider's `work_stop` and
+controls/history remain [w1/005](../.pm/UPSTREAM_DEPENDENCIES.md#child-sessions). The provider's `work_stop` and
 `bash_input` tools do not constitute a direct MSP task-control API.
 
 SDK types are not the complete host capability index. Export the selected host's

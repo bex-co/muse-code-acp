@@ -150,9 +150,9 @@ The findings above keep their original dates. Their current outcomes, reconciled
   remain upstream ([muse-code-sdk#43](https://github.com/meta-models/muse-code-sdk/issues/43)).
 - Section 2: a public `goal/*` contract appeared, and `/goal set|edit|pause|resume|clear`
   shipped for Muse 1.4.6+ in [w3/m8](../.pm/w3/done/m8/README.md). The
-  [w1/002](../.pm/w1/002.md) trigger is met; closing the watch is
-  [w3/014](../.pm/w3/014.md).
+  [w1/002](../.pm/w1/done/002.md) trigger is met; closing the watch is
+  [w3/014](../.pm/w3/done/014.md).
 - Section 3: still upstream-blocked. Muse 1.4.12's experimental `mcpServer/list`
   reports configuration and auth facts only, not live connection state
   ([upstream dependencies](../.pm/UPSTREAM_DEPENDENCIES.md#blocked-without-a-public-issue),
-  [w1/003](../.pm/w1/003.md)).
+  [w1/003](../.pm/UPSTREAM_DEPENDENCIES.md#mcp-status)).

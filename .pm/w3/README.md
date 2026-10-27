@@ -26,15 +26,14 @@
 
 ## Inbox
 
-- [005](005.md) — Side chats over ACP (deferred)
-- [006](006.md) — Computer-use settings and setup (deferred)
-- [013](013.md) — Verify additional workspace roots on Muse 1.4.12 (from w1/008)
-- [014](014.md) — Reconcile stale w1 future watches
+Blocked items (side chats, computer use and the rest) live in [UPSTREAM_DEPENDENCIES.md](../UPSTREAM_DEPENDENCIES.md).
 
 001 and 002 were promoted to m4, 003 to m5 (2026-10-08) and 004 to m6 (2026-10-09).
 
 ## Done inbox notes
 
+- [x] [014](done/014.md) — Reconciled stale watches; blocked items centralized in UPSTREAM_DEPENDENCIES.md (2026-10-27)
+- [x] [013](done/013.md) — Additional workspace directories on Muse 1.4.13 (2026-10-27)
 - [x] [012](done/012.md) — Loopback suite runs serially (2026-10-27)
 - [x] [010](done/010.md) — Model retries as ACP notices (2026-10-27)
 - [x] [011](done/011.md) — Reviewer holds as ACP notices (2026-10-27)
@@ -44,6 +43,6 @@
 ## Dropped
 
 - ~~**016**~~ — Fork a compacted session despite Muse's phantom active turn — dropped 2026-10-27: premise disproved. The fork path checks Muse's `session/read`, which reports no active turn for a compacted session even while `session/resume` still reports the phantom (#121). Probe on Muse 1.4.13-R6996.1, session `01a175d8…` (tool turn, `/compact`, resumed with the phantom, never prompted since): `session/read` → `activeTurnId: null`; `session/fork` → succeeded; `session/resume` → still `activeTurnId 01a175d8-7c25…`, `running`. `/qa-find-bugs` R4 (fork after compact, restart and a prompt) also succeeded.
-- ~~**m19**~~ — Standard ACP session state and stop reasons — dropped 2026-10-15: premise did not hold, as its own definition of done provided for. In the ACP 1.8.0 schema, `StateUpdate` (idle/running/requires-action) is referenced only by the UNSTABLE `SubagentUpdate`, and `ErrorStopReason` only by a child's `IdleStateUpdate`; there is no state update for an ordinary session, and prompt `StopReason` has no error variant (w3/m17 t003, `docs/capability-audit.md` § "ACP 1.8 schema additions"). Child sessions depend on future watch w1/005. The backed stable surface, `Notice` for Muse 1.4.8 model retries, is inbox [010](010.md).
+- ~~**m19**~~ — Standard ACP session state and stop reasons — dropped 2026-10-15: premise did not hold, as its own definition of done provided for. In the ACP 1.8.0 schema, `StateUpdate` (idle/running/requires-action) is referenced only by the UNSTABLE `SubagentUpdate`, and `ErrorStopReason` only by a child's `IdleStateUpdate`; there is no state update for an ordinary session, and prompt `StopReason` has no error variant (w3/m17 t003, `docs/capability-audit.md` § "ACP 1.8 schema additions"). Child sessions depend on future watch w1/005. The backed stable surface, `Notice` for Muse 1.4.8 model retries, is inbox [010](done/010.md).
 - ~~**007**~~ — Media upload and video prompt input — dropped 2026-10-15: incorrect; user-requested triage. `media/upload` accepts only `video/mp4` and `video/quicktime` (it fills the session's video store; SDK 1.4.8 `MediaUploadParams`), so the note's "use it for large images/resources" is impossible. Its "video needs an ACP content type first" also doesn't hold up: ACP 1.8.0 still has no video `ContentBlock`, but `resource` blobs and `resource_link` can already carry video MIME types (`src/prompt-content.ts` rejects them today). A future video-input note should start from that mapping.
 - ~~**008**~~ — Surface Muse reviewer decisions and decide on reviewer control — dropped 2026-10-15: outdated; user-requested triage. (1) Already delivered: clients negotiating `muse/approval` get `judgeEscalated` on permission requests and the final decision with `resolvedBy` through session-info `_meta` (`src/muse-sdk.ts` `publishApprovalResults`, `docs/workflows.md` § Permission presentation). On Muse 1.4.8-R6256.1 with the loopback reviewer approving, no permission prompt arrived, the tool ran and `resolvedBy: "llmJudge"` was published; an escalation reached the client with `resolvedBy: "user"` after the choice. (2) Nothing to offer: on 1.4.8 `muse serve --approval-judge` is refused ("not a serve option; approval mode is selected over the wire") and `-c approval_judge=…` is an unknown key. Only `muse exec --approval-judge` exists, and turning the reviewer off there would make headless exec stall on approvals (w3/m6). The reviewer behavior itself is recorded in w3/m7, CHANGELOG 0.10.0 Compatibility and the README.

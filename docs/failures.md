@@ -9,7 +9,7 @@ Cancellation and step limits retain their standard ACP stop reasons.
 A retryable failure does not schedule a retry. The adapter never resubmits an
 ambiguous turn. After a transport failure, reload and inspect the session before
 explicitly deciding to submit again. Native retry scheduling remains a
-[future host integration](../.pm/w1/006.md).
+[future host integration](../.pm/w1/done/006.md).
 
 Clients can negotiate `clientCapabilities._meta["muse/authStatus"] = 1`.
 Initialize, authenticate and logout responses describe credential configuration;

@@ -30,7 +30,7 @@
 
 ## Inbox
 
-- [014 — Native startup follow-up](014.md) — history traversal reproduced; [upstream #11](https://github.com/meta-models/muse-code-sdk/issues/11) pending. Adapter mitigation: m13.
+Empty. The native startup follow-up (former 014, upstream #11) is tracked in [UPSTREAM_DEPENDENCIES.md](../UPSTREAM_DEPENDENCIES.md#startup-latency).
 
 Note 010 was promoted into m4 with its complete source preserved. Note 012 was promoted into [m12](done/m12/README.md), with its [original report](done/m12/source-012.md) and [captured evidence](evidence/012-startup-timeout.md) preserved.
 
