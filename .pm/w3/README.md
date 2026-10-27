@@ -35,6 +35,7 @@
 - [013](013.md) — Verify additional workspace roots on Muse 1.4.12 (from w1/008)
 - [014](014.md) — Reconcile stale w1 future watches
 - [016](016.md) — Fork a compacted session despite Muse's phantom active turn (#121)
+- [017](017.md) — Restored reminder cards stack above the replayed history (found by /qa-find-bugs)
 
 001 and 002 were promoted to m4, 003 to m5 (2026-10-08) and 004 to m6 (2026-10-09).
 

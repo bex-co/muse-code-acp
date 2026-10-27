@@ -1,0 +1,4 @@
+interface:
+  display_name: "QA find bugs"
+  short_description: "Exercise the packed adapter the way Bex does and report bugs"
+  default_prompt: "Use $qa-find-bugs to QA the current tree in Bex and report bugs."
