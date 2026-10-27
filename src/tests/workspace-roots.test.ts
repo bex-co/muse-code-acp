@@ -106,3 +106,11 @@ it("refuses a goal until a prompt has applied the session's extra roots", async 
   expect(said().slice(before)).not.toContain("Send a prompt first");
   await client.agent.dispose();
 });
+
+it("initialize without a Muse binary leaves extra directories unadvertised", async () => {
+  const empty = mkdtempSync(join(tmpdir(), "no-muse-"));
+  const client = connectTestClient({ backend: "sdk", env: { PATH: empty, HOME: empty } });
+  const ctx = await client.connect();
+  const init = await ctx.request(methods.agent.initialize, { protocolVersion: PROTOCOL_VERSION });
+  expect(init.agentCapabilities?.sessionCapabilities).not.toHaveProperty("additionalDirectories");
+});

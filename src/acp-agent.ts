@@ -423,11 +423,16 @@ export class MuseAcpAgent {
 
   /** ACP additional directories: SDK backend on a host that enforces workspaceRoots. */
   workspaceRootsAvailable(): boolean {
-    return (
-      this.backend === "sdk" &&
-      (this.options.skipSdkHostCheck ||
-        supportsWorkspaceRoots(probeSdkHost(this.options.env, this.options.museBinary).version))
-    );
+    if (this.backend !== "sdk") return false;
+    if (this.options.skipSdkHostCheck) return true;
+    // initialize advertises this before any host exists: no binary means no roots.
+    try {
+      return supportsWorkspaceRoots(
+        probeSdkHost(this.options.env, this.options.museBinary).version,
+      );
+    } catch {
+      return false;
+    }
   }
 
   /** Native compaction: SDK backend on a host where it was observed completing. */
