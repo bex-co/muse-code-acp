@@ -41,6 +41,10 @@ function setup(
     env,
     museBinary: binary,
     logger: { log() {}, error() {} },
+    // The 5 s production default is about real hosts; under a loaded coverage
+    // run a fake host's spawn can exceed it, turning call counts flaky. Tests of
+    // the deadline itself pass their own timeoutMs.
+    timeoutMs: 30_000,
     ...options,
   });
   cleanups.push(async () => {

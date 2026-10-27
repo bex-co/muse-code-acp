@@ -124,7 +124,7 @@ describe("ACP stdio wire contracts", () => {
         params: { input: Array<{ text: string }> };
       };
       expect(
-        JSON.parse(turn.params.input[0].text.slice("Embedded text resource: ".length)),
+        JSON.parse(turn.params.input[0]!.text.slice("Embedded text resource: ".length)),
       ).toEqual({ resource });
     } finally {
       await wire.dispose();

@@ -28,7 +28,7 @@ function foldedViewEvents(): string[] {
   expect(start).toBeGreaterThan(-1);
   const end = source.indexOf("\nexport ", start + 1);
   const region = source.slice(start, end === -1 ? undefined : end);
-  return [...region.matchAll(/readonly method: "([^"]+)"/g)].map((match) => match[1]);
+  return [...region.matchAll(/readonly method: "([^"]+)"/g)].map((match) => match[1]!);
 }
 
 describe("view event classification", () => {
@@ -52,7 +52,7 @@ describe("view event classification", () => {
     const require = createRequire(import.meta.url);
     const source = readFileSync(require.resolve("@muse-code/sdk/dist/src/msp.d.ts"), "utf8");
     const declaration = source.match(/export type ItemKind = ([^;]+);/)![1];
-    const kinds = [...declaration.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+    const kinds = [...declaration!.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
     expect(Object.keys(ITEM_KIND_CONSUMERS).sort()).toEqual(kinds.sort());
     for (const reason of [
       ...Object.values(ITEM_KIND_CONSUMERS),

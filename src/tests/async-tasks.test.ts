@@ -16,7 +16,7 @@ const item = {
 it("correlates worker revisions, terminals, nested attempts and negotiated controls", () => {
   const translator = new MuseSdkTranslator("root", { log() {}, error() {} });
   translator.configureWorkers("generation", new Set(["cancel"] as const), true);
-  const first = translator.fromItem(item)[0].update;
+  const first = translator.fromItem(item)[0]!.update;
   expect(first).toMatchObject({
     sessionUpdate: "tool_call",
     toolCallId: "worker",
@@ -26,7 +26,7 @@ it("correlates worker revisions, terminals, nested attempts and negotiated contr
   expect(JSON.stringify(first)).toContain("Child two attempt 2");
   expect(translator.fromItem(item)).toEqual([]);
   expect(
-    translator.fromItem({ ...item, revision: 2, status: "cancelled" })[0].update,
+    translator.fromItem({ ...item, revision: 2, status: "cancelled" })[0]!.update,
   ).toMatchObject({
     sessionUpdate: "tool_call_update",
     toolCallId: "worker",
@@ -40,7 +40,7 @@ it("host loss and read-only restoration cannot imply active work or available co
   translator.fromItem(item);
   expect(JSON.stringify(translator.lostWork())).toContain("outcome is unknown");
   const restored = restoredTaskUpdates("root", [item]);
-  expect(restored[0].update).toMatchObject({
+  expect(restored[0]!.update).toMatchObject({
     status: "failed",
     title: "workflow (live state unknown)",
   });
@@ -67,7 +67,7 @@ it("host loss and read-only restoration cannot imply active work or available co
       status: "inProgress",
     },
   ]);
-  expect(reminder[0].update).toMatchObject({ title: "Muse reminder: goal (live state unknown)" });
+  expect(reminder[0]!.update).toMatchObject({ title: "Muse reminder: goal (live state unknown)" });
   expect(JSON.stringify(restored)).not.toContain('"cancel"');
   expect(() =>
     parseTaskRequest({ sessionId: "root", target: "generation:worker", action: "delete" }),

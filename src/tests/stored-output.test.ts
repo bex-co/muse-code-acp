@@ -83,12 +83,12 @@ it("verifies public ownership and availability before fetching, without followin
 });
 it("keeps baseline output and merges read metadata with asynchronous task identity", () => {
   const baseline = new MuseSdkTranslator("session", console).fromItem(item)[0];
-  expect(baseline.update._meta?.[OUTPUT_EXTENSION]).toBeUndefined();
+  expect(baseline!.update._meta?.[OUTPUT_EXTENSION]).toBeUndefined();
   const translator = new MuseSdkTranslator("session", console);
   translator.configureWorkers("generation", new Set(["cancel"] as const), true);
   translator.configureOutput(true);
   const notification = translator.fromItem(item)[0];
-  expect(notification.update).toMatchObject({
+  expect(notification!.update).toMatchObject({
     toolCallId: "call",
     _meta: {
       "muse/asyncTasks": { target: "generation:item" },

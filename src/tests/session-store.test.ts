@@ -69,7 +69,7 @@ describe("listStoredSessions", () => {
       "33333333-3333-4333-8333-333333333333",
       "11111111-1111-4111-8111-111111111111",
     ]);
-    expect(sessions[0].title).toBe("second prompt");
+    expect(sessions[0]!.title).toBe("second prompt");
   });
 
   it("lists everything when cwd is null and titles missing prompts", () => {
@@ -78,7 +78,7 @@ describe("listStoredSessions", () => {
 
     const sessions = listStoredSessions(null, store.env, silentLogger());
     expect(sessions).toHaveLength(1);
-    expect(sessions[0].title).toBe("(no prompt)");
+    expect(sessions[0]!.title).toBe("(no prompt)");
   });
 
   it("skips corrupt logs without failing the listing", () => {
@@ -105,8 +105,8 @@ describe("listStoredSessions", () => {
 
     const sessions = listStoredSessions(ws, store.env, silentLogger());
     expect(sessions).toHaveLength(1);
-    expect(sessions[0].title.length).toBeLessThanOrEqual(80);
-    expect(sessions[0].title.endsWith("…")).toBe(true);
+    expect(sessions[0]!.title.length).toBeLessThanOrEqual(80);
+    expect(sessions[0]!.title.endsWith("…")).toBe(true);
   });
 
   it("returns empty on a missing store", () => {

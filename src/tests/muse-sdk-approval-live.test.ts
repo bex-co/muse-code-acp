@@ -77,15 +77,17 @@ describe("SDK live approval gating (real Muse host)", () => {
           value: "enabled",
         }),
       ).rejects.toMatchObject({ code: -32600 });
-      expect(client.permissionRequests[0]._meta?.["muse/approval"]).toMatchObject({
+      expect(client.permissionRequests[0]!._meta?.["muse/approval"]).toMatchObject({
         judgeEscalated: expect.any(Boolean),
         protectedWrite: expect.any(Boolean),
       });
 
-      const allow = client.permissionRequests[0].options?.find((o) => o.optionId.includes("allow"));
+      const allow = client.permissionRequests[0]!.options?.find((o) =>
+        o.optionId.includes("allow"),
+      );
       expect(
         allow,
-        `expected allow among ${JSON.stringify(client.permissionRequests[0].options)}`,
+        `expected allow among ${JSON.stringify(client.permissionRequests[0]!.options)}`,
       ).toBeTruthy();
       release({ outcome: { outcome: "selected", optionId: allow!.optionId } });
       await expect(prompt).resolves.toEqual({ stopReason: "end_turn" });
@@ -189,7 +191,7 @@ describe("SDK live approval gating (real Muse host)", () => {
         await expect(prompt).resolves.toEqual({ stopReason: "cancelled" });
         if (method === "close")
           await ctx.request(methods.agent.session.resume, { sessionId, cwd, mcpServers: [] });
-        const allow = client.permissionRequests[0].options.find((o) => o.kind === "allow_once");
+        const allow = client.permissionRequests[0]!.options.find((o) => o.kind === "allow_once");
         expect(allow).toBeDefined();
         reply.resolve({ outcome: { outcome: "selected", optionId: allow!.optionId } });
         await returned.promise;

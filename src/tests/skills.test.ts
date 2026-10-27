@@ -14,8 +14,8 @@ describe("skillsToCommands", () => {
       { id: "off-skill", description: "x", scope: "user", activation: "off" },
     ]);
     expect(commands).toHaveLength(1);
-    expect(commands[0].name).toBe("plan");
-    expect(commands[0].description.length).toBeLessThanOrEqual(200);
+    expect(commands[0]!.name).toBe("plan");
+    expect(commands[0]!.description.length).toBeLessThanOrEqual(200);
   });
 
   it("advertises a skill id found in two scopes once", () => {

@@ -27,8 +27,8 @@ describe("compileMusePrompt", () => {
     ]);
     expect(compiled.prompt).toBe("compare these");
     expect(compiled.imagePaths).toHaveLength(2);
-    expect(compiled.imagePaths[0].endsWith("image-1.png")).toBe(true);
-    expect(compiled.imagePaths[1].endsWith("image-2.jpg")).toBe(true);
+    expect(compiled.imagePaths[0]!.endsWith("image-1.png")).toBe(true);
+    expect(compiled.imagePaths[1]!.endsWith("image-2.jpg")).toBe(true);
     for (const imagePath of compiled.imagePaths) {
       expect(existsSync(imagePath)).toBe(true);
       expect((await readFile(imagePath)).toString()).toBe("fake-png-bytes");
@@ -46,7 +46,7 @@ describe("compileMusePrompt", () => {
     ]);
     try {
       expect(compiled.imagePaths).toHaveLength(1);
-      expect(compiled.imagePaths[0].endsWith("image-1.png")).toBe(true);
+      expect(compiled.imagePaths[0]!.endsWith("image-1.png")).toBe(true);
     } finally {
       await compiled.cleanup();
     }

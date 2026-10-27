@@ -81,7 +81,7 @@ test("backward page order and opaque cursor relay recover latest corrected goal"
     status: "known",
     goal: changed,
   });
-  expect(connection.command.mock.calls[1][1]).toMatchObject({ cursor: "opaque-not-sortable" });
+  expect(connection.command.mock.calls[1]![1]).toMatchObject({ cursor: "opaque-not-sortable" });
 });
 
 test("missing snapshot goal falls back while explicitly malformed current goal stays unknown", async () => {

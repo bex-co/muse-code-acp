@@ -54,7 +54,7 @@ it("replaces, modifies, clears and restores plans without revision arithmetic", 
     });
   expect(
     updates.map((n) =>
-      n.update.sessionUpdate === "plan" ? n.update.entries[0].status : "unknown",
+      n.update.sessionUpdate === "plan" ? n.update.entries[0]!.status : "unknown",
     ),
   ).toEqual(["pending", "in_progress", "completed", "completed"]);
   expect(JSON.stringify(updates.at(-1))).toContain("Cancelled");
@@ -105,5 +105,5 @@ it("restores newest root facts from backward pages without replaying older total
   const result = await readProgress({ request } as never, "root");
   expect(result["session/tokenUsage"]).toMatchObject({ cumulative: { totalTokens: 7 } });
   expect(result["session/todoListChanged"]).toMatchObject({ items: [] });
-  expect(request.mock.calls[1][1].cursor).toBe("opaque-new");
+  expect(request.mock.calls[1]![1].cursor).toBe("opaque-new");
 });

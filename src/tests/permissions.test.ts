@@ -154,9 +154,9 @@ describe("SDK approvals over ACP", () => {
     await expect.poll(() => client.permissionRequests.length).toBe(1);
     expect(client.requests().some((r) => r.method === "approval/decide")).toBe(false);
     const request = client.permissionRequests[0];
-    expect(request.toolCall.toolCallId).toBe("call1");
-    expect(request.toolCall.title).toBe("Show directory");
-    expect(request.options.map((o) => o.optionId)).toEqual(["allow-once", "deny-once"]);
+    expect(request!.toolCall.toolCallId).toBe("call1");
+    expect(request!.toolCall.title).toBe("Show directory");
+    expect(request!.options.map((o) => o.optionId)).toEqual(["allow-once", "deny-once"]);
     release({ outcome: { outcome: "selected", optionId: "allow-once" } });
     await expect(prompt).resolves.toEqual({ stopReason: "end_turn" });
     const decide = client.requests().find((r) => r.method === "approval/decide");
@@ -256,7 +256,7 @@ describe("multi-stage SDK approvals", () => {
         expect(request._meta?.["muse/approval"] !== undefined).toBe(extended);
       }
       if (extended) {
-        expect(client.permissionRequests[1]._meta?.["muse/approval"]).toEqual({
+        expect(client.permissionRequests[1]!._meta?.["muse/approval"]).toEqual({
           judgeEscalated: false,
           protectedWrite: false,
           subjectKind: "shellCommand",
@@ -347,7 +347,7 @@ describe("multi-stage SDK approvals", () => {
       sessionId,
       prompt: [{ type: "text", text: "refresh" }],
     });
-    expect(seen[0].options).toEqual(["allow_once", "allow_session", "abort"]);
+    expect(seen[0]!.options).toEqual(["allow_once", "allow_session", "abort"]);
     expect(decides(client)[0].params.choiceId).toBe("allow_session");
   });
 
@@ -399,7 +399,7 @@ it("negotiates observed permission fields and final decisions without changing c
     sessionId,
     prompt: [{ type: "text", text: "hello" }],
   });
-  expect(client.permissionRequests[0]._meta?.["muse/approval"]).toMatchObject({
+  expect(client.permissionRequests[0]!._meta?.["muse/approval"]).toMatchObject({
     judgeEscalated: false,
     protectedWrite: false,
     subjectKind: "toolCall",

@@ -104,7 +104,7 @@ export function buildConfigOptions(
       category: "model",
       type: "select",
       currentValue: modelChoice(
-        current.length === 1
+        current.length === 1 && current[0]
           ? current[0]
           : {
               id: config.model,
@@ -216,8 +216,8 @@ export function selectModel(
       undefined,
       "Ambiguous model ID; select a provider-qualified catalog choice",
     );
-  if (matches.length === 1) {
-    const model = matches[0];
+  const model = matches.length === 1 ? matches[0] : undefined;
+  if (model) {
     return { ...config, model: model.id, providerId: model.providerId, profileId: model.profileId };
   }
   if (

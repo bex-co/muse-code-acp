@@ -162,9 +162,9 @@ export class SessionProgress {
               },
             ];
           });
-        if (Array.isArray(data?.items) && data.items.length > 500 && entries.length)
-          entries[entries.length - 1].content +=
-            ` [${data.items.length - 500} further todo entries omitted]`;
+        const last = entries.at(-1);
+        if (Array.isArray(data?.items) && data.items.length > 500 && last)
+          last.content += ` [${data.items.length - 500} further todo entries omitted]`;
         canonical = entries;
         update = { sessionUpdate: "plan", entries };
       }

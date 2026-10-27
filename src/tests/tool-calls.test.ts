@@ -123,7 +123,7 @@ describe("tool-call translation (synthetic edges)", () => {
       }),
     );
     expect(updates).toHaveLength(1);
-    expect(updates[0].update).toMatchObject({
+    expect(updates[0]!.update).toMatchObject({
       sessionUpdate: "tool_call",
       toolCallId: "call_unseen",
       status: "failed",
@@ -140,7 +140,7 @@ describe("tool-call translation (synthetic edges)", () => {
         correlation_facts: { tool_name: "read_file", outcome: "success" },
       }),
     );
-    expect(updates[0].update).toMatchObject({
+    expect(updates[0]!.update).toMatchObject({
       sessionUpdate: "tool_call",
       status: "completed",
       kind: "read",
@@ -172,7 +172,7 @@ describe("tool-call translation (synthetic edges)", () => {
       }),
     );
 
-    expect(updates[0].update).toMatchObject({
+    expect(updates[0]!.update).toMatchObject({
       sessionUpdate: "tool_call_update",
       status: "completed",
       title: `read_file: ${path}`,
@@ -212,7 +212,7 @@ describe("tool-call translation (synthetic edges)", () => {
       }),
     );
 
-    expect(updates[0].update).toMatchObject({
+    expect(updates[0]!.update).toMatchObject({
       sessionUpdate: "tool_call_update",
       status: "completed",
       content: [{ type: "content", content: { type: "text", text: `wrote 14 bytes to ${path}` } }],
@@ -230,7 +230,7 @@ describe("tool-call translation (synthetic edges)", () => {
         correlation_facts: { tool_name: "write_file", outcome: "success" },
       }),
     );
-    const update = updates[0].update as { content?: { type: string }[] };
+    const update = updates[0]!.update as { content?: { type: string }[] };
     expect(update.content?.[0]?.type).toBe("content");
   });
 

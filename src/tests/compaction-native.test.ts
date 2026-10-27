@@ -44,7 +44,7 @@ describe("native /compact", () => {
       ["fake-compaction", "in_progress"],
       ["fake-compaction", "completed"],
     ]);
-    expect(s.compactions()[1]._meta).toMatchObject({
+    expect(s.compactions()[1]!._meta).toMatchObject({
       "muse/compaction": { trigger: "manual", outcome: "compacted", tokensAfter: 1200 },
     });
     // The session continues normally afterwards.

@@ -77,6 +77,7 @@ import {
 import { FORK_METADATA } from "./session-fork.js";
 import { DEFAULT_SAFETY, assertSafetyGuard } from "./safety-settings.js";
 import {
+  atLeast,
   probeSdkHost,
   assertSdkSafetySupport,
   execSupportsPermissionProfile,
@@ -331,13 +332,7 @@ export class MuseAcpAgent {
     if (this.options.skipSdkHostCheck) return true;
     try {
       const host = probeSdkHost(this.options.env, this.options.museBinary);
-      const version = host.version?.split(".").map(Number);
-      return (
-        host.serveHelpOk &&
-        !!version &&
-        (version[0] > 1 ||
-          (version[0] === 1 && (version[1] > 1 || (version[1] === 1 && version[2] >= 1))))
-      );
+      return host.serveHelpOk && atLeast(host.version, [1, 1, 1]);
     } catch {
       return false;
     }

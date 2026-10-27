@@ -228,7 +228,7 @@ it("returns 16 sessions without catalog hosts against populated history and disc
     await Promise.all(
       contexts.map((c, i) =>
         c.request(methods.agent.session.prompt, {
-          sessionId: sessions[i].sessionId,
+          sessionId: sessions[i]!.sessionId,
           prompt: [{ type: "text", text: `populated-history-${i}` }],
         }),
       ),

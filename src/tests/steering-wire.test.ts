@@ -55,7 +55,7 @@ it("negotiates steering, serializes corrections into captured turn and retains b
       params: { input?: { text: string }[] };
     }[];
     expect(
-      requests.filter((r) => r.method === "turn/steer").map((r) => r.params.input?.[0].text),
+      requests.filter((r) => r.method === "turn/steer").map((r) => r.params.input?.[0]!.text),
     ).toEqual(["first", "second"]);
     expect(requests.filter((r) => r.method === "turn/start")).toHaveLength(1);
   } finally {

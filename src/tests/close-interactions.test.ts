@@ -31,23 +31,24 @@ describe.each(["approval", "userInput"] as const)("close during %s", (mode) => {
     const oldReturned = Promise.withResolvers<void>();
     client.setPermissionResponder(async () => {
       const index = permissionIndex++;
-      const response = await permissionGates[index].promise;
+      const response = await permissionGates[index]!.promise;
       if (index === 0) oldReturned.resolve();
       return response;
     });
     client.setElicitationResponder(async () => {
       const index = inputIndex++;
-      const response = await inputGates[index].promise;
+      const response = await inputGates[index]!.promise;
       if (index === 0) oldReturned.resolve();
       return response;
     });
     const count = () => (mode === "approval" ? permissionIndex : inputIndex);
     const release = (index: number, stale: boolean) => {
       if (mode === "approval")
-        permissionGates[index].resolve({
+        permissionGates[index]!.resolve({
           outcome: { outcome: "selected", optionId: stale ? "allow-once" : "deny-once" },
         });
-      else inputGates[index].resolve({ action: "accept", content: { q1: stale ? "red" : "blue" } });
+      else
+        inputGates[index]!.resolve({ action: "accept", content: { q1: stale ? "red" : "blue" } });
     };
     const { ctx, sessionId, cwd } = await newTestSession(client, { elicitation: { form: {} } });
     const list = vi

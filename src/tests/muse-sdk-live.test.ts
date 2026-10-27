@@ -166,7 +166,7 @@ describe.skipIf(!available)("SDK live host (no external API)", () => {
       // Existing users have UUIDv4 sessions created through muse exec.
       const legacyCtx = await initialized(legacy);
       const old = await legacyCtx.request(methods.agent.session.new, { cwd, mcpServers: [] });
-      expect(old.sessionId.split("-")[2][0]).toBe("4");
+      expect(old.sessionId.split("-")[2]![0]).toBe("4");
       await legacyCtx.request(methods.agent.session.prompt, { sessionId: old.sessionId, prompt });
       if (
         await expectLegacyLoad(

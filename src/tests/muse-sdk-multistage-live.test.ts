@@ -130,7 +130,7 @@ describe("SDK live multi-stage approvals (real Muse host)", () => {
     expect(result.response).toEqual({ stopReason: "end_turn" });
     expect(result.asked).toHaveLength(2);
     // Distinct requirements, in source order: never the same stage twice.
-    expect(result.asked[0]).toBeLessThan(result.asked[1]);
+    expect(result.asked[0]).toBeLessThan(result.asked[1]!);
     expect(result.exists).toEqual([true, true]);
     expect(result.requests.map((r) => r.toolCall.title)).toEqual([
       "Stage 1 of 4: echo one",
@@ -181,10 +181,10 @@ describe("SDK live multi-stage approvals (real Muse host)", () => {
         (request._meta?.["muse/approval"] as { stages?: { resolutionKind: string }[] }).stages ??
         [],
     );
-    expect(stages[0].some((stage) => stage.resolutionKind === "unresolved")).toBe(true);
+    expect(stages[0]!.some((stage) => stage.resolutionKind === "unresolved")).toBe(true);
     // The second ask reflects the first decision rather than the opening view.
-    expect(stages[1].filter((stage) => stage.resolutionKind === "unresolved").length).toBeLessThan(
-      stages[0].filter((stage) => stage.resolutionKind === "unresolved").length,
+    expect(stages[1]!.filter((stage) => stage.resolutionKind === "unresolved").length).toBeLessThan(
+      stages[0]!.filter((stage) => stage.resolutionKind === "unresolved").length,
     );
   }, 120_000);
 });

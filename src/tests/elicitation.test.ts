@@ -69,7 +69,7 @@ describe("user-input elicitation mapping", () => {
       ...request,
       questions: [
         {
-          ...request.questions[0],
+          ...request.questions[0]!,
           selection: {
             mode: "multiple" as const,
             minSelections: 2,
@@ -109,7 +109,7 @@ describe("user-input elicitation mapping", () => {
   });
 
   it("rejects overlong free text instead of silently truncating it", () => {
-    const free = { ...request, questions: [{ ...request.questions[0], options: [] }] };
+    const free = { ...request, questions: [{ ...request.questions[0]!, options: [] }] };
     expect(() =>
       elicitationToAnswers(free, { action: "accept", content: { q1: "x".repeat(501) } }),
     ).toThrow(/500/);

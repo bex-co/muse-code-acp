@@ -23,7 +23,7 @@ it("dispatches concurrent corrections in FIFO order to the captured target and s
   const a = queue.enqueue(target, target.id, input("first"));
   const secondInput = input("second");
   const b = queue.enqueue(target, target.id, secondInput);
-  if (secondInput[0].type === "text") secondInput[0].text = "mutated";
+  if (secondInput[0]!.type === "text") secondInput[0]!.text = "mutated";
   expect(calls).toHaveLength(1);
   first.resolve("accepted-first");
   expect(await Promise.all([a, b])).toEqual(["accepted-first", "accepted-second"]);

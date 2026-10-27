@@ -105,7 +105,7 @@ describe("auth over ACP", () => {
 describe("museAuthMethods", () => {
   it("carries the terminal-auth meta for meta-terminal clients", () => {
     const [login] = museAuthMethods();
-    expect(login._meta).toMatchObject({
+    expect(login!._meta).toMatchObject({
       "terminal-auth": { label: "Muse Login" },
     });
   });

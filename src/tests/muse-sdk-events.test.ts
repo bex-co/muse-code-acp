@@ -39,12 +39,12 @@ describe("MSP → ACP message and tool contracts", () => {
     const updates = events.flatMap((item) => translator.fromItem(item));
     const ids = updates.map((u) => ("toolCallId" in u.update ? u.update.toolCallId : null));
     expect(ids).toEqual(["bash-1", "bash-1", "read-1", "read-1"]);
-    expect(updates[1].update).toMatchObject({
+    expect(updates[1]!.update).toMatchObject({
       sessionUpdate: "tool_call_update",
       status: "completed",
       rawOutput: { formatted_output: "/tmp" },
     });
-    expect(updates[3].update).toMatchObject({
+    expect(updates[3]!.update).toMatchObject({
       sessionUpdate: "tool_call_update",
       status: "completed",
       locations: [{ path: "/workspace/a.ts" }],
@@ -54,7 +54,7 @@ describe("MSP → ACP message and tool contracts", () => {
   it("surfaces completion-only tools and ignores older revisions / duplicates", () => {
     const translator = new MuseSdkTranslator("s1", silentLogger());
     const completed = loadFixture("completion-only-tool.json") as FoldedItem;
-    expect(translator.fromItem(completed)[0].update).toMatchObject({
+    expect(translator.fromItem(completed)[0]!.update).toMatchObject({
       sessionUpdate: "tool_call",
       toolCallId: "late-1",
       status: "completed",
@@ -129,7 +129,7 @@ it("keeps interleaved live tool output and inaccessible references correlated", 
   const b = { ...a, itemId: "b", callId: "call-b", visibleOutput: "b" };
   t.fromItem(a);
   t.fromItem(b);
-  expect(t.fromDelta({ itemId: "a", field: "output", delta: "1" })[0].update).toMatchObject({
+  expect(t.fromDelta({ itemId: "a", field: "output", delta: "1" })[0]!.update).toMatchObject({
     sessionUpdate: "tool_call_update",
     toolCallId: "call-a",
   });
@@ -159,7 +159,7 @@ it("keeps interleaved live tool output and inaccessible references correlated", 
       status: "pausedElsewhere",
       revision: 1,
       fallbackText: "Observed future detail",
-    } as unknown as FoldedItem)[0].update,
+    } as unknown as FoldedItem)[0]!.update,
   ).toMatchObject({ toolCallId: "future", title: "futureThing: pausedElsewhere" });
 });
 
@@ -179,7 +179,7 @@ it("treats gap catch-up as absolute text for every streamed public surface", () 
   expect(t.fromAccumulated("r", "summary.0", "public summary")).toEqual([]);
   t.fromItem({ ...base, itemId: "t", kind: "toolCall", callId: "call", visibleOutput: "" });
   t.fromDelta({ itemId: "t", field: "output", delta: "first" });
-  expect(t.fromAccumulated("t", "output", "first second")[0].update).toMatchObject({
+  expect(t.fromAccumulated("t", "output", "first second")[0]!.update).toMatchObject({
     toolCallId: "call",
   });
   expect(t.fromAccumulated("t", "output", "first second")).toEqual([]);
@@ -197,7 +197,7 @@ it("renders SDK 1.4.4–1.4.6 hook runs, side chats and web searches as generic 
     label: "lint before edits",
     runStatus: "blocked",
   });
-  expect(hook.update).toMatchObject({
+  expect(hook!.update).toMatchObject({
     sessionUpdate: "tool_call",
     title: "Hook preToolUse: lint before edits",
     kind: "other",
@@ -211,7 +211,7 @@ it("renders SDK 1.4.4–1.4.6 hook runs, side chats and web searches as generic 
     status: "completed",
     sideSessionId: "side-session",
   });
-  expect(side.update).toMatchObject({ title: "sideChat: completed", kind: "other" });
+  expect(side!.update).toMatchObject({ title: "sideChat: completed", kind: "other" });
   const [search] = translator.fromItem({
     itemId: "search",
     kind: "webSearch",
@@ -219,7 +219,7 @@ it("renders SDK 1.4.4–1.4.6 hook runs, side chats and web searches as generic 
     revision: 1,
     status: "completed",
   });
-  expect(search.update).toMatchObject({ title: "Web search: completed", kind: "other" });
+  expect(search!.update).toMatchObject({ title: "Web search: completed", kind: "other" });
 });
 
 it("names blocking reminder children and drops background ones", () => {
@@ -240,11 +240,11 @@ it("names blocking reminder children and drops background ones", () => {
     reminderAgentId: "verify-reminder",
     blocking: true,
   });
-  expect(verify.update).toMatchObject({
+  expect(verify!.update).toMatchObject({
     sessionUpdate: "tool_call",
     title: "Muse reminder: verify",
     status: "in_progress",
   });
-  expect(JSON.stringify(verify.update)).toContain("before it finishes the turn");
-  expect(JSON.stringify(verify.update)).not.toContain("Reminder child session");
+  expect(JSON.stringify(verify!.update)).toContain("before it finishes the turn");
+  expect(JSON.stringify(verify!.update)).not.toContain("Reminder child session");
 });

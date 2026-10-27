@@ -107,12 +107,14 @@ export function parseSlashCommand(prompt: Blocks): SlashCommand | undefined {
   const matches = prompt.flatMap((block, index) => {
     if (block.type !== "text") return [];
     const match = /^\/([\w-]+)(?:\s+([\s\S]*))?$/.exec(block.text.trim());
-    if (!match || !names.has(match[1].toLowerCase())) return [];
-    return [{ index, name: match[1].toLowerCase(), args: match[2]?.trim() ?? "" }];
+    const name = match?.[1]?.toLowerCase();
+    if (!name || !names.has(name)) return [];
+    return [{ index, name, args: match?.[2]?.trim() ?? "" }];
   });
-  if (!matches.length) return;
+  const [first] = matches;
+  if (!first) return;
   const different = new Set(matches.map((m) => m.name));
-  const selected = matches.find((m) => m.name === "plan") ?? matches[0];
+  const selected = matches.find((m) => m.name === "plan") ?? first;
   const blocks = prompt.map((block) => ({ ...block }));
   const result: SlashCommand = { blocks, index: selected.index };
   if (different.size > 1 && selected.name !== "plan")
@@ -198,7 +200,7 @@ export function parseSlashCommand(prompt: Blocks): SlashCommand | undefined {
     const isGoal = selected.name === "goal";
     const control = isGoal ? /^(set|edit|pause|resume|clear)(?:\s+([\s\S]*))?$/i.exec(args) : null;
     if (control) {
-      const verb = control[1].toLowerCase() as GoalVerb;
+      const verb = control[1]!.toLowerCase() as GoalVerb;
       const objective = control[2]?.trim() ?? "";
       const needsObjective = verb === "set" || verb === "edit";
       const problem =
@@ -263,7 +265,7 @@ function nativeCommand(name: string, args: string): NativeCommand | string | und
     if (!args) return { kind: "pluginList" };
     const install = /^install\s+(\S[\s\S]*)$/i.exec(args);
     return install
-      ? { kind: "pluginInstall", path: install[1].trim() }
+      ? { kind: "pluginInstall", path: install[1]!.trim() }
       : "Use /plugins or /plugins install <local folder>. Nothing changed.";
   }
   if (name === "skills" && args) {
@@ -271,14 +273,14 @@ function nativeCommand(name: string, args: string): NativeCommand | string | und
     if (control)
       return {
         kind: "skill",
-        verb: control[1].toLowerCase() as "enable" | "disable",
-        selector: control[2],
+        verb: control[1]!.toLowerCase() as "enable" | "disable",
+        selector: control[2]!,
       };
     const imported = /^import\s+(claude|codex)(\s+--apply)?$/i.exec(args);
     if (imported)
       return {
         kind: "skillImport",
-        source: imported[1].toLowerCase() as "claude" | "codex",
+        source: imported[1]!.toLowerCase() as "claude" | "codex",
         apply: !!imported[2],
       };
     return "Use /skills, /skills enable <skill>, /skills disable <skill>, or /skills import claude|codex [--apply]. Nothing changed.";
@@ -292,8 +294,8 @@ function nativeCommand(name: string, args: string): NativeCommand | string | und
       return "Use /feedback bug|bad|good|other <note> [--with-session]. Nothing was sent.";
     return {
       kind: "feedback",
-      classification: match[1].toLowerCase() as "bug" | "bad" | "good" | "other",
-      note: match[2].trim(),
+      classification: match[1]!.toLowerCase() as "bug" | "bad" | "good" | "other",
+      note: match[2]!.trim(),
       withSession,
     };
   }

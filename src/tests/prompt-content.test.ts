@@ -64,7 +64,7 @@ it("bounds binary input and distinguishes encoded bytes from semantic document d
     ["application/octet-stream", "!bad"],
     ["application/octet-stream", "YQ==".repeat(20000)],
     ["image/png", "A".repeat(13 * 1024 * 1024)],
-  ]) {
+  ] as const) {
     const result = convertPromptContent([
       { type: "resource", resource: { uri: "file:///input", mimeType, blob } },
     ]);

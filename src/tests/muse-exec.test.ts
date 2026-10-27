@@ -27,7 +27,7 @@ describe("MuseLineParser", () => {
     expect(garbage).toEqual([]);
     expect(envelopes.length).toBe(23);
     expect(envelopes.map((e) => e.sequence)).toEqual(
-      [...envelopes].map((_, i) => envelopes[0].sequence + i),
+      [...envelopes].map((_, i) => envelopes[0]!.sequence + i),
     );
     const types = envelopes.map((e) => e.payload_type);
     expect(types).toContain("run.output.delta");
@@ -59,26 +59,26 @@ describe("MuseLineParser", () => {
 
     expect(envelopes.length).toBe(23);
     expect(garbage.length).toBe(2);
-    expect(garbage[0][1]).toBe("not JSON");
+    expect(garbage[0]![1]).toBe("not JSON");
   });
 
   it("skips JSON lines that are not envelopes", () => {
     const { envelopes, garbage } = parseAll('{"hello": "world"}\n');
     expect(envelopes).toEqual([]);
     expect(garbage.length).toBe(1);
-    expect(garbage[0][1]).toMatch(/not a muse envelope/);
+    expect(garbage[0]![1]).toMatch(/not a muse envelope/);
   });
 
   it("passes through unknown schema versions with a warning", () => {
     const lines = readFileSync(join(fixturesDir, "echo-basic.jsonl"), "utf8").trim().split("\n");
-    const doctored = JSON.parse(lines[0]);
+    const doctored = JSON.parse(lines[0]!);
     doctored.schema_version = 99;
     const { envelopes, garbage } = parseAll(`${JSON.stringify(doctored)}\n`);
 
     expect(envelopes.length).toBe(1);
-    expect(envelopes[0].schema_version).toBe(99);
+    expect(envelopes[0]!.schema_version).toBe(99);
     expect(garbage.length).toBe(1);
-    expect(garbage[0][1]).toMatch(/unexpected schema_version 99/);
+    expect(garbage[0]![1]).toMatch(/unexpected schema_version 99/);
   });
 });
 

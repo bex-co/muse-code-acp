@@ -64,7 +64,7 @@ describe("ACP process restart continuity (real Muse host)", () => {
             mcpServers: [],
           });
           sessionId = created.sessionId;
-          expect(sessionId.split("-")[2][0]).toBe("7");
+          expect(sessionId.split("-")[2]![0]).toBe("7");
           await agent1.ctx.request(methods.agent.session.setMode, {
             sessionId,
             modeId: "bypassApprovals",
@@ -172,7 +172,7 @@ describe("ACP process restart continuity (real Muse host)", () => {
         try {
           const ctx = await initialized(legacy);
           const old = await ctx.request(methods.agent.session.new, { cwd, mcpServers: [] });
-          expect(old.sessionId.split("-")[2][0]).toBe("4");
+          expect(old.sessionId.split("-")[2]![0]).toBe("4");
           await ctx.request(methods.agent.session.prompt, {
             sessionId: old.sessionId,
             prompt: [{ type: "text", text: "repeat token legacy-restart" }],

@@ -40,7 +40,7 @@ it("traverses 123 public rows in bounded pages without acquiring a writer lease"
       cursor = page.nextCursor ?? undefined;
     } while (cursor);
     expect(found.map((s) => s.sessionId)).toEqual(rows.map((s) => s.sessionId));
-    expect(found[52]._meta).toMatchObject({
+    expect(found[52]!._meta).toMatchObject({
       "muse/fork": { sourceSessionId: "s1", cutCursor: "cut-1" },
     });
     const first = await wire.ctx.request(methods.agent.session.list, { cwd: root });

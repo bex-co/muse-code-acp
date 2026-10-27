@@ -43,15 +43,13 @@ export function nativePolicyAvailability(
     ?.match(/^(\d+)\.(\d+)\.(\d+)/)
     ?.slice(1)
     .map(Number);
-  if (!version)
+  const [major, minor, patch] = version ?? [];
+  if (major === undefined || minor === undefined || patch === undefined)
     return unavailable(
       "unverified",
       "Native policy enforcement is unverified on this host; use onRequest with adapter bypassApprovals/rejectApprovals",
     );
-  if (
-    version[0] > 1 ||
-    (version[0] === 1 && (version[1] > 2 || (version[1] === 2 && version[2] >= 1)))
-  )
+  if (major > 1 || (major === 1 && (minor > 2 || (minor === 2 && patch >= 1))))
     return { available: true, implementation: "native" };
   return unavailable(
     "version",

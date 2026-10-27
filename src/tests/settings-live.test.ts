@@ -74,10 +74,10 @@ it("isolates two explicit gateways and credentials in one ACP agent", async () =
     expect(new Set(a.authorizations())).toEqual(new Set(["Bearer gateway-a-key"]));
     expect(new Set(b.authorizations())).toEqual(new Set(["Bearer gateway-b-key"]));
     expect(JSON.stringify(client.updates)).not.toMatch(/gateway-[ab]-key/);
-    expect(sessions[0].configOptions?.find((o) => o.id === "model")?._meta).toHaveProperty(
+    expect(sessions[0]!.configOptions?.find((o) => o.id === "model")?._meta).toHaveProperty(
       "muse/configRecommendations",
     );
-    const { sessionId } = sessions[1];
+    const { sessionId } = sessions[1]!;
     await ctx.request(methods.agent.session.close, { sessionId });
     await expect(
       ctx.request(methods.agent.session.resume, { sessionId, cwd, mcpServers: [] }),

@@ -58,9 +58,9 @@ describe.skipIf(!museAvailable())("multi-turn continuity (live echo provider)", 
 
     const dirs = sessionDirs(xdg);
     expect(dirs).toHaveLength(1);
-    expect(dirs[0].endsWith(sessionId)).toBe(true);
+    expect(dirs[0]!.endsWith(sessionId)).toBe(true);
 
-    const log = readFileSync(join(dirs[0], "session.jsonl"), "utf8").trim().split("\n");
+    const log = readFileSync(join(dirs[0]!, "session.jsonl"), "utf8").trim().split("\n");
     // Muse 1.1 also stores permission transactions as frames containing
     // sequenced child records. The outer frame has no event sequence.
     const records = log.flatMap((line) => {
@@ -71,7 +71,7 @@ describe.skipIf(!museAvailable())("multi-turn continuity (live echo provider)", 
     });
     const sequences = records.map((record) => record.sequence as number);
     for (let i = 1; i < sequences.length; i++) {
-      expect(sequences[i]).toBeGreaterThan(sequences[i - 1]);
+      expect(sequences[i]).toBeGreaterThan(sequences[i - 1]!);
     }
     // Both turns' replies streamed from the same session (the durable log
     // uses an internal runtime.* vocabulary whose record counts are not 1:1

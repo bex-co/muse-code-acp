@@ -13,7 +13,7 @@ const discovery = {
 };
 it("preserves provider identity instead of collapsing overlapping model IDs", () => {
   expect(() => selectModel(config, "shared", discovery)).toThrow(/Ambiguous/);
-  const value = modelChoice(discovery.models[1]);
+  const value = modelChoice(discovery.models[1]!);
   const selected = selectModel(config, value, discovery);
   expect(selected).toMatchObject({ model: "shared", providerId: "second" });
   const option = buildConfigOptions(selected, "sdk", discovery).find((o) => o.id === "model")!;
@@ -29,7 +29,7 @@ it("qualifies a model name with its provider only when a peer shares that name",
   // the list and the names below are the catalog's own.
   const names = (models: { id: string; name: string; providerId?: string }[]) => {
     const option = buildConfigOptions(
-      { ...config, model: models[0].id, providerId: "first" },
+      { ...config, model: models[0]!.id, providerId: "first" },
       "sdk",
       {
         status: "available" as const,
@@ -98,15 +98,15 @@ it("recommendations retain explicit values and use only advertised choices", asy
   const { configRecommendations } = await import("../config-recommendations.js");
   const catalog = {
     ...discovery,
-    models: [discovery.models[0], { ...discovery.models[1], isDefault: true }],
+    models: [discovery.models[0]!, { ...discovery.models[1]!, isDefault: true }],
   };
   const selected = { ...config, providerId: "first" };
   const options = buildConfigOptions(selected, "sdk", catalog, "1.2.1");
   const recommended = configRecommendations(options, catalog, "1.2.1");
   const model = recommended.find((o) => o.id === "model")!;
-  expect(model.currentValue).toBe(modelChoice(catalog.models[0]));
+  expect(model.currentValue).toBe(modelChoice(catalog.models[0]!));
   expect(model._meta?.["muse/configRecommendations"]).toMatchObject({
-    value: modelChoice(catalog.models[1]),
+    value: modelChoice(catalog.models[1]!),
     source: "providerCatalog",
     applied: false,
   });

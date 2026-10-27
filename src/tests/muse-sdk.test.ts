@@ -59,7 +59,7 @@ describe("SDK backend over ACP", () => {
   it("uses UUIDv7 sessions and streams each text segment once, including completion before ack", async () => {
     const client = sdkClient();
     const { ctx, sessionId, modes } = await newTestSession(client);
-    expect(sessionId.split("-")[2][0]).toBe("7");
+    expect(sessionId.split("-")[2]![0]).toBe("7");
     expect(modes?.availableModes.map((mode) => mode.id)).toEqual([
       "default",
       "readOnly",
@@ -265,7 +265,7 @@ describe("MSP tool translation", () => {
       status: "inProgress" as const,
       args: JSON.stringify({ command: "pwd", description: "Show directory" }),
     };
-    expect(translator.fromItem(item)[0].update).toMatchObject({
+    expect(translator.fromItem(item)[0]!.update).toMatchObject({
       sessionUpdate: "tool_call",
       toolCallId: "c1",
       title: "Show directory",
@@ -279,16 +279,18 @@ describe("MSP tool translation", () => {
       status: "completed" as const,
       visibleOutput: JSON.stringify({ command: "pwd", output: "/workspace" }),
     };
-    expect(translator.fromItem(finished)[0].update).toMatchObject({
+    expect(translator.fromItem(finished)[0]!.update).toMatchObject({
       sessionUpdate: "tool_call_update",
       status: "completed",
       rawOutput: { formatted_output: "/workspace" },
     });
     expect(translator.fromItem(finished)).toEqual([]);
-    expect(new MuseSdkTranslator("s1", silentLogger()).fromItem(finished)[0].update).toMatchObject({
-      sessionUpdate: "tool_call",
-      status: "completed",
-    });
+    expect(new MuseSdkTranslator("s1", silentLogger()).fromItem(finished)[0]!.update).toMatchObject(
+      {
+        sessionUpdate: "tool_call",
+        status: "completed",
+      },
+    );
   });
 
   it("forwards slash-command prompts on the SDK turn input", async () => {

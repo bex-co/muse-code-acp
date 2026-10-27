@@ -139,7 +139,7 @@ it("renders native todo create/modify/complete/clear and restores the latest sna
           cwd: provider.root,
           mcpServers: [],
         });
-        expect(plans().at(-1)?.[0].status).toBe("in_progress");
+        expect(plans().at(-1)?.[0]!.status).toBe("in_progress");
         expect(provider.requests()).toHaveLength(count);
       }
     }

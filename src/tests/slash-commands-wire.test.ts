@@ -51,9 +51,9 @@ it("executes decorated tasks once, preserves context and honors workflow semanti
       }[];
       const turns = requests.filter((r) => r.method === "turn/start");
       expect(turns).toHaveLength(1);
-      const input = JSON.stringify(turns[0].params.input);
+      const input = JSON.stringify(turns[0]!.params.input);
       expect(input).toContain("context-marker");
-      expect(turns[0].params.input.some((part: { type: string }) => part.type === "image")).toBe(
+      expect(turns[0]!.params.input.some((part: { type: string }) => part.type === "image")).toBe(
         true,
       );
       expect(input).toContain("additional-task-marker");

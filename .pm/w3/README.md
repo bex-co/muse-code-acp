@@ -28,7 +28,6 @@
 
 - [005](005.md) — Side chats over ACP (deferred)
 - [006](006.md) — Computer-use settings and setup (deferred)
-- [009](009.md) — Assess stricter TypeScript compiler flags (after m18)
 - [010](010.md) — Show native model retries as ACP notices (Muse 1.4.8; from w1/006)
 - [011](011.md) — Show Muse reviewer activity while an approval is held (SDK 1.4.12)
 - [012](012.md) — Make the loopback live suite reliable under local file parallelism
@@ -40,6 +39,7 @@
 
 ## Done inbox notes
 
+- [x] [009](done/009.md) — Stricter TypeScript flags: `noUncheckedIndexedAccess` adopted (2026-10-27)
 - [x] [017](done/017.md) — Restored reminder cards stack above the replayed history (2026-10-26)
 
 ## Dropped
