@@ -52,6 +52,7 @@ import {
   type GoalObservation,
 } from "./goal-state.js";
 import { Pushable } from "./utils.js";
+import { hostNotice } from "./turn-notices.js";
 import type { HostCommand } from "./host-commands.js";
 import { PendingWorkWatchdog, stallLimitMs, type PendingWorkItem } from "./pending-watchdog.js";
 
@@ -229,6 +230,7 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
   let successful = false;
   let metadataTimedOut = false;
   let acquired = false;
+  let stopNotices: () => void = () => {};
   let acceptedTurn = false;
   let pendingSteers = 0;
   let connection: Connection | undefined;
@@ -300,6 +302,15 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
       acquired = true;
       connection = lease.host.connection;
       const session = lease.session;
+      if (options.clientCapabilities?.session?.notices)
+        stopNotices = owner.onHostNotice((method, params) => {
+          // The fold learns the turn from turn/started, before sendUserTurn resolves.
+          const notice = hostNotice(method, params, {
+            sessionId: options.sessionId,
+            turnId: turnId ?? session.fold.activeTurnId,
+          });
+          if (notice && !finished) updates.push(notice);
+        });
 
       const adoptTurn = (nextTurnId: string) => {
         if (turnId === nextTurnId && generation > 0) {
@@ -847,6 +858,7 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
       throw operation.error(error, options.env, diagnostic);
     } finally {
       finished = true;
+      stopNotices();
       stopInteractions();
       operation.dispose();
       clearTimeout(cancelTimer);

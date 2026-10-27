@@ -9,7 +9,7 @@ never silently fall back to exec.
 
 | Component                  | Version                    | Notes                                             |
 | -------------------------- | -------------------------- | ------------------------------------------------- |
-| `@muse-code/sdk`           | **1.4.12** (exact)         | Public MuseClient / Session / Connection APIs     |
+| `@muse-code/sdk`           | **1.4.13** (exact)         | Public MuseClient / Session / Connection APIs     |
 | `@agentclientprotocol/sdk` | **1.8.0** (exact)          | ACP protocol major `PROTOCOL_VERSION` (= 1)       |
 | Muse host (`muse serve`)   | **1.1.1-R2514.1** verified | Default backend; `muse serve --help` must succeed |
 | Muse host (`muse exec`)    | **≥ 0.2.1**                | Legacy `MUSE_CODE_ACP_BACKEND=exec` only          |

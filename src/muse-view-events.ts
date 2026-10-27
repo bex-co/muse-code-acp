@@ -32,6 +32,10 @@ export const HANDLED_VIEW_EVENTS: Readonly<Record<string, string>> = {
   "session/todoListChanged": "session-progress.ts → latest ACP plan snapshot",
   "session/tokenUsage": "session-progress.ts → authoritative root totals and /status",
   "session/contextUsage": "session-progress.ts → known context counters or explicit unknown",
+  "turn/modelRetryScheduled":
+    "muse-sdk-host.ts notification tee → turn-notices.ts ACP notice (clients advertising session.notices; w3/010)",
+  "approval/reviewing":
+    "muse-sdk-host.ts notification tee → turn-notices.ts ACP notice (clients advertising session.notices; w3/011)",
 };
 
 /** Methods the adapter deliberately drops, with the owner of that decision. */
@@ -48,10 +52,6 @@ export const IGNORED_VIEW_EVENTS: Readonly<Record<string, string>> = {
     "SDK 1.3.0 addition; disclosure only after a provider swap the adapter never issues; not scheduled.",
   "turn/foregroundCompleted":
     "SDK 1.4.4 addition; non-terminal by contract, so the ACP prompt still settles on the turn terminal. Early-answer signalling not scheduled.",
-  "turn/modelRetryScheduled":
-    "SDK 1.4.8 addition: model-attempt backoff before the turn ends; non-terminal. Rendering it as an ACP notice is not scheduled (w3/010; future w1/006).",
-  "approval/reviewing":
-    "SDK 1.4.12 addition: the native reviewer holds an approval before any decide is open; nothing to answer, and the ACP permission request still waits for approval/requested. A reviewing status is not scheduled (w3/011).",
   "monitor/inboxItemAdmitted":
     "SDK 1.4.12 addition: monitor inbox facts arrive outside the active turn, like monitorFeed items; not scheduled.",
   "monitor/inboxItemDrained":

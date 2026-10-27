@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Features
+
+- Clients that advertise ACP `session.notices` now see Muse's model retries ("Model request failed (server 503); retrying, attempt 2 of 10") and the built-in reviewer holding a tool call ("Muse's reviewer is checking bash before it runs") as standard notices during the turn. Other clients are unaffected. Muse 1.4.8+ (retries) and 1.4.12+ (reviewer).
+
+### Dependencies
+
+- Bump `@muse-code/sdk` from 1.4.12 to 1.4.13 (additive schema: computer-use approval data facts, tool work IDs, queued inputs on read). Muse 1.4.13 hosts no longer log a schema-fingerprint warning.
+
 ### Fixes
 
 - Restoring a session no longer stacks "Muse reminder: … : completed" cards above the history: only unfinished background work is restored, after the replayed history, titled "<name> (live state unknown)".

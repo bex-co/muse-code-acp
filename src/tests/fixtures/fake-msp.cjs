@@ -448,6 +448,16 @@ rl.on("line", async (line) => {
       const item = { itemId: `message-${turnId}`, turnId, kind: "agentMessage", revision: 1, status: "inProgress", text: "" };
       notify("turn/started", { turnId, commandId: params.commandId, sourceRange: { start: 0, end: 0 } });
       notify("item/started", { item });
+      if (process.env.FAKE_MSP_NOTICES) {
+        // As in Muse, these come after the turn is admitted (a failed model call, a tool call).
+        await sleep(100);
+        // Public notices Muse 1.4.8+/1.4.12+ send during a turn: a provider
+        // retry, and the native reviewer holding an approval. Plus one for an
+        // older turn, which must not surface.
+        notify("turn/modelRetryScheduled", { turnId, attempt: 1, nextAttempt: 2, maxAttempts: 10, retryDelayMs: 2000, errorKind: "server", httpStatus: 503, sourceRange: { start: 0, end: 0 } });
+        notify("approval/reviewing", { turnId, approvalId: "rv1", itemId: "i", taskId: "t", toolCallId: "c", toolName: "bash", availableChoices: [], currentRequirementId: { id: "r" }, judgeEscalated: false, protectedWrite: false, rawArgs: "{}", subject: {}, sourceRange: { start: 0, end: 0 } });
+        notify("turn/modelRetryScheduled", { turnId: "older-turn", attempt: 1, nextAttempt: 2, maxAttempts: 10, retryDelayMs: 0, sourceRange: { start: 0, end: 0 } });
+      }
       notify("item/delta", { itemId: item.itemId, delta: "hello" });
       if (mode === "exit") {
         process.exit(1);

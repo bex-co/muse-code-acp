@@ -1,3 +1,4 @@
+import { HOST_NOTICE_METHODS } from "./turn-notices.js";
 import { randomUUID } from "node:crypto";
 import { RequestError, type SessionNotification } from "@agentclientprotocol/sdk";
 import { sendTaskControl, taskActions, type TaskAction } from "./async-tasks.js";
@@ -173,6 +174,15 @@ export class MuseSdkHost {
       }, 100);
       this.recapWaiters.set(ack.commandId, finish);
     });
+  }
+
+  private hostNoticeListeners = new Set<
+    (method: string, params: Record<string, unknown>) => void
+  >();
+  /** Raw host notifications that become ACP notices (turn-notices.ts); returns an unsubscribe. */
+  onHostNotice(listener: (method: string, params: Record<string, unknown>) => void): () => void {
+    this.hostNoticeListeners.add(listener);
+    return () => this.hostNoticeListeners.delete(listener);
   }
 
   private compactionWatch: ((item: CompactionItem) => void) | undefined;
@@ -634,6 +644,9 @@ export class MuseSdkHost {
       subscribe((notification) => {
         if (notification.method === "recap/completed") this.settleRecap(notification.params);
         if (notification.method.startsWith("item/")) this.observeItem(notification.params);
+        if (HOST_NOTICE_METHODS.has(notification.method))
+          for (const listener of this.hostNoticeListeners)
+            listener(notification.method, (notification.params ?? {}) as Record<string, unknown>);
         handler(notification);
       });
     const client = new MuseClient(host.connection, {

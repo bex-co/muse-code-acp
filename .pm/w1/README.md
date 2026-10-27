@@ -15,13 +15,16 @@ move implementation into w2; do not create a duplicate queue or auto-poll unchan
 - [Revisit host-owned MCP status support](003.md)
 - [004 — Future: Durable native compaction](004.md)
 - [005 — Future: Accessible native child sessions and isolated child controls](005.md)
-- [006 — Future: Observable native scheduled retries](006.md)
 - [007 — Future: Native rich media preservation](007.md)
 - [008 — Future: Independently authorized additional workspace roots](008.md)
 - [009 — Future: Correlated URL elicitation](009.md)
 - [010 — Future: Native service tiers and per-model effort capability metadata](010.md)
 - [011 — Future: Authoritative account quota and rate limits](011.md)
 - [012 — Future: Native root-session deletion](012.md)
+
+## Closed watches
+
+- [006 — Observable native scheduled retries](done/006.md) — delivered by w3/010 (2026-10-27).
 
 ## Completed milestones
 
