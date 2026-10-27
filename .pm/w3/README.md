@@ -28,7 +28,6 @@
 
 - [005](005.md) — Side chats over ACP (deferred)
 - [006](006.md) — Computer-use settings and setup (deferred)
-- [012](012.md) — Make the loopback live suite reliable under local file parallelism
 - [013](013.md) — Verify additional workspace roots on Muse 1.4.12 (from w1/008)
 - [014](014.md) — Reconcile stale w1 future watches
 
@@ -36,6 +35,7 @@
 
 ## Done inbox notes
 
+- [x] [012](done/012.md) — Loopback suite runs serially (2026-10-27)
 - [x] [010](done/010.md) — Model retries as ACP notices (2026-10-27)
 - [x] [011](done/011.md) — Reviewer holds as ACP notices (2026-10-27)
 - [x] [009](done/009.md) — Stricter TypeScript flags: `noUncheckedIndexedAccess` adopted (2026-10-27)
