@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixes
+
+- Restoring a session no longer stacks "Muse reminder: … : completed" cards above the history: only unfinished background work is restored, after the replayed history, titled "<name> (live state unknown)".
+
 ## [0.11.0](https://github.com/bex-co/muse-code-acp/compare/v0.10.0...v0.11.0) (2026-10-26)
 
 ### Features

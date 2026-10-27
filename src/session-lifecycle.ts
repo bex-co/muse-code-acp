@@ -184,13 +184,14 @@ export async function loadSessionState(
     await ctx.publishGoal(params.sessionId, bound, goal);
     if (ctx.backend === "sdk")
       await ctx.progressFor(params.sessionId, bound).observe(progress, true);
-    for (const update of restoredTaskUpdates(params.sessionId, tasks))
-      await ctx.client.sessionUpdate(update);
     if (info) await ctx.client.sessionUpdate(sessionInfoNotification(info, ctx.clientCapabilities));
     for (const notification of exportToUpdates(params.sessionId, doc, ctx.logger)) {
       ctx.assertRunning();
       await ctx.client.sessionUpdate(notification);
     }
+    // Unfinished workers describe the current state, so they follow the history.
+    for (const update of restoredTaskUpdates(params.sessionId, tasks))
+      await ctx.client.sessionUpdate(update);
     for (const notification of restoredOutputUpdates(params.sessionId, outputItems))
       await ctx.client.sessionUpdate(notification);
     ctx.assertRunning();

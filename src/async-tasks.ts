@@ -153,27 +153,34 @@ export function taskItems(items: FoldedItem[]) {
   );
 }
 
+/**
+ * Cards for worker items a restored session left unfinished (what `/tasks`
+ * would list), sent after the history replay. Finished workers belong to the
+ * history they ran in, not above it, so they are not restored as cards.
+ */
 export function restoredTaskUpdates(
   sessionId: string,
   items: FoldedItem[],
 ): import("@agentclientprotocol/sdk").SessionNotification[] {
-  return items.map((item) => ({
-    sessionId,
-    update: {
-      sessionUpdate: workerKinds.has(String(item.kind)) ? "tool_call" : "tool_call_update",
-      toolCallId: item.callId ?? item.itemId,
-      title: `${item.kind === "reminderChild" ? reminderTitle(item) : item.kind}: ${item.status === "inProgress" ? "live state unknown" : item.status}`,
-      kind: "other",
-      status: item.status === "completed" ? "completed" : "failed",
-      content: [
-        {
-          type: "content",
-          content: {
-            type: "text",
-            text: `${workerText(item)}${item.status === "inProgress" ? "\nLast observed in progress; this read does not establish that work is still running. No control is available until observed on a live host." : ""}`,
+  return items
+    .filter((item) => item.status === "inProgress")
+    .map((item) => ({
+      sessionId,
+      update: {
+        sessionUpdate: workerKinds.has(String(item.kind)) ? "tool_call" : "tool_call_update",
+        toolCallId: item.callId ?? item.itemId,
+        title: `${item.kind === "reminderChild" ? reminderTitle(item) : item.kind} (live state unknown)`,
+        kind: "other",
+        status: "failed",
+        content: [
+          {
+            type: "content",
+            content: {
+              type: "text",
+              text: `${item.kind === "reminderChild" ? REMINDER_TEXT : workerText(item)}\nLast observed in progress; this read does not establish that work is still running. No control is available until observed on a live host.`,
+            },
           },
-        },
-      ],
-    },
-  }));
+        ],
+      },
+    }));
 }

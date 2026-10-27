@@ -32,11 +32,11 @@
 
 - [014 — Native startup follow-up](014.md) — history traversal reproduced; [upstream #11](https://github.com/meta-models/muse-code-sdk/issues/11) pending. Adapter mitigation: m13.
 
-- [011 — Reconcile ADR003 and current capability ownership](011.md) — transferred from w1/001; 30m documentation reconciliation.
-
 Note 010 was promoted into m4 with its complete source preserved. Note 012 was promoted into [m12](done/m12/README.md), with its [original report](done/m12/source-012.md) and [captured evidence](evidence/012-startup-timeout.md) preserved.
 
 ## Done
+
+- [x] [011 — Reconcile ADR003 and current capability ownership](done/011.md) — reconciled to 0.11.0 (2026-10-26).
 
 - [x] [001 — `/goal <objective>` command UX](done/001.md) — shipped in `d9f509f`; executes the task once with an explicit persistence limitation.
 - [x] [002 — Slash-command routing with editor context](done/002.md) — shipped in `d9f509f`; preserves context and workflow enforcement.

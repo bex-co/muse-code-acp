@@ -42,8 +42,32 @@ it("host loss and read-only restoration cannot imply active work or available co
   const restored = restoredTaskUpdates("root", [item]);
   expect(restored[0].update).toMatchObject({
     status: "failed",
-    title: "workflow: live state unknown",
+    title: "workflow (live state unknown)",
   });
+  // Finished workers stay in the history they ran in: no restored card.
+  expect(
+    restoredTaskUpdates("root", [
+      { ...item, itemId: "done", status: "completed" },
+      {
+        ...item,
+        itemId: "r",
+        kind: "reminderChild",
+        reminderAgentId: "goal-reminder",
+        status: "completed",
+      },
+    ]),
+  ).toEqual([]);
+  const reminder = restoredTaskUpdates("root", [
+    {
+      ...item,
+      itemId: "r",
+      kind: "reminderChild",
+      reminderAgentId: "goal-reminder",
+      blocking: true,
+      status: "inProgress",
+    },
+  ]);
+  expect(reminder[0].update).toMatchObject({ title: "Muse reminder: goal (live state unknown)" });
   expect(JSON.stringify(restored)).not.toContain('"cancel"');
   expect(() =>
     parseTaskRequest({ sessionId: "root", target: "generation:worker", action: "delete" }),

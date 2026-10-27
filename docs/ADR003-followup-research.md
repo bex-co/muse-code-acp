@@ -139,3 +139,20 @@ actionable or complete. Host-feature probes may uncover their own blockers.
 ## Current execution ownership after cleanup
 
 The user subsequently requested w1 contain only future SDK/host enablement. [The exact cleanup ledger](../.pm/ownership-2026-09-14.md) supersedes the historical w1 execution assignments above. Current work is scheduled in w2/m4–m10 and w2/011; future watches are w1/002–012. No historical blocked feature was marked delivered by moving its independent parts.
+
+## Status as of 2026-10-26 (0.11.0)
+
+The findings above keep their original dates. Their current outcomes, reconciled in
+[ADR003](ADR003-codex-acp-parity.md#status-as-of-2026-10-26-0110):
+
+- Section 1: approval policies and independent sandbox controls shipped in
+  [w2/m4](../.pm/w2/done/m4/README.md). Native permission profiles on `muse serve`
+  remain upstream ([muse-code-sdk#43](https://github.com/meta-models/muse-code-sdk/issues/43)).
+- Section 2: a public `goal/*` contract appeared, and `/goal set|edit|pause|resume|clear`
+  shipped for Muse 1.4.6+ in [w3/m8](../.pm/w3/done/m8/README.md). The
+  [w1/002](../.pm/w1/002.md) trigger is met; closing the watch is
+  [w3/014](../.pm/w3/014.md).
+- Section 3: still upstream-blocked. Muse 1.4.12's experimental `mcpServer/list`
+  reports configuration and auth facts only, not live connection state
+  ([upstream dependencies](../.pm/UPSTREAM_DEPENDENCIES.md#blocked-without-a-public-issue),
+  [w1/003](../.pm/w1/003.md)).
