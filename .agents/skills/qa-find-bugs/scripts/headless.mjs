@@ -84,11 +84,11 @@ const results = {
   startedAt: new Date().toISOString(),
   scenarios: [],
 };
-// A full run writes results.json; a targeted rerun (--only) gets its own file
-// so the evidence of the full run survives.
+// The first run writes results.json; any later run in the same QA_DIR (a
+// targeted --only rerun or a second --caps pass) gets its own file so the
+// evidence of earlier runs survives.
 let RESULTS_FILE = join(QA, "results.json");
-if (ONLY)
-  for (let n = 1; existsSync(RESULTS_FILE); n++) RESULTS_FILE = join(QA, `results.rerun-${n}.json`);
+for (let n = 1; existsSync(RESULTS_FILE); n++) RESULTS_FILE = join(QA, `results.rerun-${n}.json`);
 const save = () => writeFileSync(RESULTS_FILE, JSON.stringify(results, null, 2));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const withTimeout = (p, ms, what) =>
