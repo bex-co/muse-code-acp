@@ -323,7 +323,21 @@ const scenarios = [
           const s = await bexNewSession(a, workspace("L1"));
           r.metrics.newSessionMs = s.newSessionMs;
           check(s.newSessionMs < 5000, "session/new is slow", { actual: `${s.newSessionMs} ms` });
-          await sleep(6000);
+          // Wait for the prewarmed host rather than a fixed delay: the first
+          // launch of a freshly updated Muse binary can take ~7 s to initialize.
+          const catalogPublished = () =>
+            a.updates.some((u) =>
+              (u.update.configOptions ?? []).some(
+                (o) => o.id === "model" && /Muse model catalog/.test(o.description ?? ""),
+              ),
+            );
+          const commandsPublished = () =>
+            a.updates.some((u) => u.update.sessionUpdate === "available_commands_update");
+          const readyStart = Date.now();
+          while (!(catalogPublished() && commandsPublished()) && Date.now() - readyStart < 15_000) {
+            await sleep(250);
+          }
+          r.metrics.hostReadyMs = s.newSessionMs + (Date.now() - readyStart);
           const commands =
             a.updates.filter((u) => u.update.sessionUpdate === "available_commands_update").at(-1)
               ?.update.availableCommands ?? [];
@@ -334,12 +348,7 @@ const scenarios = [
           });
           // The loopback's bundled catalog has a single model, so check that the
           // prewarmed host published the catalog, not how many rows it has.
-          const published = a.updates.some((u) =>
-            (u.update.configOptions ?? []).some(
-              (o) => o.id === "model" && /Muse model catalog/.test(o.description ?? ""),
-            ),
-          );
-          check(published, "model catalog not published before the first prompt", {
+          check(catalogPublished(), "model catalog not published before the first prompt", {
             expected: "config_option_update from the prewarmed host's model/list",
           });
           const res = await prompt(a, s.sessionId, "hello qa");
@@ -425,27 +434,38 @@ const scenarios = [
 
   scenario("L3", "Cancel a running turn", "loopback", async (r) => {
     const check = checker(r);
-    await withLoopback({ holdMs: 30_000 }, async (p, env) => {
-      const a = await spawnAgent("L3", env);
-      try {
-        const s = await bexNewSession(a, workspace("L3"));
-        const res = await prompt(a, s.sessionId, "long qa turn", {
-          cancelAfterMs: 2000,
-          timeoutMs: 20_000,
-        });
-        check(res.stopReason === "cancelled", "cancel did not settle as cancelled", {
-          actual: res,
-        });
-        r.metrics.cancelSettleMs = res.ms - 2000;
-        check(res.ms - 2000 < 5000, "cancel took more than 5 s to settle", {
-          actual: `${res.ms - 2000} ms`,
-        });
-        const after = await prompt(a, s.sessionId, "after cancel");
-        check(after.stopReason === "end_turn", "session unusable after cancel", { actual: after });
-      } finally {
-        await a.close();
-      }
-    });
+    // Hold only the turn being cancelled, and script no tool call: on a cold host
+    // the cancel can land before "long qa turn" reaches the model, and the
+    // follow-up prompt must not inherit its 30 s hold or the one-shot bash call.
+    await withLoopback(
+      {
+        scriptedToolCallWhen: ["\u0000never"],
+        holdMsForRequest: (req) => (JSON.stringify(req).includes("after cancel") ? 20 : 30_000),
+      },
+      async (p, env) => {
+        const a = await spawnAgent("L3", env);
+        try {
+          const s = await bexNewSession(a, workspace("L3"));
+          const res = await prompt(a, s.sessionId, "long qa turn", {
+            cancelAfterMs: 2000,
+            timeoutMs: 20_000,
+          });
+          check(res.stopReason === "cancelled", "cancel did not settle as cancelled", {
+            actual: res,
+          });
+          r.metrics.cancelSettleMs = res.ms - 2000;
+          check(res.ms - 2000 < 5000, "cancel took more than 5 s to settle", {
+            actual: `${res.ms - 2000} ms`,
+          });
+          const after = await prompt(a, s.sessionId, "after cancel");
+          check(after.stopReason === "end_turn", "session unusable after cancel", {
+            actual: after,
+          });
+        } finally {
+          await a.close();
+        }
+      },
+    );
   }),
 
   scenario("L4", "Mode and model changes while idle and during a turn", "loopback", async (r) => {
