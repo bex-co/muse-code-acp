@@ -1,6 +1,6 @@
 # w1 · m26 — Adopt Muse 1.4.14: compaction, MCP and Linux fork fixes
 
-**Worker:** worker1 **Goal:** The adapter pins `@muse-code/sdk` 1.4.14, is verified and CI-tested on Muse 1.4.14-R7309.1, and turns the three upstream fixes that host ships (#112, #120, #121) into user-visible improvements, while older hosts keep their current workarounds. **Status:** in progress
+**Worker:** worker1 **Goal:** The adapter pins `@muse-code/sdk` 1.4.14, is verified and CI-tested on Muse 1.4.14-R7309.1, and turns the three upstream fixes that host ships (#112, #120, #121) into user-visible improvements, while older hosts keep their current workarounds. **Status:** done
 
 ## Tasks (in order)
 
@@ -12,8 +12,8 @@
 | t004 | Show the reviewer's escalation reason in permission prompts — **DONE** | 45m | w1/m26/t001                   |
 | t005 | Adoption surface — **DONE**                                            | 45m | w1/m26/t001–t004              |
 | t006 | Simplify milestone changes — **DONE**                                  | 30m | w1/m26/t005                   |
-| t007 | CI and behavior coverage                                               | 1h  | w1/m26/t001–t004, w1/m26/t006 |
-| t008 | Close out milestone                                                    | 15m | w1/m26/t007                   |
+| t007 | CI and behavior coverage — **DONE**                                    | 1h  | w1/m26/t001–t004, w1/m26/t006 |
+| t008 | Close out milestone — **DONE**                                         | 15m | w1/m26/t007                   |
 
 ## Definition of done
 
@@ -37,4 +37,10 @@
 
 ## Validation evidence
 
-<pending>
+Delivered in 432e7d5; GitHub CI run 40666497308 green on every leg. The milestone ran on Muse 1.4.14-R7309.1 (x86 Linux in CI; macOS arm64 locally) and on 1.4.13-R6996.1 locally, both through `@muse-code/sdk` 1.4.14.
+
+- Loopback with all gated suites required: 72/72 on 1.4.14, 72/72 on 1.4.13, 72/72 on the CI 1.4.14 leg, where the fork live tests take the full path.
+- `npm run test:coverage`: 543/543. `npm run test:pack-smoke` ok.
+- `/qa-find-bugs` R3-R4 and R5 on the packed build with 1.4.14: pass, 0 findings, 7 real-provider turns.
+- `reviewerReason` was observed from a real 1.4.14 reviewer escalation (`notices-live`).
+- Limitations: `earlierHistory` was never observed on the wire. It is unreachable by construction (t002). The #121 fix is verified by our reproduction only; the upstream issue is still open.

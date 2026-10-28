@@ -14,7 +14,7 @@ direction), follow-up work for upstream fixes is filed here in w1.
 
 ## Milestones
 
-- [ ] **m26** — Adopt Muse 1.4.14: compaction, MCP and Linux fork fixes (8 tasks) ← from the 2026-10-28 UPSTREAM_DEPENDENCIES review
+None open.
 
 ## Closed watches
 
@@ -25,6 +25,7 @@ direction), follow-up work for upstream fixes is filed here in w1.
 
 ## Completed milestones
 
+- [x] **m26** — [Adopt Muse 1.4.14: compaction, MCP and Linux fork fixes](done/m26/README.md) (8 tasks) ← from the 2026-10-28 UPSTREAM_DEPENDENCIES review
 - [x] **m1** — Walking skeleton: scaffold + ACP shell + echo-provider turn (8 tasks) ← from claude-agent-acp porting research (2026-08-25)
 - [x] **m2** — Real turn translation: tool calls, modes, cancellation, continuity (9 tasks) ← from claude-agent-acp porting research (2026-08-25)
 - [x] **m3** — Sessions, auth, skills, MCP, packaging + release (9 tasks) ← from claude-agent-acp porting research (2026-08-25)
