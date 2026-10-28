@@ -34,7 +34,7 @@ MUSE_CODE_ACP_REQUIRE_MUSE=1 npm run test:muse-loopback
 MUSE_CODE_ACP_REQUIRE_HOST_FEATURES=all ...   # or e.g. goal-controls,session-commands — make capability-gated skips fail
 ```
 
-CI runs loopback on Muse 1.1.1-R2514.1 (baseline, gated suites may skip) and 1.4.13-R6996.1 (all gated suites required). A new `*-live.test.ts` file must also be added to the explicit list in the `test:muse-loopback` script. The script runs files serially: each real Muse host is CPU-heavy at startup, and parallel files only time out without finishing sooner (w3/012). Paid-provider tests: `npm run test:integration` (needs credentials).
+CI runs loopback on Muse 1.1.1-R2514.1 (baseline, gated suites may skip) and 1.4.14-R7309.1 (all gated suites required). A new `*-live.test.ts` file must also be added to the explicit list in the `test:muse-loopback` script. The script runs files serially: each real Muse host is CPU-heavy at startup, and parallel files only time out without finishing sooner (w3/012). Paid-provider tests: `npm run test:integration` (needs credentials).
 
 Coverage thresholds in `vitest.config.ts` are floors measured without a Muse host — raise, never lower.
 

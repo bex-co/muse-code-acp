@@ -118,9 +118,18 @@ with a large session history) and the model catalog is published without a turn.
 A catalog that settles the route (for example a profile) reopens it once. Hosts
 serving a turn are never replaced; an unused one closes after 10 minutes.
 
-A resumed session whose `activeTurnId` Muse still reports after a compaction
-(muse-code-sdk#121) is not refused by the adapter: only `pendingRequests` block,
-and Muse's own admission decides whether a new turn starts.
+A resumed session whose `activeTurnId` Muse 1.4.12/1.4.13 still report after a
+compaction (muse-code-sdk#121, fixed in 1.4.14) is not refused by the adapter:
+only `pendingRequests` block, and Muse's own admission decides whether a new turn
+starts. Those hosts also skip MCP startup when resuming a compacted session
+(muse-code-sdk#112, 1.4.11–1.4.13); the turn failure then says Muse 1.4.14 fixes it.
+
+Muse 1.4.14's `earlierHistory` item, served in place of a compacted session's
+pruned prefix, is never streamed: it has no turn, and `session/load` replays from
+`muse export`, which keeps the pre-compaction history. When Muse's reviewer
+escalates a call with a rationale (1.4.14 `reviewerReason`), the permission
+request shows it as text content and in negotiated `muse/approval` metadata;
+it never changes the offered choices.
 
 Idle model/provider selections replace the execution host with an isolated public
 settings overlay. Muse resume metadata may already report the new settings while
@@ -233,7 +242,7 @@ mutation or a model turn, with an actionable alternative.
 
 CI runs the real-host suites twice, each on a public Linux Muse artifact checked
 against the SHA-256 in Meta's release manifest: the **1.1.1-R2514.1** baseline,
-where capability-gated suites skip, and **1.4.13-R6996.1** with
+where capability-gated suites skip, and **1.4.14-R7309.1** with
 `MUSE_CODE_ACP_REQUIRE_HOST_FEATURES=all`, where the exec-reviewer,
 goal-control, task-control and session-command suites must run (a skip fails
 the job). Real-host tests run on Ubuntu 22.04: Muse 1.1.1's bundled

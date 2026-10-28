@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { connectTestClient, hostSupports, initialized, museAvailable } from "./helpers.js";
 import { startLoopbackProvider } from "./loopback-provider.js";
+import { atLeast, probeSdkHost } from "../muse-host.js";
 
 const available = museAvailable();
 if (!available && process.env.MUSE_CODE_ACP_REQUIRE_MUSE === "1")
@@ -82,6 +83,17 @@ describe.skipIf(!available || !hostSupports("compaction"))("ACP notices (real Mu
           title: "Muse's reviewer is checking bash before it runs",
         }),
       );
+      // Muse 1.4.14 passes the reviewer's escalation rationale with the request.
+      if (atLeast(probeSdkHost().version, [1, 4, 14]))
+        expect(client.permissionRequests[0]?.toolCall.content).toEqual([
+          {
+            type: "content",
+            content: {
+              type: "text",
+              text: "Muse's reviewer asks you to decide: loopback provider review",
+            },
+          },
+        ]);
     } finally {
       await client.agent.dispose();
       await provider.close();

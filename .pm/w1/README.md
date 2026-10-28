@@ -9,7 +9,12 @@ This is a queue policy, not a permanent component ownership boundary.
 
 Centralized on 2026-10-27: every capability still blocked on Muse or ACP, with
 its evidence, revisit trigger and acceptance, lives in
-[UPSTREAM_DEPENDENCIES.md](../UPSTREAM_DEPENDENCIES.md). Unblocked work moves to w3.
+[UPSTREAM_DEPENDENCIES.md](../UPSTREAM_DEPENDENCIES.md). From 2026-10-28 (user
+direction), follow-up work for upstream fixes is filed here in w1.
+
+## Milestones
+
+- [ ] **m26** — Adopt Muse 1.4.14: compaction, MCP and Linux fork fixes (8 tasks) ← from the 2026-10-28 UPSTREAM_DEPENDENCIES review
 
 ## Closed watches
 

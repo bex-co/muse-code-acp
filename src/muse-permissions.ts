@@ -46,6 +46,8 @@ export interface MuseApprovalRequest {
   turnId: string;
   taskId?: string;
   judgeEscalated?: boolean;
+  /** Muse 1.4.14+: the reviewer's escalation reason, one bounded display line. Never authorizes. */
+  reviewerReason?: string;
   protectedWrite?: boolean;
   subject?: {
     kind: string;
@@ -210,6 +212,8 @@ export function approvalToPermissionRequest(
     (typeof rawInput?.command === "string" && rawInput.command) ||
     (typeof rawInput?.path === "string" && rawInput.path) ||
     request.toolName;
+  const reviewerReason =
+    typeof request.reviewerReason === "string" ? request.reviewerReason.trim() : "";
   return {
     sessionId,
     toolCall: {
@@ -218,6 +222,19 @@ export function approvalToPermissionRequest(
       kind: (TOOL_KINDS[request.toolName] ?? "other") as ToolKind,
       status: "pending",
       rawInput,
+      ...(reviewerReason
+        ? {
+            content: [
+              {
+                type: "content" as const,
+                content: {
+                  type: "text" as const,
+                  text: `Muse's reviewer asks you to decide: ${reviewerReason}`,
+                },
+              },
+            ],
+          }
+        : {}),
     },
     options: choicesToPermissionOptions(request.availableChoices),
     _meta: {
@@ -232,6 +249,7 @@ export function approvalToPermissionRequest(
               ...(typeof request.judgeEscalated === "boolean"
                 ? { judgeEscalated: request.judgeEscalated }
                 : {}),
+              ...(reviewerReason ? { reviewerReason } : {}),
               ...(typeof request.protectedWrite === "boolean"
                 ? { protectedWrite: request.protectedWrite }
                 : {}),

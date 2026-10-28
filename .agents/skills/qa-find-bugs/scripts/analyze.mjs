@@ -12,17 +12,34 @@ const at = process.argv.indexOf("--qa-dir");
 const QA = at === -1 ? undefined : process.argv[at + 1];
 if (!QA) throw new Error("--qa-dir is required");
 
-/** Known, already-tracked behavior: a finding matching one is tagged, not filed again. */
+/**
+ * Known, already-tracked behavior: a finding matching one is tagged, not filed
+ * again. `hosts` lists the Muse versions an upstream bug affects; on any other
+ * host the same finding is a regression and stays untagged.
+ */
 const KNOWN = [
-  { re: /file birth time is unavailable/, id: "#120 (Linux fork)" },
-  { re: /MCP startup audit failed/, id: "#112" },
+  { re: /file birth time is unavailable/, id: "#120 (Linux fork)", hosts: ["1.4.12", "1.4.13"] },
+  { re: /MCP startup audit failed/, id: "#112", hosts: ["1.4.11", "1.4.12", "1.4.13"] },
+  { re: /resumed session reports active turn/, id: "#121", hosts: ["1.4.12", "1.4.13"] },
   {
     re: /fingerprint .* differs from the fingerprint this SDK pins/,
     id: "SDK pin behind host (bump @muse-code/sdk)",
   },
   { re: /compaction_unavailable/, id: "loopback cannot compact (w3/m9)" },
 ];
-const knownFor = (text) => KNOWN.find((k) => k.re.test(text))?.id;
+// The Muse host the scenarios ran on, from results.json.
+const resultFiles = readdirSync(QA).filter((f) => /^results(\.rerun-\d+)?\.json$/.test(f));
+const HOST = resultFiles
+  .map(
+    (f) => JSON.parse(readFileSync(join(QA, f), "utf8")).muse?.version?.match(/\d+\.\d+\.\d+/)?.[0],
+  )
+  .find(Boolean);
+/** Drop a known tag when this host is not one the upstream bug affects. */
+const onAffectedHost = (id) => {
+  const entry = id && KNOWN.find((k) => k.id === id || k.id.startsWith(`${id} `));
+  return entry?.hosts && HOST && !entry.hosts.includes(HOST) ? undefined : id;
+};
+const knownFor = (text) => onAffectedHost(KNOWN.find((k) => k.re.test(text))?.id);
 
 const readNdjson = (file) =>
   existsSync(file)
@@ -191,13 +208,17 @@ for (const name of existsSync(logsRoot) ? readdirSync(logsRoot) : []) {
     add("low", "more Muse host spawns than sessions and config changes explain", {
       actual: { spawns, sessions, configChanges },
     });
+  for (const l of pick(/resumed session reports active turn/).slice(0, 1))
+    add("medium", "Muse reported a finished turn as running after resume", {
+      actual: l.slice(0, 200),
+    });
   for (const l of pick(/fingerprint .* differs/).slice(0, 1))
     add("info", "host schema newer than the pinned SDK", { actual: l.slice(0, 200) });
 }
 
 // Scenario expectations from results.json.
 // results.json from the full run plus results.rerun-N.json from targeted reruns.
-for (const file of readdirSync(QA).filter((f) => /^results(\.rerun-\d+)?\.json$/.test(f))) {
+for (const file of resultFiles) {
   const results = JSON.parse(readFileSync(join(QA, file), "utf8"));
   for (const s of results.scenarios)
     for (const f of s.findings)
@@ -205,7 +226,9 @@ for (const file of readdirSync(QA).filter((f) => /^results(\.rerun-\d+)?\.json$/
         source: `${file} ${s.id}`,
         severity: f.severity ?? (s.kind === "real" ? "high" : "medium"),
         ...f,
-        known: f.known ?? knownFor(`${f.title} ${JSON.stringify(f.actual ?? "")}`),
+        known: f.known
+          ? onAffectedHost(f.known)
+          : knownFor(`${f.title} ${JSON.stringify(f.actual ?? "")}`),
       });
 }
 

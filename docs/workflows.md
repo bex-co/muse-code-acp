@@ -84,7 +84,7 @@ Invalid snapshot preparation fails before review execution starts.
 `clientCapabilities._meta["muse/approval"] = 1` negotiates observation metadata;
 initialize responds `_meta["muse/approval"] = {"version":1}`. Permission requests
 then include `_meta["muse/approval"]` with observed `judgeEscalated`,
-`protectedWrite`, subject kind and stage position/count, requirement ID and
+`reviewerReason` (Muse 1.4.14+), `protectedWrite`, subject kind and stage position/count, requirement ID and
 resolution kind when supplied. Unknown kind strings are preserved. Missing
 provider-specific reviewer information remains absent.
 

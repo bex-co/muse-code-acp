@@ -40,6 +40,47 @@ function sdkClient(mode = "approval", script?: string) {
 }
 
 describe("permission mapping", () => {
+  it("shows the reviewer's escalation reason without changing the choices", () => {
+    const request: MuseApprovalRequest = {
+      approvalId: "a",
+      availableChoices: [
+        { choiceId: "yes", label: "Allow", decision: "approved", scope: "once" },
+        { choiceId: "no", label: "Deny", decision: "denied", scope: "once" },
+      ],
+      currentRequirementId: { approvalId: "a", sourceIndex: 0 },
+      itemId: "i",
+      toolCallId: "c",
+      toolName: "bash",
+      turnId: "t",
+      rawArgs: JSON.stringify({ command: "rm -rf build" }),
+      judgeEscalated: true,
+    };
+    const plain = approvalToPermissionRequest("s", request, true);
+    expect(plain.toolCall).not.toHaveProperty("content");
+    expect(approvalToPermissionRequest("s", { ...request, reviewerReason: "  " })).toEqual(
+      approvalToPermissionRequest("s", request),
+    );
+    const reasoned = approvalToPermissionRequest(
+      "s",
+      { ...request, reviewerReason: "Deletes files outside the build output." },
+      true,
+    );
+    expect(reasoned.options).toEqual(plain.options);
+    expect(reasoned.toolCall.content).toEqual([
+      {
+        type: "content",
+        content: {
+          type: "text",
+          text: "Muse's reviewer asks you to decide: Deletes files outside the build output.",
+        },
+      },
+    ]);
+    expect(reasoned._meta?.["muse/approval"]).toMatchObject({
+      judgeEscalated: true,
+      reviewerReason: "Deletes files outside the build output.",
+    });
+  });
+
   it("renders only matching host stage evidence and preserves single-stage and incomplete fallbacks", () => {
     const request: MuseApprovalRequest = {
       approvalId: "a",

@@ -10,9 +10,12 @@
 
 - The reasoning-effort picker follows the selected model's Muse catalog: it lists only the efforts that model supports, with Muse's descriptions, and switching to a model without the current effort falls back to that model's default. Choosing an effort the model does not offer is rejected.
 
+- When Muse's reviewer hands a tool call to you, the permission prompt shows its reason (Muse 1.4.14+).
+
 ### Dependencies
 
-- Bump `@muse-code/sdk` from 1.4.12 to 1.4.13 (additive schema: computer-use approval data facts, tool work IDs, queued inputs on read). Muse 1.4.13 hosts no longer log a schema-fingerprint warning.
+- Bump `@muse-code/sdk` from 1.4.12 to 1.4.14 (additive schema: computer-use approval data facts, tool work IDs, queued inputs on read; reviewer reasons, held tool calls, `earlierHistory` replay items and session provenance). Muse 1.4.14 hosts no longer log a schema-fingerprint warning. Muse 1.4.14-R7309.1 is verified, and CI's newest-host leg runs it.
+- Muse 1.4.14 fixes three upstream bugs: forking on Linux ([muse-code-sdk#120](https://github.com/meta-models/muse-code-sdk/issues/120)), MCP servers lost when a compacted session is reopened ([#112](https://github.com/meta-models/muse-code-sdk/issues/112)), and a compacted session reported as busy after a restart ([#121](https://github.com/meta-models/muse-code-sdk/issues/121)). On older hosts the first two failures now say that updating Muse fixes them.
 
 ### Fixes
 

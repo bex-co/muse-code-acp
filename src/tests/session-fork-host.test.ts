@@ -119,3 +119,16 @@ it("preserves fork timeout certainty and never retries a possibly created branch
     vi.useRealTimers();
   }
 });
+it.each([
+  [
+    "file birth time is unavailable: creation time is not available on this platform currently",
+    /currently\) Muse 1\.4\.14 fixes forking on Linux; update Muse\./,
+  ],
+  ["disk full", /\(MSP -32603: internal error: disk full\)\. No model turn/],
+])("reports a host fork failure in Muse's words: %s", async (detail, message) => {
+  mocks.command.mockImplementation(async (method) => {
+    if (method === "session/read") return { session: source, pendingRequests: [] };
+    throw new MspError({ code: -32603, message: `internal error: ${detail}` });
+  });
+  await expect(forkMuseSession(options)).rejects.toThrow(message);
+});

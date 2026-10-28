@@ -13,7 +13,7 @@ known-issue list in `analyze.mjs` in step: a new scenario gets a row here.
 | L3  | Held turn, `session/cancel` after 2 s, then a prompt                                     | `cancelled` within 5 s; next prompt `end_turn`                                                                                        |
 | L4  | Idle mode + model change, then a mode change during a held turn                          | every prompt `end_turn`; the mid-turn change is either accepted for the next prompt or refused cleanly                                |
 | L5  | Two prompts, agent restart, `session/load`, prompt                                       | both prompts replayed with unique `messageId`s, no card above the first replayed prompt (analyzer); prompt after restart `end_turn`   |
-| L6  | Fork, then prompt both branches                                                          | fork succeeds (Linux 1.4.12+: known #120); both branches `end_turn`                                                                   |
+| L6  | Fork, then prompt both branches                                                          | fork succeeds (Linux 1.4.12–1.4.13: known #120); both branches `end_turn`                                                             |
 | L7  | `/status /tasks /skills /mcp status /models /recap /compact /hooks /plugins`             | each ends `end_turn` with non-empty text and no `undefined` / `[object Object]`; `/compact` reports Muse's refusal on the loopback    |
 | L8  | Two sessions prompting concurrently                                                      | both `end_turn`                                                                                                                       |
 | L9  | Relative cwd, invalid option value, unknown mode, unknown session, unknown slash command | refused with JSON-RPC errors; unknown slash is plain text; agent still usable                                                         |
@@ -41,7 +41,10 @@ known-issue list in `analyze.mjs` in step: a new scenario gets a row here.
 
 ## Known issues (tagged, not refiled)
 
-From `.pm/UPSTREAM_DEPENDENCIES.md`: #120 Linux fork, #121 phantom active turn
-(worked around; `session/fork` is unaffected), #112 MCP after compacted resume, the
-loopback's `compaction_unavailable`, and the SDK-pin fingerprint warning. Update
-`KNOWN` in `analyze.mjs` when that file changes.
+From `.pm/UPSTREAM_DEPENDENCIES.md`: #120 Linux fork (Muse 1.4.12–1.4.13), #121
+phantom active turn (1.4.12–1.4.13; worked around, `session/fork` is unaffected), #112
+MCP after compacted resume (1.4.11–1.4.13), the loopback's `compaction_unavailable`,
+and the SDK-pin fingerprint warning. All three issues are fixed in Muse 1.4.14:
+`analyze.mjs` tags them as known only on the affected hosts, so on a newer host the
+same finding is reported as new (a regression). Update `KNOWN` in `analyze.mjs` when
+that file changes.

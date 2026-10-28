@@ -77,6 +77,7 @@ export const WORKFLOW_CANCEL_HOSTS = [
   "1.4.11",
   "1.4.12",
   "1.4.13",
+  "1.4.14",
 ];
 
 export interface SubscriptionUsageView {
@@ -687,7 +688,8 @@ export class MuseSdkHost {
     // Pending approvals or questions are real gated waits that only Muse's own
     // client can settle. A reported active turn alone is not: Muse 1.4.12/1.4.13
     // keep reporting an earlier, finished turn as running after a compaction,
-    // yet admit new turns. Muse decides admission, queueing behind a live turn.
+    // yet admit new turns (muse-code-sdk#121, fixed in 1.4.14). Muse decides
+    // admission, queueing behind a live turn.
     if (pending.length)
       throw new Error(
         "The saved Muse session has pending input; resolve it in Muse before continuing",

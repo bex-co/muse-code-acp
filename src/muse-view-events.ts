@@ -106,4 +106,6 @@ export const ITEM_KIND_CONSUMERS: Readonly<Record<string, string>> = {
   backgroundTerminalCompletion:
     "SDK 1.4.12 addition; renders as a generic card from fallbackText; background task lifecycle stays w2/m9.",
   overdueNotice: "SDK 1.4.12 addition; renders as a generic card from fallbackText. Not scheduled.",
+  earlierHistory:
+    "SDK 1.4.14 addition; always outside a turn (turnId null), so it is never streamed. session/load replays from muse export, which keeps the pre-compaction history (w1/m26 t002).",
 };

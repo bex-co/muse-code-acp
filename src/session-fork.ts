@@ -4,6 +4,7 @@ import { RequestError } from "@agentclientprotocol/sdk";
 import { realpathSync } from "node:fs";
 import { assertSdkHostSupport } from "./muse-host.js";
 import type { Logger } from "./logger.js";
+import { withUpstreamFixHint } from "./upstream-fixes.js";
 
 interface ForkSessionMetadata {
   sessionId: string;
@@ -94,11 +95,13 @@ export async function forkMuseSession(options: {
           );
         if (["sessionNotFound", "notFound", "forkBoundaryInvalid"].includes(error.kind))
           throw RequestError.invalidParams(undefined, `Muse fork rejected: ${error.kind}`);
-        // Muse's own words, bounded: e.g. Muse 1.4.12 on Linux cannot read file
-        // birth times and fails every fork as an internal error.
+        // Muse's own words, bounded: e.g. Muse 1.4.12 and 1.4.13 on Linux cannot read
+        // file birth times and fail every fork as an internal error (fixed in 1.4.14).
         throw RequestError.invalidRequest(
           undefined,
-          `Muse fork unavailable (MSP ${error.code}: ${error.message.slice(0, 300)})`,
+          withUpstreamFixHint(
+            `Muse fork unavailable (MSP ${error.code}: ${error.message.slice(0, 300)})`,
+          ),
         );
       }
       throw error;

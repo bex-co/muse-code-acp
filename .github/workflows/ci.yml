@@ -78,8 +78,8 @@ jobs:
             sha256: 47908f2e5b0ac5b0c0ba147a48b30a9e48c0aebea3c5cc891ad34d95425a4993
             require-host-features: ""
           # Newest verified host: every capability-gated suite must run.
-          - version: 1.4.13-R6996.1
-            sha256: 51e97f8de0aa175080e6576cbc055510a95dfe0ededf175c7f6b34fc8e3bf524
+          - version: 1.4.14-R7309.1
+            sha256: 0809aac7cb58d18f5022b6d05e02aa1974683c0ec430e5f04d25b60ed17de2da
             require-host-features: all
 
     steps:

@@ -192,7 +192,7 @@ SDK failures never silently switch to exec. The legacy backend was introduced fo
 | ------------------- | -------------------------------------------------------------------------------------------------- |
 | Node.js             | **22+** (npm install)                                                                              |
 | Muse host           | **1.1.1-R2514.1** baseline (`muse serve`); select via `MUSE_CODE_EXECUTABLE`                       |
-| Also verified       | 1.2.1-R2847.1 (session load/resume, multi-stage allow/deny, HTTP MCP); CI also runs 1.4.13-R6996.1 |
+| Also verified       | 1.2.1-R2847.1 (session load/resume, multi-stage allow/deny, HTTP MCP); CI also runs 1.4.14-R7309.1 |
 | Muse SDK            | `@muse-code/sdk@1.4.13` (pinned dependency; does not include the Muse binary)                      |
 | Newer-host features | Native goals 1.4.6+; `/recap`, skills import, plugins/hooks 1.4.7+; `/compact` 1.4.12+             |
 | Auth                | Browser login or `META_API_KEY`                                                                    |
@@ -283,7 +283,7 @@ For real-host tests, put the verified Muse binary on PATH as `muse`, set `MUSE_C
 MUSE_CODE_ACP_REQUIRE_MUSE=1 npm run test:muse-loopback
 ```
 
-These tests use a local loopback provider and are required in CI; the flag prevents a missing host from silently skipping acceptance. Suites for newer host features (e.g. native goal controls from Muse 1.4.6) skip on older hosts — set `MUSE_CODE_ACP_REQUIRE_HOST_FEATURES=all`, or a comma-separated list such as `goal-controls,session-commands`, to make those skips fail. CI runs the loopback suites on the 1.1.1-R2514.1 baseline and on 1.4.13-R6996.1 with every capability required. `npm run test:run` builds and runs the full local Vitest suite; paid-provider tests are opt-in via `npm run test:integration` and require credentials.
+These tests use a local loopback provider and are required in CI; the flag prevents a missing host from silently skipping acceptance. Suites for newer host features (e.g. native goal controls from Muse 1.4.6) skip on older hosts — set `MUSE_CODE_ACP_REQUIRE_HOST_FEATURES=all`, or a comma-separated list such as `goal-controls,session-commands`, to make those skips fail. CI runs the loopback suites on the 1.1.1-R2514.1 baseline and on 1.4.14-R7309.1 with every capability required. `npm run test:run` builds and runs the full local Vitest suite; paid-provider tests are opt-in via `npm run test:integration` and require credentials.
 
 The work board lives in `.pm/`. Repository skills for [release](.agents/skills/release/SKILL.md), [PM](.agents/skills/pm/SKILL.md), and [workstream execution](.agents/skills/loopx/SKILL.md), [Bex QA](.agents/skills/qa-find-bugs/SKILL.md) live in `.agents/skills/`. npm publishing runs through GitHub Actions after CI validates the exact release commit.
 

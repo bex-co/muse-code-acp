@@ -23,6 +23,7 @@ export const VERIFIED_MUSE_HOSTS = [
   "1.4.8",
   "1.4.12",
   "1.4.13",
+  "1.4.14",
 ] as const;
 
 export interface HostCompatibility {

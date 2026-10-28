@@ -1,5 +1,6 @@
 import { RequestError, type PromptResponse } from "@agentclientprotocol/sdk";
 import { MspError, type TurnOutcome } from "@muse-code/sdk";
+import { upstreamFixHint } from "./upstream-fixes.js";
 
 export interface FailureObservation {
   source: "host" | "provider" | "transport" | "adapter";
@@ -54,7 +55,8 @@ export function failureError(
   env: Record<string, string | undefined> = {},
 ): RequestError {
   const failure = observation(safeDiagnostic(kind, env), retryable);
-  const detail = `Muse SDK turn failed: ${safeDiagnostic(message, env)}. ${failure.recovery}`;
+  const hint = upstreamFixHint(message);
+  const detail = `Muse SDK turn failed: ${safeDiagnostic(message, env)}. ${failure.recovery}${hint ? ` ${hint}` : ""}`;
   return kind === "authRequired"
     ? RequestError.authRequired({ failure }, detail)
     : RequestError.internalError({ failure }, detail);
