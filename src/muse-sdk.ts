@@ -898,6 +898,9 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
           } else if (next) {
             activity = true;
             known.add(next);
+            // The finished work's terminal card goes out before the turn that
+            // reports it; the host otherwise sends it on its next 100 ms tick.
+            await owner.flushTaskUpdates();
             adoptTurn(next);
             const outcome = await runTurn(session.turn(next));
             owner.retainProgress(next, translator);

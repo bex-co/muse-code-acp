@@ -201,10 +201,24 @@ describe("held prompt", () => {
     expect(f.text(f.beforeResolve())).toContain("reported workflow completed");
   });
 
-  it("adopts a reporting turn that starts the moment the foreground turn ends", async () => {
+  it("reports finished work's card before the turn that reports it, however soon it starts", async () => {
     const f = await held("workflow", { env: { FAKE_MSP_WAKE_MS: "0", FAKE_MSP_WAKE_GAP_MS: "0" } });
     await expect(f.prompt()).resolves.toEqual({ stopReason: "end_turn" });
-    expect(f.text(f.beforeResolve())).toContain("reported workflow completed");
+    const before = f.beforeResolve();
+    const finished = before.findIndex(
+      ({ update }) =>
+        update.sessionUpdate === "tool_call_update" &&
+        String(update.toolCallId).startsWith("workflow-call-") &&
+        update.status === "completed",
+    );
+    const report = before.findIndex(
+      ({ update }) =>
+        update.sessionUpdate === "agent_message_chunk" &&
+        update.content.type === "text" &&
+        update.content.text.includes("reported workflow completed"),
+    );
+    expect(finished).toBeGreaterThanOrEqual(0);
+    expect(report).toBeGreaterThan(finished);
   });
 
   it("resolves after the settle window when finished work wakes no turn", async () => {
