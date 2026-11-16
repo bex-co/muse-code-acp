@@ -169,7 +169,7 @@ describe("held prompt", () => {
     expect(
       before.some(
         ({ update }) =>
-          update.sessionUpdate === "tool_call_update" &&
+          (update.sessionUpdate === "tool_call" || update.sessionUpdate === "tool_call_update") &&
           update.toolCallId === "workflow-call-" + firstTurn(f.requests()) &&
           update.status === "completed",
       ),
@@ -212,9 +212,10 @@ describe("held prompt", () => {
     const f = await held("workflow", { env: { FAKE_MSP_WAKE_MS: "0", FAKE_MSP_WAKE_GAP_MS: "0" } });
     await expect(f.prompt()).resolves.toEqual({ stopReason: "end_turn" });
     const before = f.beforeResolve();
+    // Under load the first card the client sees may already be the terminal one.
     const finished = before.findIndex(
       ({ update }) =>
-        update.sessionUpdate === "tool_call_update" &&
+        (update.sessionUpdate === "tool_call" || update.sessionUpdate === "tool_call_update") &&
         String(update.toolCallId).startsWith("workflow-call-") &&
         update.status === "completed",
     );
