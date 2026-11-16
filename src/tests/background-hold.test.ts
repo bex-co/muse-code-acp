@@ -193,6 +193,13 @@ describe("held prompt", () => {
     expect(f.cards("workflow").filter((c) => c.status === "completed")).toHaveLength(2);
   });
 
+  it("streams the reporting turn's first text when it arrives with its message", async () => {
+    // The hold adopts the turn first; its message and first delta then arrive in one read.
+    const f = await held("workflow", { env: { FAKE_MSP_WAKE_STREAM_MS: "150" } });
+    await expect(f.prompt()).resolves.toEqual({ stopReason: "end_turn" });
+    expect(f.text(f.beforeResolve())).toContain("reported workflow completed");
+  });
+
   it("covers the wake gap: a reporting turn that starts late inside the settle window", async () => {
     const f = await held("workflow", {
       env: { FAKE_MSP_WAKE_GAP_MS: "200", MUSE_CODE_ACP_WAKE_SETTLE_MS: "1000" },

@@ -318,6 +318,7 @@ const wakeScenario = process.env.FAKE_MSP_WAKE ?? "workflow";
 const wakeAfterMs = Number(process.env.FAKE_MSP_WAKE_MS ?? 300);
 const wakeGapMs = Number(process.env.FAKE_MSP_WAKE_GAP_MS ?? 50);
 const runningWork = new Map();
+const streamedText = new Map();
 let wakes = 0;
 
 function startWork(ownerTurn) {
@@ -349,13 +350,23 @@ function finishWork(item, status) {
 function wake(item, status) {
   wakes += 1;
   turnId = `wake-${wakes}`;
-  const message = { itemId: `message-${turnId}`, turnId, kind: "agentMessage", revision: 1, status: "inProgress", text: "" };
   notify("turn/started", { turnId, commandId: turnId, sourceRange: { start: 0, end: 0 } });
+  // FAKE_MSP_WAKE_STREAM_MS: the reporting turn's message and its first text
+  // arrive together, this long after the turn started.
+  const streamMs = Number(process.env.FAKE_MSP_WAKE_STREAM_MS ?? 0);
+  if (streamMs) setTimeout(() => report(item, status), streamMs);
+  else report(item, status);
+}
+
+function report(item, status) {
+  const message = { itemId: `message-${turnId}`, turnId, kind: "agentMessage", revision: 1, status: "inProgress", text: "" };
   notify("item/started", { item: message });
   const text = `reported ${item.kind} ${status}`;
   notify("item/delta", { itemId: message.itemId, delta: text });
   if (wakeScenario === "approval" && wakes === 1) {
-    // The reporting turn asks before it acts; approval/decide completes it.
+    // The reporting turn asks before it acts; approval/decide completes it
+    // with the text it streamed, as Muse does.
+    streamedText.set(turnId, text);
     const approval = approvalParams("apr-wake", "bash", "wake-call", JSON.stringify({ command: "git push", description: "Push the result" }));
     pendingApprovals.set("apr-wake", approval);
     notify("approval/requested", approval);
@@ -670,7 +681,7 @@ rl.on("line", async (line) => {
       }
       if (pendingApprovals.size === 0 && mode !== "block") {
         notify("item/completed", {
-          item: { itemId: `message-${turnId}`, turnId, kind: "agentMessage", revision: 2, status: "completed", text: "hello world" },
+          item: { itemId: `message-${turnId}`, turnId, kind: "agentMessage", revision: 2, status: "completed", text: streamedText.get(turnId) ?? "hello world" },
         });
         terminal("completed");
       }

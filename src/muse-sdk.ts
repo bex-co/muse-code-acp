@@ -683,7 +683,7 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
           if (userInputs.has(request.userInputId) || answeredUserInputs.has(request.userInputId)) {
             continue;
           }
-          if (!userInputs.track(request.userInputId, turnId!, generation)) {
+          if (!userInputs.track(request.userInputId, request.turnId, generation)) {
             continue;
           }
           answeredUserInputs.add(request.userInputId);
@@ -724,7 +724,7 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
               ),
               interactionsStopped,
             ]);
-            if (!response || !userInputs.isLive(request.userInputId, turnId!, generation)) {
+            if (!response || !userInputs.isLive(request.userInputId, request.turnId, generation)) {
               return;
             }
             await settleUserInput(connection, options.sessionId, request, response);
@@ -898,10 +898,12 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
           } else if (next) {
             activity = true;
             known.add(next);
+            // Not adoptTurn: the held prompt already owns the session's host
+            // requests, and a new generation would drop a decision in flight.
+            turnId = next;
             // The finished work's terminal card goes out before the turn that
             // reports it; the host otherwise sends it on its next 100 ms tick.
             await owner.flushTaskUpdates();
-            adoptTurn(next);
             const outcome = await runTurn(session.turn(next));
             owner.retainProgress(next, translator);
             quietSince = Date.now();
