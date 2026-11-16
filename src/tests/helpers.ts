@@ -24,6 +24,7 @@ import {
   supportsGoalControls,
   supportsSessionCommands,
   supportsTaskControls,
+  supportsBackgroundWakes,
 } from "../muse-host.js";
 
 const agents = new Set<MuseAcpAgent>();
@@ -63,6 +64,7 @@ const HOST_CAPABILITIES = {
   "goal-controls": supportsGoalControls,
   "session-commands": supportsSessionCommands,
   "task-controls": supportsTaskControls,
+  "background-wakes": supportsBackgroundWakes,
 };
 export type HostCapability = keyof typeof HOST_CAPABILITIES;
 

@@ -59,6 +59,15 @@ export function supportsTaskControls(version: string | null | undefined): boolea
 }
 
 /**
+ * Muse starts a host-owned turn to report a finished workflow or backgrounded
+ * command, and a held prompt (`muse/backgroundHold`) streams it. Verified on
+ * Muse 1.4.14-R7309.1 (w6/m434).
+ */
+export function supportsBackgroundWakes(version: string | null | undefined): boolean {
+  return atLeast(version, [1, 4, 14]);
+}
+
+/**
  * Whether `muse exec` accepts `--permission-profile` with the built-in
  * profiles: the flag must be in its help and the host at least 1.4.4.
  */

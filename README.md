@@ -214,16 +214,17 @@ Stored full tool output on Muse 1.2.1 is available to negotiated clients through
 
 ## ⚙️ Configuration
 
-| Variable                    | Meaning                                                                |
-| --------------------------- | ---------------------------------------------------------------------- |
-| `MUSE_CODE_EXECUTABLE`      | Path to the external Muse binary; takes precedence over PATH discovery |
-| `MUSE_CODE_ACP_BACKEND`     | `sdk` (default) or `exec`; unknown values fail at startup              |
-| `META_API_KEY`              | Provider credential; takes priority over stored auth                   |
-| `MUSE_CODE_ACP_ALLOW_YOLO`  | Opt in to exec yolo or separately selected SDK sandbox-off             |
-| `MUSE_AGENT_LOGS`           | Directory for adapter spawn/stderr logs                                |
-| `MUSE_CODE_ACP_STALL_MS`    | Stall bound for pending host requests, default `10000` (SDK backend)   |
-| `MUSE_CODE_ACP_GATEWAY_URL` | Explicit model gateway endpoint; requires `MUSE_CODE_ACP_GATEWAY_KEY`  |
-| `MUSE_CODE_ACP_GATEWAY_KEY` | Bearer token for that gateway; never persisted                         |
+| Variable                       | Meaning                                                                                                                              |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `MUSE_CODE_EXECUTABLE`         | Path to the external Muse binary; takes precedence over PATH discovery                                                               |
+| `MUSE_CODE_ACP_BACKEND`        | `sdk` (default) or `exec`; unknown values fail at startup                                                                            |
+| `META_API_KEY`                 | Provider credential; takes priority over stored auth                                                                                 |
+| `MUSE_CODE_ACP_ALLOW_YOLO`     | Opt in to exec yolo or separately selected SDK sandbox-off                                                                           |
+| `MUSE_AGENT_LOGS`              | Directory for adapter spawn/stderr logs                                                                                              |
+| `MUSE_CODE_ACP_STALL_MS`       | Stall bound for pending host requests, default `10000` (SDK backend)                                                                 |
+| `MUSE_CODE_ACP_WAKE_SETTLE_MS` | How long a [held prompt](docs/async-tasks.md#holding-the-prompt-for-background-work) waits for Muse's reporting turn, default `3000` |
+| `MUSE_CODE_ACP_GATEWAY_URL`    | Explicit model gateway endpoint; requires `MUSE_CODE_ACP_GATEWAY_KEY`                                                                |
+| `MUSE_CODE_ACP_GATEWAY_KEY`    | Bearer token for that gateway; never persisted                                                                                       |
 
 `muse-code-acp --cli login` and `muse-code-acp --cli logout` delegate to the selected Muse executable. Logout does not unset an exported `META_API_KEY`.
 

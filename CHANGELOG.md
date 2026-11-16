@@ -12,6 +12,8 @@
 
 - When Muse's reviewer hands a tool call to you, the permission prompt shows its reason (Muse 1.4.14+).
 
+- A prompt can wait for its background work. Clients that negotiate `muse/backgroundHold` get a `session/prompt` that resolves only after every workflow, working subagent and backgrounded command has finished, the turn Muse starts to report it has answered, and no approval or question is pending. That turn streams into the same prompt, approvals included, and `session/cancel` stops the workflows, the backgrounded commands and the reporting turn. Since Muse marks nothing between finished work and its reporting turn, the prompt waits up to `MUSE_CODE_ACP_WAKE_SETTLE_MS` (default 3 seconds) for that turn. Other clients are unaffected. Verified on Muse 1.4.14 ([docs](docs/async-tasks.md#holding-the-prompt-for-background-work)).
+
 ### Dependencies
 
 - Bump `@muse-code/sdk` from 1.4.12 to 1.4.14 (additive schema: computer-use approval data facts, tool work IDs, queued inputs on read; reviewer reasons, held tool calls, `earlierHistory` replay items and session provenance). Muse 1.4.14 hosts no longer log a schema-fingerprint warning. Muse 1.4.14-R7309.1 is verified, and CI's newest-host leg runs it.

@@ -309,6 +309,63 @@ function decideStaged(id, params, state) {
   });
 }
 
+// ---- Background work and the turns Muse starts to report it (w6/m434) -----
+// Shapes follow Muse 1.4.14-R7309.1: a workflow (or a backgrounded tool call)
+// outlives its turn; its terminal `item/completed` is followed, after a short
+// gap with nothing in between, by a host-owned turn that reports it.
+// FAKE_MSP_WAKE: workflow (default) | bash | chain | approval | silent | never.
+const wakeScenario = process.env.FAKE_MSP_WAKE ?? "workflow";
+const wakeAfterMs = Number(process.env.FAKE_MSP_WAKE_MS ?? 300);
+const wakeGapMs = Number(process.env.FAKE_MSP_WAKE_GAP_MS ?? 50);
+const runningWork = new Map();
+let wakes = 0;
+
+function startWork(ownerTurn) {
+  const bash = wakeScenario === "bash";
+  const item = bash
+    ? { itemId: `bash-${ownerTurn}`, callId: `bash-call-${ownerTurn}`, kind: "toolCall", tool: "bash", turnId: ownerTurn, revision: 1, status: "inProgress", args: JSON.stringify({ command: "make test", yield_time_ms: 1 }) }
+    : { itemId: `workflow-${ownerTurn}`, callId: `workflow-call-${ownerTurn}`, kind: "workflow", turnId: ownerTurn, revision: 1, status: "inProgress", workflowRunId: `run-${ownerTurn}`, fallbackText: "Workflow: fixture" };
+  runningWork.set(item.itemId, item);
+  notify("item/started", { item });
+  if (wakeScenario !== "never")
+    setTimeout(() => finishWork(item, "completed"), wakeAfterMs);
+}
+
+function finishWork(item, status) {
+  if (!runningWork.delete(item.itemId)) return;
+  notify("item/completed", {
+    item: {
+      ...item,
+      revision: 2,
+      status,
+      ...(item.kind === "workflow"
+        ? { result: { summary: `workflow ${status}`, artifactRefs: [], evidenceRefs: [] } }
+        : { visibleOutput: `bash ${status}` }),
+    },
+  });
+  if (wakeScenario !== "silent") setTimeout(() => wake(item, status), wakeGapMs);
+}
+
+function wake(item, status) {
+  wakes += 1;
+  turnId = `wake-${wakes}`;
+  const message = { itemId: `message-${turnId}`, turnId, kind: "agentMessage", revision: 1, status: "inProgress", text: "" };
+  notify("turn/started", { turnId, commandId: turnId, sourceRange: { start: 0, end: 0 } });
+  notify("item/started", { item: message });
+  const text = `reported ${item.kind} ${status}`;
+  notify("item/delta", { itemId: message.itemId, delta: text });
+  if (wakeScenario === "approval" && wakes === 1) {
+    // The reporting turn asks before it acts; approval/decide completes it.
+    const approval = approvalParams("apr-wake", "bash", "wake-call", JSON.stringify({ command: "git push", description: "Push the result" }));
+    pendingApprovals.set("apr-wake", approval);
+    notify("approval/requested", approval);
+    return;
+  }
+  if (wakeScenario === "chain" && wakes === 1) startWork(turnId);
+  notify("item/completed", { item: { ...message, revision: 2, status: "completed", text } });
+  terminal("completed");
+}
+
 const pendingApprovals = new Map();
 const stagedApprovals = new Map();
 const pendingUserInputs = new Map();
@@ -334,7 +391,13 @@ rl.on("line", async (line) => {
       if (barrier === "handshake") {
         await sleep(60_000);
       }
-      reply({ schema: { fingerprint: "fake-schema" }, sessionDurability: "durable" });
+      reply({
+        schema: { fingerprint: "fake-schema" },
+        sessionDurability: "durable",
+        ...(process.env.FAKE_MSP_SERVER_VERSION
+          ? { serverInfo: { name: "muse", version: process.env.FAKE_MSP_SERVER_VERSION } }
+          : {}),
+      });
       break;
     case "initialized":
       break;
@@ -535,6 +598,7 @@ rl.on("line", async (line) => {
       } else if (mode !== "block" && mode !== "approval" && mode !== "approvalSubmitFailure" && mode !== "approvalAllow" && mode !== "approvalDeny" && mode !== "concurrentApprovals" && mode !== "userInput" && mode !== "gapRecoverable") {
         if (mode === "nativeGoal")
           notify("session/goalChanged", { goal: { objective: "Native work", status: "active", percentComplete: 10 } });
+        if (mode === "backgroundWake") startWork(turnId);
         notify("item/completed", { item: { ...item, revision: 2, status: "completed", text: "hello world" } });
         terminal("completed");
         if (mode === "nativeGoal")
@@ -719,6 +783,18 @@ rl.on("line", async (line) => {
       reply({ status: "accepted", turnId });
       terminal("cancelled");
       break;
+    case "workflow/cancel":
+    case "task/stop": {
+      const target = [...runningWork.values()].find((item) =>
+        method === "workflow/cancel" ? item.workflowRunId === params.workflowRunId : item.itemId === params.taskId);
+      if (!target) {
+        write({ id, error: { code: -32040, message: `${method} rejected: missing_run`, data: { kind: "commandRejected", reason: "missing_run", retryable: false } } });
+        break;
+      }
+      reply({ status: "accepted", commandId: params.commandId });
+      finishWork(target, "cancelled");
+      break;
+    }
     case "plugin/list":
       reply({ plugins: [{ id: "fake-plugin", version: "1.0.0", enabled: true, source: "nativeLocal" }] });
       break;

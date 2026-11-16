@@ -5,6 +5,7 @@ import {
   type PromptResponse,
 } from "@agentclientprotocol/sdk";
 import type { AcpClient, MuseAgentOptions, SessionState } from "./agent-types.js";
+import { supportsBackgroundHold } from "./background-hold.js";
 import { resolvedModel } from "./config-options.js";
 import { fileReportRequest, supportsFileReport } from "./file-change-evidence.js";
 import type { GoalObservation } from "./goal-state.js";
@@ -304,6 +305,7 @@ export async function runSdkTurn(
       ? fileReportRequest(meta)
       : undefined,
     isCancelled: () => session.cancelRequested,
+    holdForBackground: supportsBackgroundHold(ctx.clientCapabilities),
     goal: command?.goal,
     hostCommand: command?.native && hostCommandFor(command.native),
     nativeName: session.pendingNativeName,

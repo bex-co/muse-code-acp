@@ -2,6 +2,7 @@ import { HOST_NOTICE_METHODS } from "./turn-notices.js";
 import { randomUUID } from "node:crypto";
 import { RequestError, type SessionNotification } from "@agentclientprotocol/sdk";
 import { sendTaskControl, taskActions, type TaskAction } from "./async-tasks.js";
+import { backgroundWork } from "./background-hold.js";
 import { isLegacyAutoReviewRefusal, LEGACY_AUTO_REVIEW_MESSAGE } from "./legacy-profile.js";
 import type { MuseSdkTranslator } from "./muse-sdk-events.js";
 import { foldedProgress, type ProgressFacts } from "./session-progress.js";
@@ -314,6 +315,38 @@ export class MuseSdkHost {
       });
     return sendTaskControl(connection, `task/${action}`, { sessionId, taskId: item.itemId });
   }
+  /**
+   * Cancel a held prompt's background work through the same public controls the
+   * task cards offer: `workflow/cancel` on running workflows and `task/stop` on
+   * running tool calls, where this host was verified to accept them. Refusals are
+   * not errors here: the item terminals report what actually stopped.
+   */
+  async stopBackgroundWork(): Promise<void> {
+    if (this.stopped || !this.lease) return;
+    const sessionId = this.options.sessionId;
+    const connection = this.lease.host.connection;
+    const controls = this.taskControls;
+    await Promise.all(
+      backgroundWork(this.lease.session.fold.items.list()).map((item) =>
+        (item.kind === "workflow" && item.workflowRunId && controls.has("cancel")
+          ? sendTaskControl(connection, "workflow/cancel", {
+              sessionId,
+              workflowRunId: item.workflowRunId,
+            })
+          : item.kind === "toolCall" && controls.has("stop")
+            ? sendTaskControl(connection, "task/stop", { sessionId, taskId: item.itemId })
+            : Promise.resolve()
+        ).catch(() => this.options.logger.log(`muse-sdk: could not stop ${item.kind} work`)),
+      ),
+    );
+  }
+
+  /** Translate the retained turns' items now and wait until their updates are delivered. */
+  async flushTaskUpdates(): Promise<void> {
+    this.observeTasks();
+    await this.taskDelivery;
+  }
+
   private observeTasks() {
     if (!this.lease?.session.fold.current || this.stopped) return;
     const store = this.lease.session.fold.items;

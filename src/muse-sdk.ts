@@ -16,7 +16,8 @@ import {
   RequestError,
   SessionNotification,
 } from "@agentclientprotocol/sdk";
-import { Connection, MspError, type FoldedItem } from "@muse-code/sdk";
+import { Connection, MspError, type FoldedItem, type Turn, type TurnOutcome } from "@muse-code/sdk";
+import { backgroundWork, launchedWorkers, quiescent, wakeSettleMs } from "./background-hold.js";
 import { realpathSync } from "node:fs";
 import type { AcpClient } from "./agent-types.js";
 import { sessionInfo, sessionInfoNotification } from "./session-discovery.js";
@@ -100,6 +101,12 @@ export interface MuseSdkOptions {
   nativeName?: string;
   /** Called with Muse's canonical name after `nativeName` is applied. */
   onNativeName?: (name: string) => void;
+  /**
+   * Negotiated `muse/backgroundHold`: after the foreground turn completes, keep
+   * the prompt open until the session's background work, and the host-owned
+   * turns that report it, have finished.
+   */
+  holdForBackground?: boolean;
 }
 
 export interface MuseSdkHandle {
@@ -244,6 +251,7 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
   let cancellationWon = false;
   let finished = false;
   let settled = false;
+  let holding = false;
   let stopInteractions!: () => void;
   const interactionsStopped = new Promise<null>((resolve) => {
     stopInteractions = () => resolve(null);
@@ -273,6 +281,18 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
     }
     cancellationWon = !operation.failure;
     cancelled = true;
+    if (holding && connection) {
+      // The held prompt owns the session's background work: stop it and the
+      // reporting turn, then let the hold observe them settle. Closing the host
+      // after the grace period is the backstop, as for a foreground cancel.
+      stopInteractions();
+      permissions.disposeAll();
+      userInputs.disposeAll();
+      void owner.stopBackgroundWork();
+      cancelHostTurn();
+      cancelTimer = setTimeout(() => void close(), 5_000);
+      return;
+    }
     if (!connection || !turnId) operation.fail(new SdkCancelled("Muse SDK startup cancelled"));
     stopInteractions();
     if (turnId) {
@@ -287,6 +307,18 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
     } else {
       void close();
     }
+  }
+
+  /** Cancel the host-owned turn a held prompt is waiting on, once per turn. */
+  const cancelledHostTurns = new Set<string>();
+  let activeHostTurn: () => string | undefined = () => undefined;
+  function cancelHostTurn(): void {
+    const active = activeHostTurn();
+    if (!connection || !active || cancelledHostTurns.has(active)) return;
+    cancelledHostTurns.add(active);
+    void connection
+      .command("turn/cancel", { sessionId: options.sessionId, turnId: active }, { maxAttempts: 1 })
+      .catch(() => options.logger.log("muse-sdk: Muse refused to cancel the reporting turn"));
   }
 
   const done = (async (): Promise<PromptResponse> => {
@@ -367,7 +399,9 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
         successful = true;
         return { stopReason: "end_turn" };
       }
-      let turn: ReturnType<typeof session.turn>;
+      // Turns that predate this prompt; any other turn after it is the prompt's.
+      const priorTurns = session.fold.turns().map((t) => t.turnId);
+      let turn: Turn;
       if (options.goal) {
         const { verb, objective } = options.goal;
         const goalState = () =>
@@ -451,7 +485,7 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
           return;
         }
         for (const held of session.fold.items.list()) {
-          if (held.turnId === turn.turnId) {
+          if (held.turnId === turnId) {
             emitItem(held);
             for (const field of session.fold.items
               .accumulatedFields(held.itemId)
@@ -467,6 +501,9 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
         }
       };
 
+      // A held prompt is the session's only foreground interaction, so it answers
+      // every host request the session raises, whichever turn raised it.
+      const owns = (requestTurnId: string | undefined) => holding || requestTurnId === turnId;
       const publishedApprovals = new Set<string>();
       const publishApprovalResults = () => {
         if (
@@ -477,7 +514,7 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
         )
           return;
         for (const approval of session.fold.resolvedApprovals()) {
-          if (approval.turnId !== turnId || publishedApprovals.has(approval.approvalId)) continue;
+          if (!owns(approval.turnId) || publishedApprovals.has(approval.approvalId)) continue;
           publishedApprovals.add(approval.approvalId);
           updates.push({
             sessionId: options.sessionId,
@@ -516,7 +553,7 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
         return session.fold
           .pendingApprovals()
           .map((pending) => pending as unknown as MusePendingApproval)
-          .filter((pending) => currentApprovalView(pending).turnId === turnId);
+          .filter((pending) => owns(currentApprovalView(pending).turnId));
       };
 
       const decideApproval = async (view: MuseApprovalRequest): Promise<void> => {
@@ -637,7 +674,7 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
             userInputId: string;
             turnId: string;
           };
-          if (request.turnId !== turnId) {
+          if (!owns(request.turnId)) {
             continue;
           }
           // `has` covers the round trip in progress; `answeredUserInputs`
@@ -730,7 +767,7 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
         }
         for (const pendingInput of session.fold.pendingUserInputs()) {
           const request = pendingInput as unknown as { userInputId: string; turnId: string };
-          if (request.turnId !== turnId) continue;
+          if (!owns(request.turnId)) continue;
           items.push({
             kind: "userInput",
             id: request.userInputId,
@@ -744,7 +781,7 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
         return items;
       };
       const checkPendingWork = (): void => {
-        if (cancelled || options.isCancelled?.() || settled || finished) {
+        if (cancelled || options.isCancelled?.() || (settled && !holding) || finished) {
           return;
         }
         const stalled = watchdog.check(pendingWork());
@@ -767,33 +804,49 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
         }
       };
 
-      // deltas() is live-only; catch up anything folded before the turn ack.
-      flushFold();
+      /** Stream one turn's items and deltas until Muse completes it. */
+      const runTurn = async (
+        current: Turn,
+        onCompleted: (outcome: TurnOutcome) => void = () => {},
+      ): Promise<TurnOutcome> => {
+        // deltas() is live-only; catch up anything folded before the turn ack.
+        flushFold();
+        let foldWasCurrent = session.fold.current;
+        const pumpItems = (async () => {
+          for await (const item of current.items()) {
+            await handlePendingUserInputs();
+            // Replay held items only when a gap fill restores currency.
+            if (!foldWasCurrent && session.fold.current) {
+              flushFold();
+            }
+            foldWasCurrent = session.fold.current;
+            emitItem(item);
+          }
+        })();
+        const pumpDeltas = (async () => {
+          for await (const delta of current.deltas()) {
+            if (!session.fold.current) {
+              continue;
+            }
+            for (const update of translator.fromDelta(delta)) {
+              updates.push(update);
+            }
+          }
+        })();
+        // Observe pump failures immediately, before waiting for turn completion.
+        void pumpItems.catch(failTurn);
+        void pumpDeltas.catch(failTurn);
+        const outcome = await operation.wait(current.completed);
+        onCompleted(outcome);
+        await Promise.all([pumpItems.catch(() => {}), pumpDeltas.catch(() => {})]);
+        // Flush any items that arrived only through gap fill after the last yield.
+        flushFold();
+        publishApprovalResults();
+        return outcome;
+      };
 
-      let foldWasCurrent = session.fold.current;
-      const pumpItems = (async () => {
-        for await (const item of turn.items()) {
-          await handlePendingUserInputs();
-          // Replay held items only when a gap fill restores currency.
-          if (!foldWasCurrent && session.fold.current) {
-            flushFold();
-          }
-          foldWasCurrent = session.fold.current;
-          emitItem(item);
-        }
-      })();
-      const pumpDeltas = (async () => {
-        for await (const delta of turn.deltas()) {
-          if (!session.fold.current) {
-            continue;
-          }
-          for (const update of translator.fromDelta(delta)) {
-            updates.push(update);
-          }
-        }
-      })();
       const pumpUserInput = (async () => {
-        while (!finished && !settled && !cancelled) {
+        while (!finished && (!settled || holding) && !cancelled) {
           reconcileApprovals();
           await handlePendingUserInputs();
           publishApprovalResults();
@@ -801,25 +854,94 @@ export function spawnMuseSdkTurn(options: MuseSdkOptions): MuseSdkHandle {
           await new Promise((resolve) => setTimeout(resolve, 25));
         }
       })();
-      // Observe pump failures immediately, before waiting for turn completion.
-      void pumpItems.catch(failTurn);
-      void pumpDeltas.catch(failTurn);
       void pumpUserInput.catch(failTurn);
+      const endInteractions = async () => {
+        holding = false;
+        watchdog.reset();
+        stopInteractions();
+        await pumpUserInput.catch(() => {});
+      };
 
-      const outcome = await operation.wait(turn.completed);
-      settled = true;
-      watchdog.reset();
-      stopInteractions();
-      await Promise.all([
-        pumpItems.catch(() => {}),
-        pumpDeltas.catch(() => {}),
-        pumpUserInput.catch(() => {}),
-      ]);
-      // Flush any items that arrived only through gap fill after the last yield.
-      flushFold();
-      publishApprovalResults();
+      /**
+       * The held prompt (`muse/backgroundHold`): wait until nothing runs and no
+       * host request is pending, adopting each host-owned turn Muse starts (the
+       * one that reports finished work, and any it chains) as part of this prompt.
+       */
+      const holdForBackground = async (foreground: PromptResponse): Promise<PromptResponse> => {
+        const fold = session.fold;
+        // Turns this prompt already ran or that predate it. A reporting turn can
+        // start and finish between two polls, or even before the foreground
+        // turn's last items are flushed, so new turns are found in the fold's
+        // turn list rather than by sampling `activeTurnId`.
+        const known = new Set([turnId!, ...priorTurns]);
+        const nextTurn = () => fold.turns().find((t) => !known.has(t.turnId))?.turnId;
+        activeHostTurn = () => fold.activeTurnId;
+        // Keep translating the turns' background items after their turn ended.
+        owner.retainProgress(turnId!, translator);
+        const settleMs = wakeSettleMs(options.env);
+        let response = foreground;
+        let activity =
+          backgroundWork(fold.items.list()).length > 0 ||
+          launchedWorkers(fold.items.list(), turnId!);
+        let quietSince = Date.now();
+        for (;;) {
+          const next = nextTurn();
+          if (cancelled || options.isCancelled?.()) {
+            // kill() asked Muse to stop the work and the reporting turn; one may
+            // still start for the cancelled work. The cancel timer bounds this.
+            if (next) known.add(next);
+            cancelHostTurn();
+            if (fold.activeTurnId === undefined && backgroundWork(fold.items.list()).length === 0) {
+              await owner.flushTaskUpdates();
+              return { stopReason: "cancelled" };
+            }
+          } else if (next) {
+            activity = true;
+            known.add(next);
+            adoptTurn(next);
+            const outcome = await runTurn(session.turn(next));
+            owner.retainProgress(next, translator);
+            quietSince = Date.now();
+            if (cancelled || options.isCancelled?.()) continue;
+            response = sdkTerminalResponse(outcome, options.env);
+            if (response.stopReason !== "end_turn") return response;
+            continue;
+          } else if (!quiescent(fold, known)) {
+            activity ||= backgroundWork(fold.items.list()).length > 0;
+            quietSince = Date.now();
+          } else if (!activity || Date.now() - quietSince >= settleMs) {
+            await owner.flushTaskUpdates();
+            return response;
+          }
+          await operation.wait(new Promise((resolve) => setTimeout(resolve, 25)));
+        }
+      };
+
+      const outcome = await runTurn(turn, (completed) => {
+        settled = true;
+        // Goal controls and native commands keep their own contract.
+        holding =
+          !!options.holdForBackground &&
+          !options.goal &&
+          !cancelled &&
+          !options.isCancelled?.() &&
+          completed.kind === "completed" &&
+          completed.params.terminal === "completed";
+        if (!holding) {
+          watchdog.reset();
+          stopInteractions();
+        }
+      });
+      if (!holding) await pumpUserInput.catch(() => {});
       await owner.observeSessionState();
-      const response = sdkTerminalResponse(outcome, options.env);
+      let response = sdkTerminalResponse(outcome, options.env);
+      if (holding) {
+        try {
+          response = await holdForBackground(response);
+        } finally {
+          await endInteractions();
+        }
+      }
       successful = response.stopReason === "end_turn";
       if (successful && turnId) owner.retainProgress(turnId, translator);
       const goal = parseGoalObservation(session.fold.sessionState.get("session/goalChanged")?.goal);

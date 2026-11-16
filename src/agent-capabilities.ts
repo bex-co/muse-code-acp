@@ -7,6 +7,7 @@ import packageJson from "../package.json" with { type: "json" };
 import type { MuseAgentOptions } from "./agent-types.js";
 import { ASYNC_TASKS, TASK_METHOD } from "./async-tasks.js";
 import { AUTH_EXTENSION, museAuthMethods } from "./auth.js";
+import { BACKGROUND_HOLD, supportsBackgroundHold, wakeSettleMs } from "./background-hold.js";
 import { PROVIDER_EXTENSION, RECOMMENDATION_EXTENSION } from "./client-provider.js";
 import { FILE_REPORT_CAPABILITIES, supportsFileReport } from "./file-change-evidence.js";
 import { probeSdkHost } from "./muse-host.js";
@@ -132,6 +133,14 @@ export function initializeResponse(
         : {}),
       ...(backend === "sdk" && supportsSteering(clientCapabilities)
         ? { [STEERING_CAPABILITY]: { version: 1, method: STEER_METHOD } }
+        : {}),
+      ...(backend === "sdk" && supportsBackgroundHold(clientCapabilities)
+        ? {
+            [BACKGROUND_HOLD]: {
+              version: 1,
+              wakeSettleMs: wakeSettleMs(options.env ?? process.env),
+            },
+          }
         : {}),
       ...(backend === "sdk" && clientCapabilities._meta?.[USAGE_EXTENSION] === 1
         ? { [USAGE_EXTENSION]: { version: 1, scope: "rootSession", cumulative: true } }
