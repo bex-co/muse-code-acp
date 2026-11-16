@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## [0.12.0](https://github.com/bex-co/muse-code-acp/compare/v0.11.0...v0.12.0) (2026-11-16)
+
 ### Features
 
 - Additional workspace directories: on Muse 1.4.13 or newer the adapter advertises ACP `additionalDirectories` for new, loaded, resumed and forked sessions and passes them to Muse as `workspaceRoots`. Muse enforces them with its workspace sandbox rules and grants them no Project Trust. Directories must be absolute and exist; a load or resume without them removes extra roots Muse kept. `/goal set` and `/goal resume` wait until a prompt has applied the current set. The exec backend and older hosts still refuse extra directories.
